@@ -1,11 +1,11 @@
 CXX = g++
 
-QUICKFLASH = $(HOME)/frameworks/QuickFlash-1.0.0
+QUICKFLASH  = $(HOME)/frameworks/QuickFlash-1.0.0
+FFTWpp      = ${HOME}/frameworks/fftw++-2.02
+HIGHFIVE    = ${HOME}/frameworks/HighFive/include/highfive
 
-FFTWpp = ${HOME}/frameworks/fftw++-2.02
-
-# CCFLAGS_HDF5 = -DH5_USE_16_API -I/usr/include/hdf5/mpich -I/usr/include/mpich
-# LDFLAGS_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/mpich -lhdf5
+CCFLAGS_HDF5 = -DH5_USE_16_API -I/usr/include/hdf5/mpich -I/usr/include/mpich
+LDFLAGS_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/mpich -lhdf5
 
 # includes
 CCFLAGS += -I$(QUICKFLASH)/include
@@ -29,16 +29,11 @@ CCFLAGS += -O3
 LDFLAGS += $(QUICKFLASH)/lib/libquickflash.so
 LDFLAGS += -lfftw3
 
-all : z-projection powerspectrum
-
 z-projection: src/z-projection.cpp
-	$(CXX) -o bin/z-projection src/z-projection.cpp $(CCFLAGS) $(LDFLAGS)
+	$(CXX) -o bin/$@ $< $(CCFLAGS) $(LDFLAGS)
 
 powerspectrum: src/powerspectrum.cpp
-	$(CXX) -o bin/powerspectrum ${FFTWpp}/fftw++.cc src/powerspectrum.cpp $(CCFLAGS) $(LDFLAGS)
+	$(CXX) -o bin/$@ $< ${FFTWpp}/fftw++.cc $(CCFLAGS) $(LDFLAGS)
 
-clean : clean-obj
-	rm -f $(BIN_FILES)
-
-clean-obj :
-	rm -f *.o
+qfl2hdf5: src/qfl2hdf5.cpp
+	$(CXX) -o bin/$@ $< -I${HIGHFIVE} $(CCFLAGS) ${LDFLAGS_HDF5} ${LDFLAGS}
