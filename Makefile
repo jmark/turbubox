@@ -29,11 +29,17 @@ CCFLAGS += -O3
 LDFLAGS += $(QUICKFLASH)/lib/libquickflash.so
 LDFLAGS += -lfftw3
 
-z-projection: src/z-projection.cpp
+SRC_DIR = src
+BIN_DIR = bin
+
+z-projection: $(BIN_DIR)/$@.cpp
+$(BIND_DIR)/z-projection.cpp : $(SRC_DIR)/z-projection.cpp
 	$(CXX) -o bin/$@ $< $(CCFLAGS) $(LDFLAGS)
 
-powerspectrum: src/powerspectrum.cpp
+powerspectrum: $(BIN_DIR)/$@.cpp
+$(BIN_DIR)powerspectrum: $(SRC_DIR)/powerspectrum.cpp
 	$(CXX) -o bin/$@ $< ${FFTWpp}/fftw++.cc $(CCFLAGS) $(LDFLAGS)
 
-qfl2hdf5: src/qfl2hdf5.cpp
+qfl2hdf5: $(BIN_DIR)/$@.cpp
+$(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
 	$(CXX) -o bin/$@ $< -I${HIGHFIVE} $(CCFLAGS) ${LDFLAGS_HDF5} ${LDFLAGS}
