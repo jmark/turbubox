@@ -1,1 +1,6 @@
-bin/
+examples/*
+bin/*
+doc/*
+*.[ao]
+*.pyc
+include/*

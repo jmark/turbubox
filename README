@@ -1,0 +1,288 @@
+QuickFlash - A data analysis library for Flash 2/3 data files.
+
+Version: 1.0.0
+
+Author: Nathan C. Hearn
+        nhearn@users.sourceforge.net
+
+Date: January 2, 2009
+
+
+Acknowledgments:
+  George C. Jordan - Testing and support
+  John Norris - Colormap legend routines for Magick++
+  Dean Townsley - Assistance in Flash3 adaptation
+
+  Major development of QuickFlash was supported by the ASC/Alliances
+  Center for Thermonuclear Flashes at the University of Chicago.
+
+
+> Registration
+
+If you find QuickFlash useful, please consider registering your name and 
+email address by sending them to nhearn@users.sourceforge.net.  Registration 
+information will be used only to determine the number of active users of 
+QuickFlash as proof of usage is essential to the continued development of this 
+library.
+
+
+> License
+
+Please see the COPYRIGHT and LICENSE files for information on the usage 
+license applicable to this release.
+
+
+> Introduction
+
+QuickFlash is an open-source C++ analysis library for Paramesh-structured 
+HDF5 data files produced by Flash, an Eulerian hydrodynamics code with 
+adaptive mesh refinement developed by the ASC/Alliances Center for 
+Astrophysical Thermonuclear Flashes (the "Flash Center") at the University 
+of Chicago.  QuickFlash provides high-performance data access and processing 
+routines for large, multi-dimensional datasets in environments where memory 
+and access to other software may be limited, such as on desktop computers 
+or parallel supercomputer nodes.
+
+The core of the QuickFlash library focuses on direct access to data
+stored in AMR blocks, as well as efficient means of locating the 
+desired data by spatial coordinates.  QuickFlash uses caches and read-ahead
+buffers to provide fast, on-demand loading of block data while limiting
+the demands on memory and disk access.  The API includes simple access
+functions to AMR tree information for the purpose of quickly locating
+block indexes, as well as for traversing the tree by branch and node.
+
+QuickFlash includes higher level functionality, including slicing, binning, 
+and isosurface construction routines.  When compiled with the optional
+ImageMagick C++ bindings (Magick++), QuickFlash can be used to generate
+images from data with continous, user-defined colormaps.  Example 
+applications provided with the library include slicing, raytracing,
+fractal boxcounting, and isosurface utilities.
+
+The QuickFlash library is released under Version 2 of the GNU General 
+Public License.  In short, this license gives you freedom to use, modify, and 
+distribute the software as you wish, as long as any distributed versions of 
+the code are offered under the same terms with prominant notices of any 
+modifications to the code.
+
+
+> Compiling QuickFlash
+
+The build system is a Python script (build.py) that performs the following 
+operations:
+
+   1. Generates a Makefile header (settings.make) that includes definitions 
+      for compiling the QuickFlash library and related programs
+
+   2. Builds the library in the src_lib directory
+
+   3. (Optional) Builds the QuickFlash Python bindings in the swig directory
+
+   4. Copies the library header files and object files to the installation 
+      directories
+
+Brief documentation about the various options for build.py can be found by 
+issuing the command:
+
+./build.py --help
+
+
+>> Configuring the Build System
+
+By default, the build.py script uses information in the machines.cfg file 
+to construct settings.make. A setup for a given build includes specifications 
+for the compiler and external libraries (such as HDF5). The machines.cfg 
+file can hold multiple setup specifications (called machine contexts), each 
+denoted by a label.
+
+A machine context is specified by starting with the label encased in brackets,
+as in
+
+[ my_context ]
+
+Spaces between the first bracket and the start of label and those between the 
+end of the label and the last bracket are ignored.  An optional description 
+can be added by placing a colon followed by the text after the context name, 
+such as
+
+[ my_context : my description ]
+
+In general, spaces are not recommended for use within the context name 
+string -- underscores or dashes work well as substitues -- but they are 
+welcome in the description text.
+
+Definitions follow the label, where each line begins with a keyword followed 
+by the definition associated with that keyword.  Mulitiple-line entries can 
+be constructed by placing a "backslash" character (\) at the end of each 
+line that is to be extended.  
+
+The line
+
+CXX g++
+
+assigns the value g++ to the symbol CXX.  The keyword and value will be 
+placed in the settings.make file using the same case.  The definition above 
+will yield the line
+
+CXX = g++
+
+in the settings.make file.  (NOTE: At this time, there is no guarantee that 
+entries in a machines.cfg context will have their order preserved when 
+settings.make is built.)  Comments can be added to machines.cfg by using 
+the comment character "#".  Any text between a "#" and the end of the line 
+is ignored.  Blank lines are also ignored in machines.cfg.
+
+Any desired definitions can be placed within the context, all of which will 
+be transferred to settings.make. (However, keywords may not contain spaces 
+or control characters.) In order to construct the QuickFlash library, the 
+following keywords must be defined:
+
+    * MAKE -- The name of the executable used for running makefiles (usually 
+        gmake or make)
+
+    * CXX -- The C++ compiler
+
+    * LD -- The linker (uses CXX setting by default)
+
+    * CCFLAGS -- Essential compilation flags
+
+    * LDFLAGS -- Essential linker flags
+
+    * CCFLAGS_SHARED -- Additional compilation flags when building shared 
+        libraries
+
+    * LDFLAGS_SHARED -- Additional linker flags when building shared libraries
+
+    * CCFLAGS_NOSHARED -- Additional compilation flags when not building 
+        shared libraries
+
+    * LDFLAGS_NOSHARED -- Additional linker flags when not building shared 
+        libraries
+
+    * SO_EXT -- Default system-specific extension used for shared libraries, 
+        without the leading period (usually "so" or "dylib")
+
+    * AR -- Name of the executable used for building static archives from 
+        object files (usually ar)
+
+    * ARFLAGS -- Flags used when building static archives
+
+    * RANLIB -- Name of the executable used for adding indexes to static 
+        archives (usually ranlib)
+
+    * CCFLAGS_HDF5 -- Additional compilation flags for the HDF5 library
+
+    * LDFLAGS_HDF5 -- Additional linker flags for the HDF5 library
+
+    * LIB_INSTALL_DIR -- Path to directory where the library include and lib 
+        directories will be installed -- not supported at this time
+
+Many of these keywords have default values; for any required keywords not 
+found in the machines.cfg file, the default will be used if it exists.
+
+
+>>> Build Settings for Python Bindings
+
+To build the Python bindings, the following additional keywords are needed:
+
+    * SWIG -- The name of the SWIG interface builder executable (usually 
+        swig); should be version 1.3.29 or later
+
+    * CCFLAGS_PYTHON -- Additional compiler flags when building Python 
+        packages (usually an include search path flag indicating the location 
+        of Python.h)
+
+    * LDFLAGS_PYTHON -- Additional compiler flags when building Python packages
+
+    * PYTHON_INSTALL_DIR -- Path to directory where the QuickFlash Python 
+        pakcage will be installed
+
+Some of these keywords also have defaults. Furthermore, the swig directory 
+contains pre-built versions of the output from SWIG (QuickFlash.py and 
+python_quickflash_wrap.cxx), and make will use them if they are recent enough; 
+thus, having the SWIG executable present may not be necessary to build the 
+Python bindings for QuickFlash.
+
+
+>>> Optional Components
+
+The %QuickFlash build system has support for optional code components
+for both the library and end user programs.  The <tt>USE_PACKAGE</tt>
+keyword in <tt>machines.cfg</tt> setups allows the user to specify
+codes for one or more optional components.  Placing the code 
+<tt>EXAMPLE_PKG</tt> in a setup via the line
+
+\verbatim
+USE_PACKAGE EXAMPLE_PKG
+\endverbatim
+
+will define the preprocessor variable <tt>USE_EXAMPLE_PKG</tt>
+to the C++ compiler flags.  The codes for multiple components should
+be separated by spaces, as in
+
+\verbatim
+USE_PACKAGE PKG1 PKG2
+\endverbatim
+
+Some of the supplied example applications have MPI support, which is 
+activated with
+
+\verbatim
+USE_PACKAGE MPI
+\endverbatim
+
+resulting in the preprocessor definition <tt>USE_MPI</tt>.
+
+
+>>> ImageMagick Functionality
+
+The QuickFlash library includes optional support for image output via the 
+ImageMagick C++ bindings (Magick++).  To activate image support, add the 
+code MAGICK to the USE_PACKAGE setting in machines.cfg.
+
+When using ImageMagick, QuickFlash will expect the following definitions to 
+be set in machines.cfg:
+
+    * CCFLAGS_MAGICK</tt> -- Compiler flags for finding the ImageMagick 
+        header files
+
+    * LDFLAGS_MAGICK</tt> -- Linker flags for binding to the ImageMagick 
+        library
+
+
+>> Using build.py
+
+The build.py script performs several tasks, which are controlled by the 
+command line flags that are provided. The most important are the following:
+
+    * --help -- This list of options
+
+    * --machine=context_name -- Specifies the name of the context in 
+        machines.cfg to be used; if this option is omitted, a new 
+        settings.make will not be generated, and an existing one will be 
+        used for building the library
+
+    * --machine-config=config_file -- Use a configuration file other than 
+        machines.cfg
+
+    * --machine-help -- Prints the names and descriptions of contexts defined 
+        in machines.cfg
+
+    * --screen-only -- Sends the contents of the generated settings.make 
+        file to standard output; does not build the library or change any files
+
+    * --enable-python -- Builds both the QuickFlash library and the Python 
+        bindings
+
+    * --python-only -- Build only the Python bindings; the C++ library must 
+        have already been built
+
+    * --clean -- Cleans the build directories; must be used with 
+        --enable-python to clean the swig directory
+
+    * --make-cmd=make_command -- Specifies the make command to be used; 
+        overrides the MAKE setting in machines.cfg
+
+    * --makefile-only -- Generates settings.make but does not build the library
+
+
+### END README
