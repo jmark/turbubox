@@ -1,6 +1,6 @@
 CXX = g++
 
-QUICKFLASH  = $(HOME)/frameworks/QuickFlash-1.0.0
+QUICKFLASH  = $(HOME)/frameworks/QuickFlash
 FFTWPP      = ${HOME}/frameworks/fftw++-2.02
 HIGHFIVE    = ${HOME}/frameworks/HighFive/include/highfive
 
@@ -14,7 +14,7 @@ CCFLAGS += -O3
 
 LDFLAGS_FFTW = -lfftw
 LDFLAGS_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/mpich -lhdf5
-LDFLAGS_QUFL = $(QUICKFLASH)/lib/libquickflash.so
+LDFLAGS_QUFL = $(QUICKFLASH)/bin/libquickflash.so
 
 SRC_DIR = src
 BIN_DIR = bin
