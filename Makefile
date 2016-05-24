@@ -5,35 +5,41 @@ FFTWpp      = ${HOME}/frameworks/fftw++-2.02
 HIGHFIVE    = ${HOME}/frameworks/HighFive/include/highfive
 
 CCFLAGS_HDF5 = -DH5_USE_16_API -I/usr/include/hdf5/mpich -I/usr/include/mpich
-LDFLAGS_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/mpich -lhdf5
+CCFLAGS_QUFL = -I$(QUICKFLASH)/include
 
-# includes
-CCFLAGS += -I$(QUICKFLASH)/include
-CCFLAGS += -I/usr/include/hdf5/mpich
-CCFLAGS += -I/usr/include/mpich
-CCFLAGS += -DH5_USE_16_API
-CCFLAGS += -std=c++0x
-CCFLAGS += -I${FFTWpp}
-
-# debug flags
-CCFLAGS += -W
+CCFLAGS += -std=c++11
 CCFLAGS += -Wall
-CCFLAGS += -Wno-unused-parameter
-#CCFLAGS += -g
-
-# opt flags
 CCFLAGS += -O3
-# CCFLAGS += -ftree-vectorize
-# CCFLAGS += -falign-loops=16
 
-LDFLAGS += $(QUICKFLASH)/lib/libquickflash.so
-LDFLAGS += -lfftw3
+#LDFLAGS_FFTW += -lfftw
+LDFLAGS_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/mpich -lhdf5
+LDFLAGS_QUFL = $(QUICKFLASH)/lib/libquickflash.so
 
 z-projection: src/z-projection.cpp
-	$(CXX) -o bin/$@ $< $(CCFLAGS) $(LDFLAGS)
+	$(CXX) -o bin/$@ $< \
+        $(CCFLAGS) \
+        $(LDFLAGS)
 
 powerspectrum: src/powerspectrum.cpp
-	$(CXX) -o bin/$@ $< ${FFTWpp}/fftw++.cc $(CCFLAGS) $(LDFLAGS)
+	$(CXX) -o bin/$@ $< \
+        ${FFTWpp}/fftw++.cc \
+        $(CCFLAGS) \
+        $(LDFLAGS)
+
+qfltest: src/qfltest.cpp
+	$(CXX) -o bin/$@ $< \
+        $(CCFLAGS) \
+        ${CCFLAGS_HDF5} \
+        ${LDFLAGS_HDF5} \
+        ${CCFLAGS_QUFL} \
+        ${LDFLAGS_QUFL}
 
 qfl2hdf5: src/qfl2hdf5.cpp
-	$(CXX) -o bin/$@ $< -I${HIGHFIVE} $(CCFLAGS) ${LDFLAGS_HDF5} ${LDFLAGS}
+	$(CXX) -o bin/$@ $< \
+        -I${FFTWpp} \
+        -I${HIGHFIVE} \
+        ${CCFLAGS} \
+        ${CCFLAGS_HDF5} \
+        ${LDFLAGS_HDF5} \
+        ${CCFLAGS_QUFL} \
+        ${LDFLAGS_QUFL}
