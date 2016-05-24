@@ -26,12 +26,12 @@ typedef unsigned int uint;
 typedef std::vector<double> dvec;
 
 double get_data(
-    const QuickFlash::File::Dataset &ds,
-    const uint &bindex,
-    const uint &cindex
+    const QuickFlash::File::Dataset *ds,
+    const uint bindex,
+    const uint cindex
 ) {
     dvec bdata;
-    ds.get_block_data(bindex, bdata);
+    ds->get_block_data(bindex, bdata);
     return bdata[cindex];
 }
 
@@ -83,13 +83,19 @@ int main(int argc, char * argv[])
 
     const uint nrDbs = argc - 3;
 
+    // use f*cking cache, otherwise it is f*cking slooow...
+    const uint buffer_size = 20; // in number of blocks
+    const uint cache_size = 20;  // in number of blocks
+
     // ---------------------------------------------------------------------- //
     // Open input file
-    const QuickFlash::File::DataFile dfile(qfla_file_name);
+    const QuickFlash::File::DataFile dfile(qfla_file_name, buffer_size );
 
     // Open output file
     HighFive::File h5file(hdf5_file_name,
-         HighFive::File::ReadWrite | HighFive::File::Create | HighFive::File::Truncate );
+          HighFive::File::ReadWrite 
+        | HighFive::File::Create 
+        | HighFive::File::Truncate );
 
     // ---------------------------------------------------------------------- //
     // Get mesh info
@@ -122,7 +128,7 @@ int main(int argc, char * argv[])
     const dvec &cvol = binfo.get_cell_width();
 
     // ---------------------------------------------------------------------- //
-    // Get number of cells (uniform grid) in all directions
+    // Get number of cells (assuming uniform grid) in all directions
 
     // Box Volume
     const dvec &bvol = meshinfo.get_volume_width();
@@ -137,12 +143,18 @@ int main(int argc, char * argv[])
     // ---------------------------------------------------------------------- //
     // Initialize arrays and databases
 
-    std::vector < Array::array3<double>* > arrs;
-    std::vector < const QuickFlash::File::Dataset* > dbs;
+    std::vector < Array::array3<double>* > arrv;
+    std::vector < const QuickFlash::File::Dataset* > dbsv;
 
-    for ( std::string &dbname : dbnames ) {
-        arrs.push_back( new Array::array3<double>(dims[0],dims[1],dims[2]) );
-         dbs.push_back( &dfile.get_dataset(dbname) );
+    for ( std::string &dbname : dbnames )
+    {
+        auto *arr = new Array::array3<double>(dims[0],dims[1],dims[2]);
+        auto &dbs = dfile.get_dataset(dbname);
+
+        dbs.set_cache_size( cache_size );
+
+        arrv.push_back(  arr );
+        dbsv.push_back( &dbs );
     }
 
     // ---------------------------------------------------------------------- //
@@ -167,8 +179,8 @@ int main(int argc, char * argv[])
                 meshinfo.get_cell_index(pos,bindex,cindex);
 
                 for ( uint I = 0; I < nrDbs; ++I ) {
-                    // DANGER: dbs[I] and arrs[I] could be invalid pointers!
-                    (*arrs[I])(i,j,k) = get_data(*dbs[I], bindex, cindex);
+                    // DANGER: dbsv[I] and arrv[I] could be invalid pointers!
+                    arrv[I]->operator()(i,j,k) = get_data(dbsv[I], bindex, cindex);
                 }
             }
         }
@@ -186,7 +198,7 @@ int main(int argc, char * argv[])
 
     // PAYLOAD
     for ( uint i = 0;  i < dbnames.size(); ++i )
-        write_ds(h5file, dbnames[i], *arrs[i] );
+        write_ds(h5file, dbnames[i], *arrv[i] );
 
     return 0;
 }

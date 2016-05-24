@@ -19,12 +19,12 @@ LDFLAGS_QUFL = $(QUICKFLASH)/bin/libquickflash.so
 SRC_DIR = src
 BIN_DIR = bin
 
-qfl2hdf5:       $(BIN_DIR)/qfl2hdf5.cpp
-z-projection:   $(BIN_DIR)/z-projection.cpp
-powerspectrum:  $(BIN_DIR)/powerspectrum.cpp
-qfltest:        $(BIN_DIR)/qfltest.cpp
+qfl2hdf5:       $(BIN_DIR)/qfl2hdf5
+z-projection:   $(BIN_DIR)/z-projection
+powerspectrum:  $(BIN_DIR)/powerspectrum
+qfltest:        $(BIN_DIR)/qfltest
 
-$(BIN_DIR)/qfl2hdf5.cpp: $(SRC_DIR)/qfl2hdf5.cpp
+$(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
 	$(CXX) -o $@ $< \
         -I${FFTWPP} \
         -I${HIGHFIVE} \
@@ -34,7 +34,7 @@ $(BIN_DIR)/qfl2hdf5.cpp: $(SRC_DIR)/qfl2hdf5.cpp
         ${CCFLAGS_QUFL} \
         ${LDFLAGS_QUFL}
 
-$(BIN_DIR)/z-projection.cpp: $(SRC_DIR)/z-projection.cpp
+$(BIN_DIR)/z-projection: $(SRC_DIR)/z-projection.cpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -43,13 +43,13 @@ $(BIN_DIR)/z-projection.cpp: $(SRC_DIR)/z-projection.cpp
         ${CCFLAGS_QUFL} \
         ${LDFLAGS_QUFL}
 
-$(BIN_DIR)/powerspectrum.cpp: $(SRC_DIR)/powerspectrum.cpp
+$(BIN_DIR)/powerspectrum: $(SRC_DIR)/powerspectrum.cpp
 	$(CXX) -o $@ $< \
         ${FFTWPP}/fftw++.cc \
         $(CCFLAGS) \
         $(LDFLAGS)
 
-$(BIN_DIR)/qfltest.cpp: $(SRC_DIR)/qfltest.cpp
+$(BIN_DIR)/qfltest: $(SRC_DIR)/qfltest.cpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         ${CCFLAGS_HDF5} \
