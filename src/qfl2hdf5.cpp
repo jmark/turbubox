@@ -165,7 +165,7 @@ int main(int argc, char * argv[])
     for (uint i = 0 ; i < dims[0] ; i++)
     {
         pos[0] = (i + 0.5)*cvol[0];
-        cerr << "x = " << i << endl;
+        //cerr << "x = " << i << endl;
 
         for (uint j = 0 ; j < dims[1] ; j++)
         {
