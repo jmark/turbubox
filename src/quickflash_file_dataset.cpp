@@ -22,7 +22,6 @@
 #include "quickflash_counters.hpp"
 #include "quickflash_file_flashdefs.hpp"
 
-
 // Class Dataset
 
 
@@ -211,21 +210,25 @@ void Dataset::report_cache_stats(bool report_if_unused) const
   }
 
 
-void Dataset::get_block_data(const unsigned int block_index, 
-			     std::vector<double> & data) const
-  {
+void Dataset::get_block_data (
+    const unsigned int block_index, 
+	std::vector<double> & data
+) const
+{
   // If data is in the cache, use it; otherwise get the data from the buffer
 
-  if (cache.data_present(block_index))
+    if (cache.data_present(block_index))
     {
-    data = cache[block_index];
-    cache_hits++;
+        data = cache[block_index];
+        cache_hits++;
+        //std::cerr << "block_index = " << block_index << " (using cache)" << std::endl;
     }
-  else
+    else
     {
-    // Get a pointer to the block
+        //std::cerr << "block_index = " << block_index << " (not using cache)" << std::endl;
+        // Get a pointer to the block
 
-    const double * block_ptr = get_buffer_block_ptr(block_index);
+        const double * block_ptr = get_buffer_block_ptr(block_index);
 
     // Copy the data -- correct for Fortran ordering
 
@@ -252,7 +255,6 @@ void Dataset::get_block_data(const unsigned int block_index,
       }
     }
   }
-
 
 void Dataset::reset_buffer_stats() const
   {

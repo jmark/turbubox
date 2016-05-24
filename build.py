@@ -17,7 +17,7 @@ make_cmd_default = "gmake"
 
 # QuickFlash C++ files
 
-quickflash_lib_dir = "src_lib"
+quickflash_lib_dir = "src"
 quickflash_swig_dir = "swig"
 
 
@@ -102,7 +102,7 @@ def build_lib(make_cmd=make_cmd_default,
         intall_path = "."
 
     include_path = install_path + "/include"
-    lib_path = install_path + "/lib"
+    lib_path = install_path + "/bin"
 
     python_path = python_install_prefix
 
@@ -125,13 +125,13 @@ def build_lib(make_cmd=make_cmd_default,
         if (static_only) :
             library_make_cmd += " " + library_file_name + ".a"
 
-        cmd = "cd src_lib ; " + library_make_cmd
+        cmd = "cd src ; " + library_make_cmd
         try_cmd(cmd, "Unable to build library")
 
-        cmd = "cp src_lib/*.hpp src_lib/*.tcc " + include_path + "/."
+        cmd = "cp src/*.hpp src/*.tcc " + include_path + "/."
         try_cmd(cmd, "Unable to copy library header files")
 
-        cmd = "cp src_lib/" + library_file_name + ".* " + lib_path + "/."
+        cmd = "cp src/" + library_file_name + ".* " + lib_path + "/."
 
         try_cmd(cmd, "Unable to copy library object files")
 

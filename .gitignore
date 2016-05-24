@@ -1,4 +1,6 @@
-examples
-bin
-config
-doc
+examples/*
+bin/*
+doc/*
+*.[ao]
+*.pyc
+include/*

@@ -448,24 +448,6 @@ MeshInfo::get_cell_index (
     cell_index = block_info.get_nearest_cell(position);
 }
 
-void
-MeshInfo::get_cell_index (
-    const std::vector<double> & position,
-	unsigned int & block_index,
-    unsigned int & cell_index) const
-{
-    if (!valid_mesh)
-        throw Except("No valid mesh defined", __FILE__, __LINE__);
-
-    const Tree::NodeData & node_data = get_node_data(position);
-
-    block_index = node_data.get_block_index();
-
-    const Block::BlockInfo & block_info = node_data.get_block_info();
-
-    cell_index = block_info.get_nearest_cell(position);
-}
-
 void MeshInfo::get_cell_index(const std::vector<double> & position,
 			      const unsigned int max_level,
 			      unsigned int & block_index,
