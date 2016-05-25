@@ -3,7 +3,8 @@
 SPATH="${BASH_SOURCE[0]}"
 PPATH="$(dirname "${BASH_SOURCE[0]}")"
 
-PARALLEL="~/frameworks/parallel/bin/parallel"
+#PARALLEL="~/frameworks/parallel/bin/parallel"
+PARALLEL="parallel"
 
 DIR="$1"
 
