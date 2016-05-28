@@ -52,7 +52,7 @@ void write_ds (
     const Array::array3<T> &arr
 ) {
     const HighFive::DataSpace Nxyz (arr.Nx()*arr.Ny()*arr.Nz());
-    double *data = &*arr;
+    T *data = &*arr;
     file.createDataSet<T>(dname, Nxyz).write( data );
 }
 
