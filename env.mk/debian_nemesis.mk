@@ -1,8 +1,8 @@
 CXX = g++
 
-QUICKFLASH  = $(HOME)/frameworks/QuickFlash
-FFTWPP      = ${HOME}/frameworks/fftw++-2.02
-HIGHFIVE    = ${HOME}/frameworks/HighFive/include/highfive
+QUICKFLASH  = ../../frameworks/quickflash
+FFTWPP      = ../../frameworks/fftw++-2.02
+HIGHFIVE    = ../../frameworks/HighFive/include/highfive
 
 CCFLAGS_HDF5 = -DH5_USE_16_API -I/usr/include/hdf5/mpich -I/usr/include/mpich
 CCFLAGS_QUFL = -I$(QUICKFLASH)/include

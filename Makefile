@@ -17,9 +17,10 @@ spectrum:       $(BIN_DIR)/spectrum
 
 $(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
 	$(CXX) -o $@ $< \
+        ${CCFLAGS} \
+        ${LDFLAGS} \
         -I${FFTWPP} \
         -I${HIGHFIVE} \
-        ${CCFLAGS} \
         ${CCFLAGS_HDF5} \
         ${LDFLAGS_HDF5} \
         ${CCFLAGS_QUFL} \
