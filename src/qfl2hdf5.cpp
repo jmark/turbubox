@@ -77,11 +77,9 @@ int main(int argc, char * argv[])
 
     std::vector<std::string> dbnames;
     while (argPtr < argc)
-    {
         dbnames.push_back(argv[argPtr++]);
-    }
 
-    const uint nrDbs = argc - 3;
+    const uint nrDbs = dbnames.size();
 
     // use f*cking cache, otherwise it is f*cking slooow...
     const uint buffer_size = 20; // in number of blocks
@@ -178,7 +176,8 @@ int main(int argc, char * argv[])
                 uint bindex, cindex;
                 meshinfo.get_cell_index(pos,bindex,cindex);
 
-                for ( uint I = 0; I < nrDbs; ++I ) {
+                for ( uint I = 0; I < nrDbs; ++I )
+                {
                     // DANGER: dbsv[I] and arrv[I] could be invalid pointers!
                     arrv[I]->operator()(i,j,k) = get_data(dbsv[I], bindex, cindex);
                 }
