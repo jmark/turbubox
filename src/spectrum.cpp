@@ -15,16 +15,6 @@
 typedef unsigned int uint;
 typedef std::vector<double> dvec;
 
-double norm3d (const double x, const double y, const double z)
-{
-    return std::sqrt( x*x + y*y + z*z );
-}
-
-double norm3d (const dvec & v)
-{
-    return std::sqrt( v[0]*v[0] + v[1]*v[1] + v[2]*v[2] );
-}
-
 template <typename T>
 void read_ds
 (
