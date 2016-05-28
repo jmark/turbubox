@@ -12,15 +12,6 @@
 # include "Array.h"
 # include "fftw++.h"
 
-using std::cout;
-using std::cerr;
-using std::endl;
-
-using namespace std;
-using namespace utils;
-using namespace Array;
-using namespace fftwpp;
-
 typedef unsigned int uint;
 typedef std::vector<double> dvec;
 
@@ -89,11 +80,12 @@ int main(int argc, char * argv[])
 
     if (argc < 4)
     {
-        cerr    << "Usage: " << argv[0] 
+        std::cerr
+                << "Usage: " << argv[0] 
                 << " <input file>" 
                 << " <output file>" 
                 << " <dbname> <dbname> ..." 
-                << endl;
+                << std::endl;
         return 1;
     }
 
@@ -106,17 +98,15 @@ int main(int argc, char * argv[])
         dbnames.push_back(argv[argPtr++]);
 
     // ---------------------------------------------------------------------- //
-    // Initialize arrays for FFTW++
-
-    // Open input file
+    // Open input and output files
     const HighFive::File infile(input_file_name, HighFive::File::ReadOnly);
     
-    // Open output file
     HighFive::File outfile(output_file_name, 
           HighFive::File::ReadWrite 
         | HighFive::File::Create 
         | HighFive::File::Truncate );
 
+    // ---------------------------------------------------------------------- //
     // META DATA
     std::vector<uint> dims(3);
     read_ds(infile,"DIMS",dims);
@@ -128,22 +118,25 @@ int main(int argc, char * argv[])
 
     write_ds(outfile, "DIMS" ,fdims);
 
+    // ---------------------------------------------------------------------- //
+    // compute fourier trafos and write to output file
+
     // fftw::maxthreads = get_max_threads();
-    fftw::maxthreads = 1;
+    fftwpp::fftw::maxthreads = 1;
 
     for ( std::string &dbname : dbnames )
     {
-        array3<double>  real        (dims[0],dims[1],dims[2]);
-        array3<Complex> fourier     (fdims[0],fdims[1],fdims[2]);
-        array3<double>  fourier_abs (fdims[0],fdims[1],fdims[2]);
-        array3<double>  fourier_arg (fdims[0],fdims[1],fdims[2]);
+        Array::array3<double>  real        (dims[0],dims[1],dims[2]);
+        Array::array3<Complex> fourier     (fdims[0],fdims[1],fdims[2]);
+        Array::array3<double>  fourier_abs (fdims[0],fdims[1],fdims[2]);
+        Array::array3<double>  fourier_arg (fdims[0],fdims[1],fdims[2]);
 
         read_ds(infile,dbname,real);
 
         // prepare process
-        rcfft3d fforward(dims[0],dims[1],dims[2],real,fourier);
+        fftwpp::rcfft3d fforward(dims[0],dims[1],dims[2],real,fourier);
 
-        // compute Fourier Spectra
+        // compute fourier spectra
         fforward.fft0Normalized(real,fourier);
 
         // compute abs and arg of fourier
@@ -155,7 +148,6 @@ int main(int argc, char * argv[])
             fourier_arg(i,j,k) = std::arg(fourier(i,j,k));
         }
 
-        // write results to output file
         write_ds(outfile, dbname + "_abs", fourier_abs);
         write_ds(outfile, dbname + "_arg", fourier_arg);
     }
