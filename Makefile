@@ -11,6 +11,7 @@ BIN_DIR = bin
 
 qfl2hdf5:                   $(BIN_DIR)/qfl2hdf5
 slice2d:                    $(BIN_DIR)/slice2d
+slice:						$(BIN_DIR)/slice
 powerspectrum:              $(BIN_DIR)/powerspectrum
 qfltest:                    $(BIN_DIR)/qfltest
 spectrum:                   $(BIN_DIR)/spectrum
@@ -38,6 +39,17 @@ $(BIN_DIR)/slice2d: $(SRC_DIR)/slice2d.cpp
         -I${HIGHFIVE} \
         ${CCFLAGS_HDF5} \
         ${LDFLAGS_HDF5}
+
+$(BIN_DIR)/slice: $(SRC_DIR)/slice.cpp
+	$(CXX) -o $@ $< \
+        $(CCFLAGS) \
+        $(LDFLAGS) \
+        -I${FFTWPP} \
+        -I${HIGHFIVE} \
+        ${CCFLAGS_HDF5} \
+        ${LDFLAGS_HDF5}
+
+
 
 $(BIN_DIR)/powerspectrum: $(SRC_DIR)/powerspectrum.cpp
 	$(CXX) -o $@ $< \

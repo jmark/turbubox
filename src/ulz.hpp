@@ -4,6 +4,7 @@
 # include "Array.h"
 
 typedef unsigned int uint;
+typedef std::vector<int> zvec;
 typedef std::vector<uint> nvec;
 typedef std::vector<double> dvec;
 

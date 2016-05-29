@@ -17,11 +17,11 @@
 void usage()
 {
     std::cerr
-        << " Usage: " << "slice2d" 
+        << " Usage: " << "slice" 
         << " <input file>" 
         << " <dsname> <dsname> ..." 
         << " @" 
-        << " <axis0> <axis1> <index>" 
+        << " x y z" 
         << std::endl;
 
     std::exit(1);
@@ -61,22 +61,6 @@ int main(int argc, char * argv[])
     // We need exactly three more arguments.
     if(argc - ++argPtr != 3) usage();
 
-    // vector with the axis information
-    nvec axis(3);
-    
-    // store the two variying dimensions/axes
-    axis[0] = std::stoul(argv[argPtr++]);
-    axis[1] = std::stoul(argv[argPtr++]);
-
-    if (axis[0] == axis[1]) die("axis0 and axis1 must not be the same!");
-    if (axis[0] > 2 || axis[1] > 2) die("axis 0 and axis1 must be within 0 and 2!");
-
-    // identify the constant dimension/axis
-    axis[2] = 0 + 1 + 2 - axis[0] - axis[1];
-
-    // store index for the constant dimension/axis
-    uint component = std::stoul(argv[argPtr++]);
-
     // ---------------------------------------------------------------------- //
     // Open input file
     const HighFive::File infile(input_file_name, HighFive::File::ReadOnly);
@@ -91,11 +75,37 @@ int main(int argc, char * argv[])
     read_ds(infile,"CELL_VOL",cvol);
     read_ds(infile,"MIN_BOUNDS",bmin);
 
-    if (component >= dims[axis[2]]) die("Component not within bounds of array!");
+	// bounds of indecs
+    nvec lower(3);
+    nvec upper(3);
+    
+	for (uint i = 0 ; i < 3 ; ++i)
+	{
+		const char *arg = argv[argPtr++];
+		if (*arg == '-')
+		{
+			lower[i] = 0;
+			upper[i] = dims[i];
+		}
+		else
+		{
+			try
+			{
+				const uint idx = std::stoul(arg);
+				lower[i] = idx;
+				upper[i] = idx+1;
 
+				if (upper[i] > dims[i]) 
+					die("Given index not within bounds of the box!");
+			}
+			catch (const std::exception& e) {
+				die("Could not parse a proper index number!");
+			}
+		}
+	}
+	
     // ---------------------------------------------------------------------- //
     // Initialize input arrays
-
     std::vector < Array::array3<double>* > arrv;
     
     for ( std::string &dbname : dbnames )
@@ -110,32 +120,34 @@ int main(int argc, char * argv[])
     nvec idx(3); // index vector
     dvec pos(3); // position vector
 
-    //TODO: map axis to axis0, axis1 and (constant) axis2
+	using std::cout;
+	using std::endl;
 
-    idx[axis[2]] = component;
+    for (idx[0] = lower[0] ; idx[0] < upper[0] ; ++idx[0])
+	{
+		for (idx[1] = lower[1] ; idx[1] < upper[1] ; ++idx[1])
+		{
+			for (idx[2] = lower[2] ; idx[2] < upper[2] ; ++idx[2])
+			{
+				indexToPosition(bmin,cvol,idx,pos);                
+			   
+				cout << "\t" << idx[0]; 
+				cout << "\t" << idx[1]; 
+				cout << "\t" << idx[2]; 
+							
+				cout << "\t" << pos[0]; 
+				cout << "\t" << pos[1]; 
+				cout << "\t" << pos[2]; 
 
-    for (idx[axis[0]] = 0 ; idx[axis[0]] < dims[axis[0]] ; ++idx[axis[0]])
-    {
-        using std::cout;
-        using std::endl;
-
-        for (idx[axis[1]] = 0 ; idx[axis[1]] < dims[axis[1]] ; ++idx[axis[1]])
-        {
-            indexToPosition(bmin,cvol,idx,pos);                
-           
-            cout << "\t" << idx[axis[0]]; 
-            cout << "\t" << idx[axis[1]]; 
-                        
-            cout << "\t" << pos[axis[0]]; 
-            cout << "\t" << pos[axis[1]]; 
-
-            for ( uint i = 0; i < nrDbs; ++i )
-                cout << "\t" << arrv[i]->operator()(idx[0],idx[1],idx[2]);
-            
-            cout << endl;
-        }
-        cout << endl;
-    }
+				for ( uint k = 0; k < nrDbs; ++k )
+					cout << "\t" << arrv[k]->operator()(idx[0],idx[1],idx[2]);
+				
+			cout << endl;
+			}
+		cout << endl;
+		}
+	cout << "";
+	}
 
     return 0;
 }
