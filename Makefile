@@ -4,7 +4,7 @@ include env.mk/$(shell hostname).mk
 CCFLAGS_FFTW += -DFFTWPP_SINGLE_THREAD
 
 # disable optimzations for faster compilation
-CCFLAGS += -O0
+#CCFLAGS += -O0
 
 SRC_DIR = src
 BIN_DIR = bin

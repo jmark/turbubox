@@ -21,7 +21,7 @@ void usage()
         << " <input file>" 
         << " <dsname> <dsname> ..." 
         << " @" 
-        << " x y z" 
+        << " (-|[0-9]+) (-|[0-9]+) (-|[0-9]+)" 
         << std::endl;
 
     std::exit(1);
