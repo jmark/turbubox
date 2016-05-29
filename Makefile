@@ -10,11 +10,14 @@ SRC_DIR = src
 BIN_DIR = bin
 
 qfl2hdf5:                   $(BIN_DIR)/qfl2hdf5
-z-projection:               $(BIN_DIR)/z-projection
+slice2d:                    $(BIN_DIR)/slice2d
 powerspectrum:              $(BIN_DIR)/powerspectrum
 qfltest:                    $(BIN_DIR)/qfltest
 spectrum:                   $(BIN_DIR)/spectrum
 spherical-shell-spectrum:   $(BIN_DIR)/spherical-shell-spectrum
+
+clean:
+	@rm -vf bin/* 
 
 $(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
 	$(CXX) -o $@ $< \
@@ -27,14 +30,14 @@ $(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
         ${CCFLAGS_QUFL} \
         ${LDFLAGS_QUFL}
 
-$(BIN_DIR)/z-projection: $(SRC_DIR)/z-projection.cpp
+$(BIN_DIR)/slice2d: $(SRC_DIR)/slice2d.cpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
+        -I${FFTWPP} \
+        -I${HIGHFIVE} \
         ${CCFLAGS_HDF5} \
-        ${LDFLAGS_HDF5} \
-        ${CCFLAGS_QUFL} \
-        ${LDFLAGS_QUFL}
+        ${LDFLAGS_HDF5}
 
 $(BIN_DIR)/powerspectrum: $(SRC_DIR)/powerspectrum.cpp
 	$(CXX) -o $@ $< \
