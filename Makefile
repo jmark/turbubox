@@ -14,6 +14,8 @@ slice:						$(BIN_DIR)/slice
 spectrum:                   $(BIN_DIR)/spectrum
 powerspectrum:              $(BIN_DIR)/powerspectrum
 spherical-shell-spectrum:   $(BIN_DIR)/spherical-shell-spectrum
+root-mean-square:           $(BIN_DIR)/root-mean-square
+box-average:                $(BIN_DIR)/box-average
 
 clean:
 	@rm -vf bin/* 
@@ -70,3 +72,21 @@ $(BIN_DIR)/spherical-shell-spectrum: $(SRC_DIR)/spherical-shell-spectrum.cpp
         ${CCFLAGS_HDF5} \
         ${LDFLAGS_HDF5} \
 		$(LDFLAGS_FFTW)
+
+$(BIN_DIR)/box-average: $(SRC_DIR)/box-average.cpp
+	$(CXX) -o $@ $< \
+        $(CCFLAGS) \
+        $(LDFLAGS) \
+        -I${FFTWPP} \
+        -I${HIGHFIVE} \
+        ${CCFLAGS_HDF5} \
+        ${LDFLAGS_HDF5}
+
+$(BIN_DIR)/root-mean-square: $(SRC_DIR)/root-mean-square.cpp
+	$(CXX) -o $@ $< \
+        $(CCFLAGS) \
+        $(LDFLAGS) \
+        -I${FFTWPP} \
+        -I${HIGHFIVE} \
+        ${CCFLAGS_HDF5} \
+        ${LDFLAGS_HDF5}
