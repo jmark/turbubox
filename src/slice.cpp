@@ -78,6 +78,7 @@ int main(int argc, char * argv[])
 	// bounds of indecs
     nvec lower(3);
     nvec upper(3);
+    std::vector<bool> axis(3,false); // false -> const, true -> variable
     
 	for (uint i = 0 ; i < 3 ; ++i)
 	{
@@ -86,6 +87,7 @@ int main(int argc, char * argv[])
 		{
 			lower[i] = 0;
 			upper[i] = dims[i];
+            axis[i]  = true;
 		}
 		else
 		{
@@ -125,28 +127,37 @@ int main(int argc, char * argv[])
 
     for (idx[0] = lower[0] ; idx[0] < upper[0] ; ++idx[0])
 	{
-		for (idx[1] = lower[1] ; idx[1] < upper[1] ; ++idx[1])
-		{
-			for (idx[2] = lower[2] ; idx[2] < upper[2] ; ++idx[2])
-			{
-				indexToPosition(bmin,cvol,idx,pos);                
-			   
-				cout << "\t" << idx[0]; 
-				cout << "\t" << idx[1]; 
-				cout << "\t" << idx[2]; 
-							
-				cout << "\t" << pos[0]; 
-				cout << "\t" << pos[1]; 
-				cout << "\t" << pos[2]; 
+    for (idx[1] = lower[1] ; idx[1] < upper[1] ; ++idx[1])
+    {
+    for (idx[2] = lower[2] ; idx[2] < upper[2] ; ++idx[2])
+    {
+        indexToPosition(bmin,cvol,idx,pos);                
+       
+        cout << idx[0];
+        cout << "\t"; 
+        cout << idx[1]; 
+        cout << "\t"; 
+        cout << idx[2]; 
+        cout << "\t"; 
+                      
+        cout << pos[0]; 
+        cout << "\t"; 
+        cout << pos[1]; 
+        cout << "\t"; 
+        cout << pos[2]; 
+        cout << "\t"; 
 
-				for ( uint k = 0; k < nrDbs; ++k )
-					cout << "\t" << arrv[k]->operator()(idx[0],idx[1],idx[2]);
-				
-			cout << endl;
-			}
-		cout << endl;
-		}
-	cout << "";
+        for ( uint k = 0; k < nrDbs; ++k )
+        {
+            cout << arrv[k]->operator()(idx[0],idx[1],idx[2]);
+            cout << "\t"; 
+        }
+        
+    if (axis[2]) cout << endl;
+    }
+    if (axis[1]) cout << endl;
+    }
+	if (axis[0]) cout << endl;
 	}
 
     return 0;

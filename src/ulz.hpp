@@ -44,6 +44,27 @@ void read_ds (
     arr = tmp.data();
 }
 
+template <typename T>
+void write_ds (
+    HighFive::File &file,
+    const std::string &dname,
+    const std::vector<T> &vec
+) {
+    file.createDataSet<T>(dname, HighFive::DataSpace::From(vec))
+        .write(const_cast<std::vector<T>&>(vec));
+}
+
+template <typename T>
+void write_ds (
+    HighFive::File &file,
+    const std::string &dname,
+    const Array::array3<T> &arr
+) {
+    const HighFive::DataSpace Nxyz (arr.Nx()*arr.Ny()*arr.Nz());
+    T *data = &*arr;
+    file.createDataSet<T>(dname, Nxyz).write( data );
+}
+
 void indexToPosition (
     const dvec &bmin, 
     const dvec &cvol, 

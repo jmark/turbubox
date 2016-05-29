@@ -65,25 +65,22 @@ int main(int argc, char * argv[])
     // ---------------------------------------------------------------------- //
     // Calculate spherical shell cummulants
 
-    for (uint i = 0 ; i < dims[0] ; i++)
+    nvec idx(3); // index vector
+    dvec pos(3); // position vector
+
+    for (idx[0] = 0 ; idx[0] < dims[0] ; ++idx[0])
+    for (idx[1] = 0 ; idx[1] < dims[1] ; ++idx[1])
+    for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
     {
-        for (uint j = 0 ; j < dims[1] ; j++)
+        for ( uint i = 0; i < nrDbs; ++i )
         {
-            for (uint k = 0 ; k < dims[2] ; k++)
-            {
-                for ( uint I = 0; I < nrDbs; ++I )
-                {
-                    const double tmp = arrv[I]->operator()(i,j,k);
-                    AVG[I] += tmp/NNN;
-                }
-            }
+            const double tmp = arrv[i]->operator()(idx[0],idx[1],idx[2]);
+            AVG[i] += tmp/NNN;
         }
     }
 
     for ( uint I = 0; I < nrDbs; ++I )
-    {
         std::cout << AVG[I] << "\t";
-    }
 
     std::cout << std::endl;
 

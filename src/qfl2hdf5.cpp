@@ -18,14 +18,9 @@
 # include <unistd.h>
 # include <libgen.h>
 
-using std::cout;
-using std::cerr;
-using std::endl;
+# include "ulz.hpp"
 
-typedef unsigned int uint;
-typedef std::vector<double> dvec;
-
-double get_data(
+double get_block_data_point (
     const QuickFlash::File::Dataset *ds,
     const uint bindex,
     const uint cindex
@@ -35,27 +30,6 @@ double get_data(
     return bdata[cindex];
 }
 
-template <typename T>
-void write_ds (
-    HighFive::File &file,
-    const std::string &dname,
-    const std::vector<T> &vec
-) {
-    file.createDataSet<T>(dname, HighFive::DataSpace::From(vec))
-        .write(const_cast<std::vector<T>&>(vec));
-}
-
-template <typename T>
-void write_ds (
-    HighFive::File &file,
-    const std::string &dname,
-    const Array::array3<T> &arr
-) {
-    const HighFive::DataSpace Nxyz (arr.Nx()*arr.Ny()*arr.Nz());
-    T *data = &*arr;
-    file.createDataSet<T>(dname, Nxyz).write( data );
-}
-
 int main(int argc, char * argv[])
 {
     // ---------------------------------------------------------------------- //
@@ -63,11 +37,12 @@ int main(int argc, char * argv[])
 
     if (argc < 4)
     {
-        cerr    << "Usage: " << argv[0] 
+        std::cerr    
+                << "Usage: " << argv[0] 
                 << " <input file>" 
                 << " <output file>" 
                 << " <dbname> <dbname> ..." 
-                << endl;
+                << std::endl;
         return 1;
     }
 
@@ -158,30 +133,21 @@ int main(int argc, char * argv[])
     // ---------------------------------------------------------------------- //
     // Fill up arrays
 
-    dvec pos(3);
+    nvec idx(3); // index vector
+    dvec pos(3); // position vector
 
-    for (uint i = 0 ; i < dims[0] ; i++)
+    for (idx[0] = 0 ; idx[0] < dims[0] ; ++idx[0])
+    for (idx[1] = 0 ; idx[1] < dims[1] ; ++idx[1])
+    for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
     {
-        pos[0] = (i + 0.5)*cvol[0];
-        //cerr << "x = " << i << endl;
+        indexToPosition(bmin,cvol,idx,pos);                
+        uint bindex, cindex;
+        meshinfo.get_cell_index(pos,bindex,cindex);
 
-        for (uint j = 0 ; j < dims[1] ; j++)
+        for ( uint i = 0; i < nrDbs; ++i )
         {
-            pos[1] = (j + 0.5)*cvol[1];
-
-            for (uint k = 0 ; k < dims[2] ; k++)
-            {
-                pos[2] = (k + 0.5)*cvol[2];
-
-                uint bindex, cindex;
-                meshinfo.get_cell_index(pos,bindex,cindex);
-
-                for ( uint I = 0; I < nrDbs; ++I )
-                {
-                    // DANGER: dbsv[I] and arrv[I] could be invalid pointers!
-                    arrv[I]->operator()(i,j,k) = get_data(dbsv[I], bindex, cindex);
-                }
-            }
+            arrv[i]->operator()(idx[0],idx[1],idx[2]) 
+                = get_block_data_point(dbsv[i], bindex, cindex);
         }
     }
 
