@@ -25,6 +25,7 @@ powerspectrum:              $(BIN_DIR)/powerspectrum
 spherical-shell-spectrum:   $(BIN_DIR)/spherical-shell-spectrum
 root-mean-square:           $(BIN_DIR)/root-mean-square
 box-average:                $(BIN_DIR)/box-average
+time-evolution:             $(BIN_DIR)/time-evolution
 
 clean:
 	@rm -vf bin/* 
@@ -83,6 +84,15 @@ $(BIN_DIR)/spherical-shell-spectrum: $(SRC_DIR)/spherical-shell-spectrum.cpp
 		$(LDFLAGS_FFTW)
 
 $(BIN_DIR)/box-average: $(SRC_DIR)/box-average.cpp
+	$(CXX) -o $@ $< \
+        $(CCFLAGS) \
+        $(LDFLAGS) \
+        -I${FFTWPP} \
+        -I${HIGHFIVE} \
+        ${CCFLAGS_HDF5} \
+        ${LDFLAGS_HDF5}
+
+$(BIN_DIR)/time-evolution: $(SRC_DIR)/time-evolution.cpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
