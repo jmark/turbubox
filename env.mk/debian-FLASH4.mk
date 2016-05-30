@@ -1,3 +1,5 @@
+MAKEFLAGS += --jobs=6
+
 CXX = g++
 
 QUICKFLASH  = $(shell realpath ../../frameworks/quickflash)
