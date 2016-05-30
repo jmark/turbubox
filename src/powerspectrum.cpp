@@ -65,6 +65,8 @@ int main(int argc, char * argv[])
                 << "Usage: " << argv[0] 
                 << " <input file>" 
                 << " <dbname> <dbname> ..." 
+                << std::endl
+                << " Note: K*K (<dbname>**2 + <dbname>**2 + ...)"
                 << std::endl;
         return 1;
     }

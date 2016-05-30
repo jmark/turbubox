@@ -9,6 +9,15 @@ CCFLAGS_FFTW += -DFFTWPP_SINGLE_THREAD
 SRC_DIR = src
 BIN_DIR = bin
 
+all: \
+	qfl2hdf5 \
+	slice \
+	spectrum \
+	powerspectrum \
+	spherical-shell-spectrum \
+	root-mean-square \
+	box-average
+
 qfl2hdf5:                   $(BIN_DIR)/qfl2hdf5
 slice:						$(BIN_DIR)/slice
 spectrum:                   $(BIN_DIR)/spectrum
