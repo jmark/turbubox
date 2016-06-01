@@ -8,6 +8,16 @@ typedef std::vector<int> zvec;
 typedef std::vector<uint> nvec;
 typedef std::vector<double> dvec;
 
+// I would like to use this struct, but we stick to a
+// 2D vector<double> for now.
+//
+// typedef struct {
+//     double time;
+//     double time_step;
+//     // double step_count;
+//     
+// } SimInfo;
+
 double norm3d (const double x, const double y, const double z)
 {
     return std::sqrt( x*x + y*y + z*z );

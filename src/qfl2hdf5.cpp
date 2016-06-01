@@ -4,6 +4,8 @@
 # include <stdlib.h>
 # include <cmath>
 
+# include "ulz.hpp"
+
 # include "H5File.hpp"
 # include "H5DataSet.hpp"
 # include "H5DataSpace.hpp"
@@ -17,8 +19,6 @@
 
 # include <unistd.h>
 # include <libgen.h>
-
-# include "ulz.hpp"
 
 double get_block_data_point (
     const QuickFlash::File::Dataset *ds,
@@ -152,6 +152,14 @@ int main(int argc, char * argv[])
     }
 
     // ---------------------------------------------------------------------- //
+    // Get some runtime metadata like time, time step, etc.
+    const QuickFlash::File::SimInfo &siminfo = dfile.get_sim_info();
+    std::vector<double> siminfov(2);
+
+    siminfov[0] = siminfo.get_sim_time();
+    siminfov[1] = siminfo.get_sim_dt();
+
+    // ---------------------------------------------------------------------- //
     // write to HDF5 file
 
     // META DATA
@@ -160,6 +168,7 @@ int main(int argc, char * argv[])
     write_ds(h5file, "BOX_VOL"    ,bvol);
     write_ds(h5file, "MIN_BOUNDS" ,bmin);
     write_ds(h5file, "MAX_BOUNDS" ,bmax);
+    write_ds(h5file, "SIM_INFO"   ,siminfov);
 
     // PAYLOAD
     for ( uint i = 0;  i < dbnames.size(); ++i )
