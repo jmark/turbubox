@@ -30,8 +30,23 @@ double get_block_data_point (
     return bdata[cindex];
 }
 
+template <typename T>
+void pretty_print(const std::vector<T> &v)
+{
+    using std::cerr;
+    using std::endl;
+
+    for (uint i = 0; i < 3; i++)
+        cerr << v[i] << " ";
+    cerr << "]" << endl;
+}
+
 int main(int argc, char * argv[])
 {
+    bool DEBUG = false;
+    if(std::getenv("DEBUG_QFL2HDF5"))
+        DEBUG = true;
+
     // ---------------------------------------------------------------------- //
     // Read in Commandline args
 
@@ -114,6 +129,30 @@ int main(int argc, char * argv[])
         };
 
     // ---------------------------------------------------------------------- //
+    // Debug output
+
+    if (DEBUG)
+    {
+        using std::cerr;
+
+        cerr << "Box Bimensions [ ";
+        pretty_print(dims);
+
+        cerr << "Box Min Bounds [ ";
+        pretty_print(bmin);
+
+        cerr << "Box Max Bounds [ ";
+        pretty_print(bmax);
+
+        cerr << "Box Volume     [ ";
+        pretty_print(bvol);
+
+        cerr << "Cell Volume    [ ";
+        pretty_print(cvol);
+    }
+
+
+    // ---------------------------------------------------------------------- //
     // Initialize arrays and databases
 
     std::vector < Array::array3<double>* > arrv;
@@ -136,18 +175,27 @@ int main(int argc, char * argv[])
     nvec idx(3); // index vector
     dvec pos(3); // position vector
 
-    for (idx[0] = 0 ; idx[0] < dims[0] ; ++idx[0])
-    for (idx[1] = 0 ; idx[1] < dims[1] ; ++idx[1])
-    for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
-    {
-        indexToPosition(bmin,cvol,idx,pos);                
-        uint bindex, cindex;
-        meshinfo.get_cell_index(pos,bindex,cindex);
+    if (DEBUG)
+        std::cerr << std::endl << "progress in i/x-direction: " << std::endl;
 
-        for ( uint i = 0; i < nrDbs; ++i )
+    for (idx[0] = 0 ; idx[0] < dims[0] ; ++idx[0])
+    {
+        if (DEBUG)
+            std::cerr << idx[0] << std::endl;
+        for (idx[1] = 0 ; idx[1] < dims[1] ; ++idx[1])
         {
-            arrv[i]->operator()(idx[0],idx[1],idx[2]) 
-                = get_block_data_point(dbsv[i], bindex, cindex);
+            for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
+            {
+                indexToPosition(bmin,cvol,idx,pos);                
+                uint bindex, cindex;
+                meshinfo.get_cell_index(pos,bindex,cindex);
+
+                for ( uint i = 0; i < nrDbs; ++i )
+                {
+                    arrv[i]->operator()(idx[0],idx[1],idx[2]) 
+                        = get_block_data_point(dbsv[i], bindex, cindex);
+                }
+            }
         }
     }
 
