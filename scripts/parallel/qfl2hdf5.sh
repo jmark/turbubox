@@ -1,27 +1,31 @@
 #!/usr/bin/env bash
 
-SPATH="${BASH_SOURCE[0]}"
-PPATH="$(dirname "${BASH_SOURCE[0]}")"
+PROJECT_DIR="/srv/projects/astro/toolbox/turbubox"
 
-#PCMD="~/frameworks/parallel/bin/parallel"
-PCMD="parallel"
+#PARALLEL_CMD="~/frameworks/parallel/bin/parallel"
+PARALLEL_CMD="parallel"
 
-DIR="$1"
+PWD_DIR="${1:?No working directory given!}"
+SRC_DIR="$PWD_DIR/amr" # adaptive mesh refinement (FLASH file format)
+OUT_DIR="$PWD_DIR/ugm" # uniform grid mesh (my file format)
+LOG_DIR="$PWD_DIR/log" # logging information
+LOG_FILE="${LOG_DIR}/qfl2hdf5_$(date +%Y-%m-%d-%H-%M-%S)"
 
-SPT="$DIR/out/flash_*"
-OUT="$DIR/hdf5"
-LOG="$DIR/log/parallel-hdf5-$(date +%Y-%m-%d)"
+if [ -v DRYRUN ]
+then
+    DRYRUN="--dry-run"
+fi
 
-# bouchut
-DBS="dens temp pres velx vely velz accx accy accz magx magy magz magp"
+DATASETS="dens velx vely velz accx accy accz magx magy magz"
 
-# 8wave
-# DBS="dens velx vely velz accx accy accz magx magy magz"
+CMD=$(cat <<end
+${PROJECT_DIR}/bin/qfl2hdf5 {} $OUT_DIR/{/} $DATASETS
+&& echo '{/} finnished!'
+end
+)
 
-rm -f "$LOG"
-mkdir -p "$OUT"
-mkdir -p "$(dirname "$LOG")"
+mkdir -p "$OUT_DIR"
+mkdir -p "$LOG_DIR"
 
-find $SPT | $PCMD \
-    --joblog $LOG \
-    "$PPATH/../bin/qfl2hdf5 {} $OUT/{/} $DBS && echo '{/} finnished!'"
+find $SRC_DIR/flash_hdf5_plt_cnt_* -type f \
+| ${PARALLEL_CMD} --joblog $LOG_FILE $DRYRUN $CMD
