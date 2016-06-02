@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 
-# SPATH="${BASH_SOURCE[0]}"
-# PPATH="$(dirname "${BASH_SOURCE[0]}")"
+PRJ_DIR="$(dirname "${BASH_SOURCE[0]}")/../.."
 
-PPATH="/srv/projects/astro/toolbox/turbubox"
+#PARALLEL_CMD="~/frameworks/parallel/bin/parallel"
+PARALLEL_CMD="parallel"
 
-#PCMD="~/frameworks/parallel/bin/parallel"
-PCMD="parallel -k"
+PWD_DIR="${1:?No working directory given!}"
+SRC_DIR="$PWD_DIR/ugm" # uniform grid mesh (my file format)
+LOG_DIR="$PWD_DIR/log" # logging information
+LOG_FILE="${LOG_DIR}/time-evolution_$(date +%Y-%m-%d-%H-%M-%S)"
 
-DIR="$1"
+if [ -v DRYRUN ]
+then
+    DRYRUN="--dry-run"
+fi
 
-SRC_DIR="$DIR/hdf5"
-
-LOG="$DIR/log/parallel-hdf5-$(date +%Y-%m-%d)"
-
-#mkdir -p "$OUT"
-#mkdir -p "$(dirname "$LOG")"
+mkdir -p "$LOG_DIR"
 
 CMD=$(cat <<end
 echo -n '{#}';
 echo -ne '\t';
-$PPATH/bin/time-evolution {}
+$PRJ_DIR/bin/time-evolution {}
 end
 )
 
-find $SRC_DIR -type f | $PCMD --joblog $LOG $DRY $CMD
+find $SRC_DIR/* -type f \
+| ${PARALLEL_CMD} -k --joblog $LOG_FILE $DRYRUN $CMD

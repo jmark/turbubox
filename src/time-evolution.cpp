@@ -40,8 +40,16 @@ int main(int argc, char * argv[])
     std::vector<uint> dims(3);
     read_ds(infile,"DIMS",dims);
     
+    // TIME
+    dvec siminfo(2);
+    read_ds(infile,"SIM_INFO",siminfo);
+
+    const double time = siminfo[0];
+
     // ---------------------------------------------------------------------- //
     // Initialize input arrays
+
+    auto dens = Array::array3<double>(dims[0],dims[1],dims[2]);
 
     auto velx = Array::array3<double>(dims[0],dims[1],dims[2]);
     auto vely = Array::array3<double>(dims[0],dims[1],dims[2]);
@@ -50,6 +58,8 @@ int main(int argc, char * argv[])
     auto magx = Array::array3<double>(dims[0],dims[1],dims[2]);
     auto magy = Array::array3<double>(dims[0],dims[1],dims[2]);
     auto magz = Array::array3<double>(dims[0],dims[1],dims[2]);
+
+    read_ds(infile,"dens",dens);
 
     read_ds(infile,"velx",velx);
     read_ds(infile,"vely",vely);
@@ -61,6 +71,7 @@ int main(int argc, char * argv[])
 
     const uint NNN = dims[0]*dims[1]*dims[2];
 
+    double avg_dens(0);
     double avg_ekin(0);
     double avg_emag(0);
 
@@ -85,10 +96,13 @@ int main(int argc, char * argv[])
             magz(idx[0],idx[1],idx[2])
         };
 
+        avg_dens += dens(idx[0],idx[1],idx[2])/NNN;
         avg_ekin += norm3d(ekin_tmp)/NNN;
         avg_emag += norm3d(emag_tmp)/NNN;
     }
 
+    std::cout << time << "\t";
+    std::cout << avg_dens << "\t";
     std::cout << avg_ekin << "\t";
     std::cout << avg_emag << "\t";
 
