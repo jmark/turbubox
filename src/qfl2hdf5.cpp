@@ -202,10 +202,11 @@ int main(int argc, char * argv[])
     // ---------------------------------------------------------------------- //
     // Get some runtime metadata like time, time step, etc.
     const QuickFlash::File::SimInfo &siminfo = dfile.get_sim_info();
-    std::vector<double> siminfov(2);
+    std::vector<double> siminfov(3);
 
     siminfov[0] = siminfo.get_sim_time();
     siminfov[1] = siminfo.get_sim_dt();
+    siminfov[2] = siminfo.get_step_count();
 
     // ---------------------------------------------------------------------- //
     // write to HDF5 file
