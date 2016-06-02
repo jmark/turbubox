@@ -17,11 +17,11 @@
 void usage()
 {
     std::cerr
-        << " Usage: " << "slice" 
-        << " <input file>" 
-        << " <dsname> <dsname> ..." 
-        << " @" 
-        << " (-|[0-9]+) (-|[0-9]+) (-|[0-9]+)" 
+        " Usage: slice"
+        " <input file>" 
+        " <dsname> <dsname> ..." 
+        " @" 
+        " (x|[0-9]+) (y|[0-9]+) (z|[0-9]+)" 
         << std::endl;
 
     std::exit(1);
@@ -79,11 +79,12 @@ int main(int argc, char * argv[])
     nvec lower(3);
     nvec upper(3);
     std::vector<bool> axis(3,false); // false -> const, true -> variable
-    
+    std::vector<char> slice_args = {'x','y','z'};
+
 	for (uint i = 0 ; i < 3 ; ++i)
 	{
 		const char *arg = argv[argPtr++];
-		if (*arg == '-')
+		if (*arg == slice_args[i])
 		{
 			lower[i] = 0;
 			upper[i] = dims[i];

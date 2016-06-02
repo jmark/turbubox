@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
 
-PRJ_DIR="$(dirname "${BASH_SOURCE[0]}")/../.."
+export PRJ_DIR="$(dirname "${BASH_SOURCE[0]}")/../.."
+export SRC_DIR="${1:?No source directory given!}"
 
-#PARALLEL_CMD="~/frameworks/parallel/bin/parallel"
-PARALLEL_CMD="parallel"
-
-PWD_DIR="${1:?No working directory given!}"
-SRC_DIR="$PWD_DIR/ugm" # uniform grid mesh (my file format)
-LOG_DIR="$PWD_DIR/log" # logging information
-LOG_FILE="${LOG_DIR}/time-evolution_$(date +%Y-%m-%d-%H-%M-%S)"
+if [ -v DEBUG ]
+then
+    export DBG_ECHO="echo"
+fi
 
 if [ -v DRYRUN ]
 then
-    DRYRUN="--dry-run"
+    export DRYRUN="--dry-run"
 fi
 
-mkdir -p "$LOG_DIR"
+process()
+{
+    local SRC_FILE="$1"
+    $DBG_ECHO $PRJ_DIR/bin/time-evolution $SRC_FILE
+}
 
-CMD=$(cat <<end
-echo -n '{#}';
-echo -ne '\t';
-$PRJ_DIR/bin/time-evolution {}
-end
-)
+readonly -f process
+export -f process
 
-find $SRC_DIR/* -type f \
-| ${PARALLEL_CMD} -k --joblog $LOG_FILE $DRYRUN $CMD
+find $SRC_DIR -type f \
+    | grep -P '/\d{4}$' \
+    | sort \
+    | parallel -k $DRYRUN process
