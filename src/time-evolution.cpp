@@ -116,15 +116,15 @@ int main(int argc, char * argv[])
                 );
         
                 // x flux
-                if ( 0 == idx[0] )
+                if ( 32 == idx[0] )
                     mflux[0] += cvol[1]*cvol[2] * magx(idx[0],idx[1],idx[2]); 
 
                 // y flux
-                if ( 0 == idx[1] )
+                if ( 32 == idx[1] )
                     mflux[1] += cvol[0]*cvol[2] * magy(idx[0],idx[1],idx[2]); 
 
                 // z flux
-                if ( 0 == idx[2] )
+                if ( 32 == idx[2] )
                     mflux[2] += cvol[0]*cvol[1] * magz(idx[0],idx[1],idx[2]); 
             }
         }
