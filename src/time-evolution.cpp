@@ -77,7 +77,9 @@ int main(int argc, char * argv[])
     double avg_dens(0);
     double avg_ekin(0);
     double avg_emag(0);
-    double tot_mflux(0);
+    double div_mflux(0);
+    
+    dvec mflux(3,0);
 
     double cVol = cvol[0]*cvol[1]*cvol[2]; // dx*dy*dz
 
@@ -87,36 +89,55 @@ int main(int argc, char * argv[])
     dvec pos(3); // position vector
 
     for (idx[0] = 0 ; idx[0] < dims[0] ; ++idx[0])
-    for (idx[1] = 0 ; idx[1] < dims[1] ; ++idx[1])
-    for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
     {
-        const dvec ekin_tmp {
-            velx(idx[0],idx[1],idx[2]),
-            vely(idx[0],idx[1],idx[2]),
-            velz(idx[0],idx[1],idx[2])
-        };
+        for (idx[1] = 0 ; idx[1] < dims[1] ; ++idx[1])
+        {
+            for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
+            {
+                const dvec ekin_tmp {
+                    velx(idx[0],idx[1],idx[2]),
+                    vely(idx[0],idx[1],idx[2]),
+                    velz(idx[0],idx[1],idx[2])
+                };
 
-        const dvec emag_tmp {
-            magx(idx[0],idx[1],idx[2]),
-            magy(idx[0],idx[1],idx[2]),
-            magz(idx[0],idx[1],idx[2])
-        };
+                const dvec emag_tmp {
+                    magx(idx[0],idx[1],idx[2]),
+                    magy(idx[0],idx[1],idx[2]),
+                    magz(idx[0],idx[1],idx[2])
+                };
 
-        avg_dens += dens(idx[0],idx[1],idx[2])/NNN;
-        avg_ekin += norm3d(ekin_tmp)/NNN;
-        avg_emag += norm3d(emag_tmp)/NNN;
-        tot_mflux += cVol * nabla(
-            magx,magy,magz, 
-            cvol[0],cvol[1],cvol[2],
-            idx[0],idx[1],idx[2]
-        );
+                avg_dens += dens(idx[0],idx[1],idx[2])/NNN;
+                avg_ekin += norm3d(ekin_tmp)/NNN;
+                avg_emag += norm3d(emag_tmp)/NNN;
+                div_mflux += cVol * nabla(
+                    magx,magy,magz, 
+                    cvol[0],cvol[1],cvol[2],
+                    idx[0],idx[1],idx[2]
+                );
+        
+                // x flux
+                if ( 0 == idx[0] )
+                    mflux[0] += cvol[1]*cvol[2] * magx(idx[0],idx[1],idx[2]); 
+
+                // y flux
+                if ( 0 == idx[1] )
+                    mflux[1] += cvol[0]*cvol[2] * magy(idx[0],idx[1],idx[2]); 
+
+                // z flux
+                if ( 0 == idx[2] )
+                    mflux[2] += cvol[0]*cvol[1] * magz(idx[0],idx[1],idx[2]); 
+            }
+        }
     }
 
     std::cout << time << "\t";
     std::cout << avg_dens << "\t";
     std::cout << avg_ekin << "\t";
     std::cout << avg_emag << "\t";
-    std::cout << tot_mflux << "\t";
+    std::cout << div_mflux << "\t";
+    std::cout << mflux[0] << "\t";
+    std::cout << mflux[1] << "\t";
+    std::cout << mflux[2] << "\t";
 
     std::cout << std::endl;
 
