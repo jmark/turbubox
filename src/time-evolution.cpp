@@ -40,6 +40,9 @@ int main(int argc, char * argv[])
     std::vector<uint> dims(3);
     read_ds(infile,"DIMS",dims);
     
+    dvec cvol(3);
+    read_ds(infile,"CELL_VOL",cvol);
+
     // TIME
     dvec siminfo(2);
     read_ds(infile,"SIM_INFO",siminfo);
@@ -74,6 +77,9 @@ int main(int argc, char * argv[])
     double avg_dens(0);
     double avg_ekin(0);
     double avg_emag(0);
+    double tot_mflux(0);
+
+    double cVol = cvol[0]*cvol[1]*cvol[2]; // dx*dy*dz
 
     // ---------------------------------------------------------------------- //
 
@@ -99,12 +105,18 @@ int main(int argc, char * argv[])
         avg_dens += dens(idx[0],idx[1],idx[2])/NNN;
         avg_ekin += norm3d(ekin_tmp)/NNN;
         avg_emag += norm3d(emag_tmp)/NNN;
+        tot_mflux += cVol * nabla(
+            magx,magy,magz, 
+            cvol[0],cvol[1],cvol[2],
+            idx[0],idx[1],idx[2]
+        );
     }
 
     std::cout << time << "\t";
     std::cout << avg_dens << "\t";
     std::cout << avg_ekin << "\t";
     std::cout << avg_emag << "\t";
+    std::cout << tot_mflux << "\t";
 
     std::cout << std::endl;
 

@@ -30,7 +30,7 @@ time-evolution:             $(BIN_DIR)/time-evolution
 clean:
 	@rm -vf bin/* 
 
-$(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
+$(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         ${CCFLAGS} \
         ${LDFLAGS} \
@@ -41,7 +41,7 @@ $(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp
         ${CCFLAGS_QUFL} \
         ${LDFLAGS_QUFL}
 
-$(BIN_DIR)/slice: $(SRC_DIR)/slice.cpp
+$(BIN_DIR)/slice: $(SRC_DIR)/slice.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -50,7 +50,7 @@ $(BIN_DIR)/slice: $(SRC_DIR)/slice.cpp
         ${CCFLAGS_HDF5} \
         ${LDFLAGS_HDF5}
 
-$(BIN_DIR)/spectrum: $(SRC_DIR)/spectrum.cpp
+$(BIN_DIR)/spectrum: $(SRC_DIR)/spectrum.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -61,7 +61,7 @@ $(BIN_DIR)/spectrum: $(SRC_DIR)/spectrum.cpp
         ${LDFLAGS_HDF5} \
 		$(LDFLAGS_FFTW)
 
-$(BIN_DIR)/powerspectrum: $(SRC_DIR)/powerspectrum.cpp
+$(BIN_DIR)/powerspectrum: $(SRC_DIR)/powerspectrum.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -72,7 +72,7 @@ $(BIN_DIR)/powerspectrum: $(SRC_DIR)/powerspectrum.cpp
         ${LDFLAGS_HDF5} \
 		$(LDFLAGS_FFTW)
 
-$(BIN_DIR)/spherical-shell-spectrum: $(SRC_DIR)/spherical-shell-spectrum.cpp
+$(BIN_DIR)/spherical-shell-spectrum: $(SRC_DIR)/spherical-shell-spectrum.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -83,7 +83,7 @@ $(BIN_DIR)/spherical-shell-spectrum: $(SRC_DIR)/spherical-shell-spectrum.cpp
         ${LDFLAGS_HDF5} \
 		$(LDFLAGS_FFTW)
 
-$(BIN_DIR)/box-average: $(SRC_DIR)/box-average.cpp
+$(BIN_DIR)/box-average: $(SRC_DIR)/box-average.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -92,7 +92,7 @@ $(BIN_DIR)/box-average: $(SRC_DIR)/box-average.cpp
         ${CCFLAGS_HDF5} \
         ${LDFLAGS_HDF5}
 
-$(BIN_DIR)/time-evolution: $(SRC_DIR)/time-evolution.cpp
+$(BIN_DIR)/time-evolution: $(SRC_DIR)/time-evolution.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \
@@ -101,7 +101,7 @@ $(BIN_DIR)/time-evolution: $(SRC_DIR)/time-evolution.cpp
         ${CCFLAGS_HDF5} \
         ${LDFLAGS_HDF5}
 
-$(BIN_DIR)/root-mean-square: $(SRC_DIR)/root-mean-square.cpp
+$(BIN_DIR)/root-mean-square: $(SRC_DIR)/root-mean-square.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
         $(CCFLAGS) \
         $(LDFLAGS) \

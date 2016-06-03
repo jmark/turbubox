@@ -85,3 +85,27 @@ void indexToPosition (
     pos[1] = bmin[1] + cvol[1] * (idx[1] + 0.5);
     pos[2] = bmin[2] + cvol[2] * (idx[2] + 0.5);
 }
+
+template <typename T>
+T nabla(
+    const Array::array3<T> &X,
+    const Array::array3<T> &Y,
+    const Array::array3<T> &Z,
+    const T Dx, const T Dy, const T Dz,
+    const uint i, const uint j, const uint k
+) {
+    const uint In = i+1 < X.Nx() ? i+1 : 0;
+    const uint Jn = j+1 < Y.Ny() ? j+1 : 0;
+    const uint Kn = k+1 < Z.Nz() ? k+1 : 0;
+
+    const uint Ip = ((int)i)-1 >= 0 ? i-1 : X.Nx()-1;
+    const uint Jp = ((int)j)-1 >= 0 ? j-1 : Y.Ny()-1;
+    const uint Kp = ((int)k)-1 >= 0 ? k-1 : Z.Nz()-1;
+
+    //std::cerr << X.Nx() << std::endl;;
+
+    return 
+            ( X( In,j,k ) - X( Ip,j,k ) ) / 2 / Dx
+        +   ( Y( i,Jn,k ) - X( i,Jp,k ) ) / 2 / Dy
+        +   ( Z( i,j,Kn ) - X( i,j,Kp ) ) / 2 / Dz;
+}
