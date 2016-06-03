@@ -6,7 +6,7 @@ HIGHFIVE    = ${HOME}/frameworks/HighFive/include/highfive
 
 CCFLAGS_HDF5 = -DH5_USE_16_API -I/usr/include/hdf5/mpich -I/usr/include/mpich
 CCFLAGS_QUFL = -I$(QUICKFLASH)/include
-CCFLAGS_FFTW = -I$(FFTWP) -Iinc
+CCFLAGS_FFTW = -I$(FFTWPP) -Iinc
 CCFLAGS_HIGHFIVE = -I$(HIGHFIVE)
 
 CCFLAGS += -std=c++11
