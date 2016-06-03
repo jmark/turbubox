@@ -3,11 +3,7 @@
 export PRJ_DIR="$(dirname "${BASH_SOURCE[0]}")/../.."
 export SRC_DIR="${1:?No source directory given!}"
 export OUT_DIR="${2:?No output directory given!}"
-export LOG_DIR="${3:?No logging directory given!}"
-export LOG_FIL="${LOG_DIR}/qfl2hdf5_$(date +%Y-%m-%d-%H-%M-%S)"
-
-mkdir -v -p "$OUT_DIR"
-mkdir -v -p "$LOG_DIR"
+export LOG_FIL="${3:?No logging directory given!}"
 
 if [ -v DEBUG ]
 then
@@ -36,4 +32,4 @@ export -f process
 find $SRC_DIR -type f \
     | grep -P '/\d{4}$' \
     | sort \
-    | parallel --joblog $LOG_FIL $DRYRUN process
+    | parallel --resume --joblog $LOG_FIL $DRYRUN process
