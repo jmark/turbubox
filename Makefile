@@ -18,17 +18,20 @@ all: \
 	root-mean-square \
 	box-average
 
-qfl2hdf5:                   $(BIN_DIR)/qfl2hdf5
-slice:						$(BIN_DIR)/slice
-spectrum:                   $(BIN_DIR)/spectrum
-powerspectrum:              $(BIN_DIR)/powerspectrum
-spherical-shell-spectrum:   $(BIN_DIR)/spherical-shell-spectrum
-root-mean-square:           $(BIN_DIR)/root-mean-square
-box-average:                $(BIN_DIR)/box-average
-time-evolution:             $(BIN_DIR)/time-evolution
+qfl2hdf5:                   bin $(BIN_DIR)/qfl2hdf5
+slice:						bin $(BIN_DIR)/slice
+spectrum:                   bin $(BIN_DIR)/spectrum
+powerspectrum:              bin $(BIN_DIR)/powerspectrum
+spherical-shell-spectrum:   bin $(BIN_DIR)/spherical-shell-spectrum
+root-mean-square:           bin $(BIN_DIR)/root-mean-square
+box-average:                bin $(BIN_DIR)/box-average
+time-evolution:             bin $(BIN_DIR)/time-evolution
 
 clean:
 	@rm -vf bin/* 
+
+bin:
+	mkdir -p bin
 
 $(BIN_DIR)/qfl2hdf5: $(SRC_DIR)/qfl2hdf5.cpp $(SRC_DIR)/ulz.hpp
 	$(CXX) -o $@ $< \
