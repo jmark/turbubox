@@ -18,15 +18,26 @@ typedef std::vector<double> dvec;
 //     
 // } SimInfo;
 
-double norm3d (const double x, const double y, const double z)
+double abs3d (const double x, const double y, const double z)
 {
     return std::sqrt( x*x + y*y + z*z );
 }
 
 template <typename T>
-double norm3d (const std::vector<T> & v)
+double abs3d (const std::vector<T> & v)
 {
     return std::sqrt( v[0]*v[0] + v[1]*v[1] + v[2]*v[2] );
+}
+
+double norm3d (const double x, const double y, const double z)
+{
+    return x*x + y*y + z*z;
+}
+
+template <typename T>
+double norm3d (const std::vector<T> & v)
+{
+    return v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
 }
 
 template <typename T>
@@ -87,7 +98,7 @@ void indexToPosition (
 }
 
 template <typename T>
-T nabla(
+T divergence (
     const Array::array3<T> &X,
     const Array::array3<T> &Y,
     const Array::array3<T> &Z,

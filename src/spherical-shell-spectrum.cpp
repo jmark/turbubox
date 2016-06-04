@@ -72,7 +72,7 @@ int main(int argc, char * argv[])
                 int q = j - dims[1]/2;
                 int r = k;
 
-                double K = norm3d(p,q,r);
+                double K = abs3d(p,q,r);
 
                 std::cout << K << "\t";
 

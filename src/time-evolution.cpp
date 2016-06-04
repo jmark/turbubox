@@ -94,22 +94,23 @@ int main(int argc, char * argv[])
         {
             for (idx[2] = 0 ; idx[2] < dims[2] ; ++idx[2])
             {
-                const dvec ekin_tmp {
+                const dvec vecv {
                     velx(idx[0],idx[1],idx[2]),
                     vely(idx[0],idx[1],idx[2]),
                     velz(idx[0],idx[1],idx[2])
                 };
 
-                const dvec emag_tmp {
+                const dvec magv {
                     magx(idx[0],idx[1],idx[2]),
                     magy(idx[0],idx[1],idx[2]),
                     magz(idx[0],idx[1],idx[2])
                 };
 
                 avg_dens += dens(idx[0],idx[1],idx[2])/NNN;
-                avg_ekin += norm3d(ekin_tmp)/NNN;
-                avg_emag += norm3d(emag_tmp)/NNN;
-                div_mflux += cVol * nabla(
+                avg_ekin += norm3d(vecv)/NNN;
+                avg_emag += norm3d(magv)/NNN;
+
+                div_mflux += cVol * divergence (
                     magx,magy,magz, 
                     cvol[0],cvol[1],cvol[2],
                     idx[0],idx[1],idx[2]
@@ -138,6 +139,7 @@ int main(int argc, char * argv[])
     std::cout << mflux[0] << "\t";
     std::cout << mflux[1] << "\t";
     std::cout << mflux[2] << "\t";
+    std::cout << std::sqrt(avg_ekin) << "\t";
 
     std::cout << std::endl;
 
