@@ -1,0 +1,178 @@
+#########################################
+# PARAMETER FILE FOR GIRICHIDIS STIRRING
+#########################################
+
+\# Mach $machNumber turbulent stirring
+
+######################
+# physics switches
+######################
+
+usePolytrope    = .true.
+useStir         = .true.
+
+######################
+# box parameters
+######################
+
+# physical box
+xmin = 0.
+ymin = 0.
+zmin = 0.
+
+# box dimensions
+xmax = [scinot $domainSize] 
+ymax = [scinot $domainSize] 
+zmax = [scinot $domainSize] 
+
+# external magnetic field
+bx = $Bx
+by = $By
+bz = $Bz
+
+######################
+# numerical params
+######################
+
+cfl         = 0.5
+nend        = 9999999
+tmax        = [scinot $maxSimTime] 
+
+# a rarely used switch which ensures that internal energy calculations
+# maintain sufficient precision.
+eintSwitch  = 0.0
+
+dtinit      = [scinot $dtinit] 
+dtmin       = [scinot $dtmin] 
+dtmax       = [scinot $dtmax] 
+
+smallt      = 1.e-40    # min. temperature
+smalle      = 1.e-40    # min. internal energy
+smlrho      = 1.e-40    # min. density
+
+######################
+# forcing params
+######################
+
+# (1) GENERAL PARAMETERS
+#----------------------------------
+st_tmax                  = [scinot $maxStirTime]
+st_Lbox                  = -1.0
+st_verbose               = .true.   
+st_correct_bulk_motion   = .true.
+
+# dEkin scaling modes:
+#  0: fixed scaling
+#  1: fixed energy input rate
+#  2: fixed rms velocity
+st_forcing_scaling_mode = 2
+
+# mode 0 parameter
+st_dVel_fixed_factor    = 0
+
+# mode 1 parameter
+st_dEkin_input_rate     = 0
+
+# mode 2 parameter
+st_rms_velocity         = [scinot $maxVelocity]
+st_dVel_max_ampli       = 100.0
+st_dVel_fraction        = 0.05
+
+# (2) Forcing from predefined file
+#     used if forcing_use_external_sequence = .true.
+#-----------------------------------------------
+st_use_external_sequence = .false.
+#ste_forcing_file        = "forcing.dat"
+
+# (3) Forcing using live OU computation
+#     used if st_use_external_sequence = .false.
+#------------------------------------------------
+
+# these must be changed according to used dimensions
+stl_F0   = [scinot $baseForcing]
+stl_Tac  = [scinot $turnTime]
+
+stl_g0   = 1.0
+stl_kmin = 1.0
+stl_kmax = 3.0
+stl_seed = 173
+stl_zeta = 0.5
+
+######################
+# IO and file names
+######################
+
+basenm              = "flash_"
+log_file            = "LOG.TXT"
+output_directory    = "../amr"
+
+plot_var_1  = "dens"
+plot_var_2  = "velx"
+plot_var_3  = "vely"
+plot_var_4  = "velz"
+plot_var_5  = "accx"
+plot_var_6  = "accy"
+plot_var_7  = "accz"
+plot_var_8  = "magx"
+plot_var_9  = "magy"
+plot_var_10 = "magz"
+
+restart     = .false.
+#restart     = .true.
+
+checkpointFileNumber    =  0
+plotFileNumber          =  0
+
+checkpointFileIntervalTime  = [scinot $chkPtInterval]
+checkpointFileIntervalStep  = 0
+
+plotFileIntervalTime	    = 1e200 
+plotFileIntervalStep	    = 0
+
+wall_clock_time_limit       = 9999999
+wall_clock_checkpoint       = 9999999
+
+######################
+# thermodynamics
+######################
+
+eosMode         = "dens_pres"
+
+rho_ambient     = [scinot $ambientDens] 
+polytropeKonst  = [scinot $polytropeConst] 
+gamma           = [scinot $adiabaticIndex] 
+c_ambient       = [scinot $soundSpeed] 
+
+polytropeGamma1 = 1.001
+
+# not needed, but must be defined nevertheless
+polytropeGamma2 = 1.001
+polytropeGamma3 = 1.0
+polytropeGamma4 = 1.0
+polytropeGamma5 = 1.0
+
+polytropeDens1  = 1e-99
+polytropeDens2  = 1e99
+polytropeDens3  = 1e99
+polytropeDens4  = 1e99
+polytropeDens5  = 1e99
+
+######################
+# boundary conditions
+######################
+
+xl_boundary_type      = "periodic"
+xr_boundary_type      = "periodic"
+yl_boundary_type      = "periodic"
+yr_boundary_type      = "periodic"
+zl_boundary_type      = "periodic"
+zr_boundary_type      = "periodic"
+
+######################
+# AMR parameters
+######################
+
+lrefine_min = 2
+lrefine_max = 2
+nref = 999999
+refine_var_1 = "dens"
