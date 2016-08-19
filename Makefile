@@ -19,7 +19,7 @@ all: \
 	box-average
 
 qfl2hdf5:                   bin $(BIN_DIR)/qfl2hdf5
-slice:						bin $(BIN_DIR)/slice
+slice:                      bin $(BIN_DIR)/slice
 spectrum:                   bin $(BIN_DIR)/spectrum
 powerspectrum:              bin $(BIN_DIR)/powerspectrum
 spherical-shell-spectrum:   bin $(BIN_DIR)/spherical-shell-spectrum

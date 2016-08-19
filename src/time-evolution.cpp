@@ -135,10 +135,12 @@ int main(int argc, char * argv[])
     std::cout << avg_dens << "\t";
     std::cout << avg_ekin << "\t";
     std::cout << avg_emag << "\t";
+
     std::cout << div_mflux << "\t";
     std::cout << mflux[0] << "\t";
     std::cout << mflux[1] << "\t";
     std::cout << mflux[2] << "\t";
+
     std::cout << std::sqrt(avg_ekin) << "\t";
 
     std::cout << std::endl;
