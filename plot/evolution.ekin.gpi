@@ -1,4 +1,4 @@
-# Turbulent Box: plotting total kinetic energy over (crossing) time
+set title 'Turbulent Box: Total Kinetic Energy'
 
 set terminal svg enhanced
 set encoding utf8
@@ -21,19 +21,19 @@ set xtics nomirror
 set x2tics
 set link x2 via scaleX2(x) inverse scaleX2I(x)
 
-set title 'Total Kinetic Energy'
 
 set xlabel  'crossing time {/:Italic t / t_c}  →'
 set x2label 'time {/:Italic t} (Myr)   →'
 
-set xrange [0:5]
+set xrange [0:6]
 
 set ylabel 'kinetic energy {/:Italic 𝓚} ⋅ 10^{46} (erg/ccm)   →'
 
 set grid
 
 plot \
-    'data/cgs.128.es,alpha=0.500,evolution' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'α = 0.500', \
-    'data/cgs.128.es,alpha=0.750,evolution' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'α = 0.750', \
-    'data/cgs.128.es,alpha=0.875,evolution' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'α = 0.875', \
-    'data/cgs.128.es,alpha=1.000,evolution' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'α = 1.000'
+    'data/cgs.128.es,alpha=0.500,evolution' using (scaleX($3)):(scaleY($4)) w l lw 1 t 'α=0.500, flux=3', \
+    'data/cgs.128.es,alpha=0.750,evolution' using (scaleX($3)):(scaleY($4)) w l lw 1 t 'α=0.750, flux=3', \
+    'data/cgs.128.es,alpha=0.875,evolution' using (scaleX($3)):(scaleY($4)) w l lw 1 t 'α=0.875, flux=3', \
+    'data/cgs.128.es,alpha=1.000,evolution' using (scaleX($3)):(scaleY($4)) w l lw 1 t 'α=1.000, flux=3', \
+    'data/cgs.128.es,alpha=1.0,flux=2,evolution' using (scaleX($3)):(scaleY($4)) w l lw 1 t 'α=1.000, flux=2'

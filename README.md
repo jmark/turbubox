@@ -10,7 +10,7 @@
     further research. It is considerably faster and more stable than the quickflash
     branch.
 
-## stirturb.flash.par/
+## flash.par/
     TCL script for calculating and creating a 'flash.par' [2] for the
     Girichidis Stirring Turbulence setup.
 

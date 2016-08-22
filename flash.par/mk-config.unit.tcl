@@ -1,8 +1,11 @@
 #!/usr/bin/env tclsh
 
 source utils.tcl
-
 package require json
+
+set TEMPLATEFILE    [utils::shift argv]
+set MACHNUMBER      [utils::shift argv]
+set JSON?           [utils::shift argv]
 
 set meta [dict create]
 proc reg {vname vdata} {
@@ -15,7 +18,7 @@ proc reg {vname vdata} {
 
 # dimensionless box
 
-reg machNumber          [lindex $argv 1]
+reg machNumber          $MACHNUMBER
 
 # physical constants
 reg boltzmannConstant   1
@@ -61,7 +64,7 @@ proc perTurn {quantity} {
     format {%5.2f t/t_c} [expr {$quantity/$turnTime}]
 }
 
-if {[lindex $argv 2] eq {-json}} {
+if {${JSON?} eq {-json}} {
     puts stderr [json::dict2json $meta]
 } else {
 puts stderr [subst {
@@ -107,4 +110,4 @@ proc scinot {quantity {prec 10}} {
     format "%.${prec}e" $quantity
 }
 
-puts -nonewline [subst [utils::slurp [lindex $argv 0]]]
+puts -nonewline [subst [utils::slurp $TEMPLATEFILE]]
