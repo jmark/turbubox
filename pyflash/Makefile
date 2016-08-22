@@ -17,7 +17,7 @@ endif
 shell_avg.c: shell_avg.pyx modules
 	cython $<
 
-shell_avg.o: shell_avg.c modules
+shell_avg.so: shell_avg.c modules
 	gcc -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing \
 		-I/opt/rrzk/software/python/Python-3.4.3/include/python3.4m \
 		-o $@ $<
