@@ -5,9 +5,9 @@
     resp. quickflash [1].
 
 ./pyflash
-    Home-brewn python + h5py module with additional scripts for analysis, etc.
-    Use this for further research. It is considerably faster and more stable than the
-    quickflash branch.
+    Home-brewn python + h5py modules/scripts for analysis, etc.  Use this for
+    further research. It is considerably faster and more stable than the quickflash
+    branch.
 
 ./stirturb.flash.par
     TCL script for calculating and creating a 'flash.par' [2] for the
