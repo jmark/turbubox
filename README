@@ -10,8 +10,11 @@
     quickflash branch.
 
 ./stirturb.flash.par
-    Python script for calculating and creating a 'flash.par' [2] for the
+    TCL script for calculating and creating a 'flash.par' [2] for the
     Girichidis Stirring Turbulence setup.
+
+./plot
+    gnuplot / bash scripts for plotting
 
 [1] quickflash.sourceforge.net
 [2] http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p22/ ... search for 'flash.par'
