@@ -10,9 +10,14 @@ def shell_avg_3d(np.ndarray[double, ndim=3] X):
     cdef int Ny = X.shape[1]
     cdef int Nz = X.shape[2]
 
-    cdef double[:] iws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
-    cdef double[:] nws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
-    cdef double[:] pws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+    # cdef double[:] iws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+    # cdef double[:] nws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+    # cdef double[:] pws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+
+    cdef np.ndarray[double, ndim=3] iws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+    cdef np.ndarray[double, ndim=3] nws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+    cdef np.ndarray[double, ndim=3] pws = np.zeros(int(np.sqrt(Nx*Nx/4+Ny*Ny/4+Nz*Nz)))
+
 
     cdef int I,J,K,R
     cdef double r,n
