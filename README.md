@@ -17,6 +17,9 @@
 ## plot/
     gnuplot / bash scripts for plotting
 
+## setup/
+    install, compile and run scripts for various platforms
+
 ---
 
 [1] quickflash.sourceforge.net
