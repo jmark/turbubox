@@ -22,5 +22,5 @@
 
 ---
 
-[1] quickflash.sourceforge.net
-[2] http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p22/ ... search for 'flash.par'
+- [1] quickflash.sourceforge.net
+- [2] http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p22/ ... search for 'flash.par'
