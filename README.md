@@ -1,20 +1,20 @@
 # Synopsis
     Setup, Analysis and Plotting Scripts for the 3D Turbulent Box (Girichidis Stirring)
 
-# quickflash/
+## quickflash/
     This is an older branch, where I did extracting data and analysis in c++,
     resp. quickflash [1].
 
-# pyflash/
+## pyflash/
     Home-brewn python + h5py modules/scripts for analysis, etc.  Use this for
     further research. It is considerably faster and more stable than the quickflash
     branch.
 
-# stirturb.flash.par/
+## stirturb.flash.par/
     TCL script for calculating and creating a 'flash.par' [2] for the
     Girichidis Stirring Turbulence setup.
 
-# plot/
+## plot/
     gnuplot / bash scripts for plotting
 
 ---
