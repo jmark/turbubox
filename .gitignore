@@ -2,3 +2,4 @@ wisdom3.txt
 bin
 *__pycache__*
 *.o
+*.so
