@@ -1,0 +1,45 @@
+#!/bin/bash -l
+
+## We have, considering refinement scheme of FLASH code,
+##
+##   1 + 2**3 + (2**2)**3 = 73
+##
+## blocks consisting of
+##
+##   (4 + 32 + 4)**3 = 64,000
+##
+## interior + guard cells.
+##
+## Since we set maxblocks to 400 per core and use binary64 (double precision
+## float) the total memory amount is:
+##
+##   64,000 * 8b /1024**3 * 400 * 73 ~= 14Gb
+##
+## Consequently, on each node we need:
+##
+##   14Gb / 3 + "runtime" ~ 5Gb
+
+#SBATCH --partition=gassner-exclusive
+
+#SBATCH --cpus-per-task=1
+#SBATCH --nodes=3
+#SBATCh --ntasks-per-node=24
+#SBATCH --ntasks=72
+#SBATCH --mem=56gb
+
+#SBATCH --time=24:00:00
+#SBATCH --account=AGWalch
+#SBATCH --mail-user=jmarker2@uni-koeln.de
+#SBATCH --mail-type=all
+
+## =========================================================================== #
+## RUNTIME SETUP
+
+module load hdf5
+module load intel
+module load intelmpi
+
+FLASH_EXE="$1"
+FLASH_PAR="$2"
+
+srun -n "$SLURM_NTASKS" "$FLASH_EXE" -par_file "$FLASH_PAR"

@@ -16,6 +16,6 @@ solverUnit['es']='--with-unit=physics/Hydro/HydroMain/split/ES'
 ./setup \
     Girichidis-StirTurb \
     -3d -nxb=$NX -nyb=$NX -nzb=$NX \
-    -maxblocks=200 -auto -portable -opt -site="$site" \
+    -maxblocks=400 -auto -portable -opt -site="$site" \
     ${solverUnit[$solver]} \
     -objdir="$objdir"
