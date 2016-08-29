@@ -1,21 +1,3 @@
-#!/usr/bin/env tclsh
-
-source utils.tcl
-package require json
-
-set TEMPLATEFILE    [utils::shift argv]
-set MACHNUMBER      [utils::shift argv]
-set JSON?           [utils::shift argv]
-
-set meta [dict create]
-proc reg {vname vdata} {
-    global meta
-    uplevel "set $vname [list $vdata]"
-    dict set meta $vname $vdata
-}
-
-## We use the CGS-Units System
-
 # dimensionless box
 
 reg machNumber          $MACHNUMBER
@@ -64,10 +46,7 @@ proc perTurn {quantity} {
     format {%5.2f t/t_c} [expr {$quantity/$turnTime}]
 }
 
-if {${JSON?} eq {-json}} {
-    puts stderr [json::dict2json $meta]
-} else {
-puts stderr [subst {
+set report [subst {
 > Physical Constants:
     Boltzmann Constant          [scinot $boltzmannConstant]
 
@@ -103,11 +82,8 @@ puts stderr [subst {
 > Misc
     check point count:          [expr round($maxSimTime / $chkPtInterval)] 
 }] 
-}
 
 # enforce scientifc notation with specified precision
 proc scinot {quantity {prec 10}} {
     format "%.${prec}e" $quantity
 }
-
-puts -nonewline [subst [utils::slurp $TEMPLATEFILE]]
