@@ -21,7 +21,6 @@ set xtics nomirror
 set x2tics
 set link x2 via scaleX2(x) inverse scaleX2I(x)
 
-
 set xlabel  'crossing time {/:Italic t / t_c}  →'
 set x2label 'time {/:Italic t} (Myr)   →'
 
