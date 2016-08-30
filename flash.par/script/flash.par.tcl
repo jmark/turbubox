@@ -36,7 +36,7 @@ switch -exact $OUTPUT {
     machine { 
         puts "#ctime=[clock format $NOW -format {%Y-%m-%d-%H-%M-%S}]"
         puts "#cstamp=$NOW"
-        puts "#unitsystem=cgs"
+        puts "#unitsystem=$UNITSYSTEM"
 
         dict for {k v} $meta {
             puts "#$k=$v"
