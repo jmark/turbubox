@@ -13,7 +13,12 @@ def product(it):
         p *= i
     return p
 
-fp = sys.argv[1]
+try:
+    fp = sys.argv[1]
+except IndexError:
+    print("usage: %s <checkpoint file>" % sys.argv[0])
+    sys.exit(1)
+
 flash = FlashFile(fp)
 
 time = flash.meta['real scalars']['time']
