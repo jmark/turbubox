@@ -1,4 +1,4 @@
-#!./py.sh
+#!py.sh
 
 import numpy as np
 import sys
