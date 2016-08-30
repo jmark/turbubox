@@ -174,7 +174,7 @@ stl_zeta = 0.5
 
 basenm              = "flash_"
 log_file            = "LOG.TXT"
-output_directory    = "../amr"
+output_directory    = "checkpoints"
 
 plot_var_1  = "dens"
 plot_var_2  = "velx"
