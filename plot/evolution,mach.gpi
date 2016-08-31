@@ -59,6 +59,8 @@ set grid
 
 
 plot \
-    'data/unit,128,b3,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b3'
+    'data/unit,128,b3,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b3',\
+    'data/unit,128,b5,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b5',\
+    'data/unit,128,es,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'
     #'data/cgs,128,b5,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b5',\
     #'data/cgs,128,es,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'
