@@ -8,7 +8,10 @@ set encoding utf8
 #crossingtime = 5.8462062813e+13
 
 # cgs,mach=100
-crossingtime = 8.7693094220e+12
+#crossingtime = 8.7693094220e+12
+
+# unit,mach=015
+crossingtime = 0.06666667
 
   scaleX(x) = x / crossingtime 
  scaleX2(x) = x * crossingtime / (60*60*24*365*10**6)

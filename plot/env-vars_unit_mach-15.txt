@@ -1,0 +1,7 @@
+GPI_ambientdens=1.0
+GPI_crosstime=0.01
+GPI_datafiles='data/unit_128_b3_mach-100_evolution.dsv data/unit_128_b5_mach-100_evolution.dsv data/unit_128_es_mach-100_evolution.dsv'
+GPI_domainsize=1.0
+GPI_legends='b3 b5 es'
+GPI_mach=15
+GPI_soundspeed=1.0

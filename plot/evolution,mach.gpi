@@ -22,8 +22,9 @@ set encoding utf8
 unitsystem='unit'
 gridsize='128'
 solver='b3'
-mach='100'
-crossingtime    = 0.01
+mach='015'
+
+crossingtime = 0.06666667
 domainsize      = 1.0
 ambientdens     = 1.0
 soundspeed      = 1.0
@@ -40,27 +41,31 @@ scaleX2I(x) = x
 
   scaleY(x) = sqrt(2.0 * x / totalmass) / soundspeed
 
-#set xtics 1
+
+set xtics 1
+
 set xtics nomirror
 
 # add second x axis for million years
-set x2tics
-set link x2 via scaleX2(x) inverse scaleX2I(x)
+#set x2tics
+#set link x2 via scaleX2(x) inverse scaleX2I(x)
 
 set xlabel  'crossing time: {/:Italic t / t_c}   →'
-set x2label 'time: {/:Italic t} (Myr)   →'
+#set x2label 'time: {/:Italic t} (Myr)   →'
 
 #set xrange [0:10]
 
-#set ytics 1
+set ytics 1
 set ylabel 'mach number: 𝓜    →'
 
 set grid
 
 
 plot \
-    'data/unit,128,b3,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b3',\
-    'data/unit,128,b5,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b5',\
-    'data/unit,128,es,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'
+    'data/unit_128_es_mach-'.mach.'_evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'
+
+    #'data/unit,128,b3,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b3',\
+    #'data/unit,128,b5,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b5',\
+    #'data/unit,128,es,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'
     #'data/cgs,128,b5,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'b5',\
     #'data/cgs,128,es,mach='.mach.',evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'
