@@ -172,7 +172,7 @@ zr_boundary_type      = "periodic"
 # AMR parameters
 ######################
 
-lrefine_min = 2
-lrefine_max = 2
+lrefine_min = 3
+lrefine_max = 3
 nref = 999999
 refine_var_1 = "dens"
