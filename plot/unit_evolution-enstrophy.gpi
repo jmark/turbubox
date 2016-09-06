@@ -3,6 +3,8 @@
 set terminal svg enhanced dashed
 set encoding utf8
 
+set size ratio 0.6
+
 mach		= `echo $GPI_mach`
 crosstime	= `echo $GPI_crosstime`
 datafiles	= "`echo $GPI_datafiles`"

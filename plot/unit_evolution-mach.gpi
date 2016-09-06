@@ -3,6 +3,8 @@
 set terminal svg enhanced
 set encoding utf8
 
+set size ratio 0.6
+
 datafiles	= "`echo $GPI_datafiles`"
 legends		= "`echo $GPI_legends`"
 
@@ -19,6 +21,7 @@ scale_y(x) = sqrt(2.0 * x / totalmass) / soundspeed
 
 set grid
 set xtics 1
+set ytics 1
 
 set xrange [0:10]
 

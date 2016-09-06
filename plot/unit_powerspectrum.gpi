@@ -10,17 +10,18 @@ crosstime	= `echo $GPI_crosstime`
 datafiles	= "`echo $GPI_datafiles`"
 legends		= "`echo $GPI_legends`"
 
-scale_x(x) = x / crosstime
+set logscale xy
+set format y '%0.0e'
+
+scale_x(x) = x
 scale_y(x) = x
 
 set grid
-set xtics 1
-set xrange [0:10]
+set xrange [1:130]
+set xtics 1,2,128
 
-set ytics 10
-
-set xlabel 'crossing time {/:Italic t / t_c}   →'
-set ylabel 'kinetic energy {/:Italic 𝓚}   →'
+set xlabel 'grid log_{10}({/:Italic k})   →'
+set ylabel 'power transfer |{/:Italic P}|   →'
 
 plot for [i=1:words(datafiles)] word(datafiles,i) \
-		u (scale_x($3)):(scale_y($4)) w l lw 2 t word(legends,i)
+		u (scale_x($1)):(scale_y($2)) w l lw 2 t word(legends,i)
