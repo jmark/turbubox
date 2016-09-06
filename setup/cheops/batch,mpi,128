@@ -8,7 +8,7 @@
 #SBATCH --ntasks=75
 #SBATCH --mem=22gb
 
-#SBATCH --time=24:00:00
+#SBATCH --time=05:00:00
 #SBATCH --account=AGWalch
 
 #SBATCH --mail-user=jmarker2@uni-koeln.de
