@@ -7,8 +7,8 @@ set encoding utf8
 # cgs,mach=015
 #crossingtime = 5.8462062813e+13
 
-mach = $0
-crossingtime = $1
+mach = 15
+crossingtime = 0.06666667
 
 # cgs,mach=100
 #crossingtime = 8.7693094220e+12
@@ -32,10 +32,7 @@ set x2label 'time {/:Italic t} (Myr)   →'
 set xrange [0:10]
 
 set ylabel 'kinetic energy {/:Italic 𝓚} ⋅ 10^{46} (erg/ccm)   →'
-
 set grid
 
 plot \
-    'data/cgs,128,b3,mach='.mach.',evolution.dsv' using (scaleX($$3)):(scaleY($$4)) w l lw 2 t 'b3',\
-    'data/cgs,128,b5,mach='.mach.',evolution.dsv' using (scaleX($$3)):(scaleY($$4)) w l lw 2 t 'b5',\
-    'data/cgs,128,es,mach='.mach.',evolution.dsv' using (scaleX($$3)):(scaleY($$4)) w l lw 2 t 'es'
+    'data/unit_128_es_mach-015_evolution.dsv' using (scaleX($3)):(scaleY($4)) w l lw 2 t 'es'

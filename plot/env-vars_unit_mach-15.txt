@@ -1,0 +1,7 @@
+GPI_mach=15
+GPI_ambientdens=1.0
+GPI_domainsize=1.0
+GPI_legends='b3 b5 es'
+GPI_soundspeed=1.0
+GPI_crosstime=$(echo "$GPI_domainsize / ($GPI_soundspeed * $GPI_mach)" | bc -l)
+GPI_datafiles=$(echo data/unit_128_{b3,b5,es}_mach-0${GPI_mach}_evolution.dsv)
