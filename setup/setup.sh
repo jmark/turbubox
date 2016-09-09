@@ -1,21 +1,17 @@
 #!/usr/bin/env bash
 
-site='cheops.rrz.uni-koeln.de'
-#site='cuda.ph1.uni-koeln.de'
+BLOCKSIZE="${1:?No block size given!}"
+MAXBLOCKS="${2:?No maxblocks given}"
+SOLVER="${3:?No solver given!}"
+OBJDIR="${4:?No source directory given!}"
+SITEDIR="${5:?No site directory given!}"
 
-NX="${1:?No NX given!}"
-solver="${2:?No solver given!}"
-objdir="${3:?No source directory given!}"
+declare -A SOLVERUNIT
+SOLVERUNIT['8w']='--with-unit=physics/Hydro/HydroMain/split/MHD_8Wave'
+SOLVERUNIT['b3']='--with-unit=physics/Hydro/HydroMain/split/Bouchut3'
+SOLVERUNIT['b5']='--with-unit=physics/Hydro/HydroMain/split/Bouchut5'
+SOLVERUNIT['es']='--with-unit=physics/Hydro/HydroMain/split/ES'
 
-declare -A solverUnit
-solverUnit['8w']='+8wave'
-solverUnit['b3']='--with-unit=physics/Hydro/HydroMain/split/Bouchut3'
-solverUnit['b5']='--with-unit=physics/Hydro/HydroMain/split/Bouchut5'
-solverUnit['es']='--with-unit=physics/Hydro/HydroMain/split/ES'
-
-./setup \
-    Girichidis-StirTurb \
-    -3d -nxb=$NX -nyb=$NX -nzb=$NX \
-    -maxblocks=400 -auto -portable -opt -site="$site" \
-    ${solverUnit[$solver]} \
-    -objdir="$objdir"
+./setup Girichidis-StirTurb -3d -auto -portable -opt \
+	-nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -nzb=$BLOCKSIZE -maxblocks=$MAXBLOCKS \
+	-site="$SITEDIR" -objdir="$OBJDIR" ${SOLVERUNIT[$SOLVER]}
