@@ -14,10 +14,6 @@ scale_x(x) = x / crosstime
 scale_y(x) = x
 
 set grid
-set xtics 1
-set xrange [0:10]
-
-set ytics 10
 
 set xlabel 'crossing time {/:Italic t / t_c}   →'
 set ylabel 'kinetic energy {/:Italic 𝓚}   →'

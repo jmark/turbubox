@@ -1,0 +1,7 @@
+GPI_mach=10
+GPI_ambientdens=1.672621898e-23
+GPI_domainsize=3.086e+19
+GPI_legends='b3 b5 es'
+GPI_soundspeed=35187.491414761724
+GPI_crosstime=87693094219996.0
+GPI_datafiles=$(echo data/cgs_64_{b3,b5,es}_mach-0${GPI_mach}_evolution.dsv)

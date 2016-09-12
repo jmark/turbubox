@@ -20,10 +20,6 @@ scale_x(x) = x / crosstime
 scale_y(x) = sqrt(2.0 * x / totalmass) / soundspeed
 
 set grid
-set xtics 1
-set ytics 1
-
-set xrange [0:10]
 
 set xlabel 'crossing time: {/:Italic t / t_c}   →'
 set ylabel 'mach number: 𝓜    →'

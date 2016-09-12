@@ -13,15 +13,19 @@ legends		= "`echo $GPI_legends`"
 scale_x(x) = x / crosstime
 scale_y(x) = abs(x)
 
-set grid
-set xtics 0.1
+set logscale xy
+set xtics 2,1,5
 
-set xrange [1.9:3]
+set grid
+#set xtics 0.1
+
+
+set xrange [1.9:5]
 
 set xlabel 'crossing time {/:Italic t / t_c}   →'
 set ylabel 'kinetic energy transfer rate |{/:Italic d𝓚/dt}|   →'
 
-dfile = 'data/unit_128_b3-b5-es_mach-015_diff-ekin.dsv'
+dfile = 'data/unit_128_b3-b5-es_mach-010_diff-ekin.dsv'
 
 plot \
 	dfile u (scale_x($1)):(scale_y($5)) w l lw 2 t 'b3',\
