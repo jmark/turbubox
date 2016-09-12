@@ -27,8 +27,8 @@ reg turnTime            [expr {$domainSize / $maxVelocity}]
 
 reg baseForcing         [expr {$maxVelocity**2 / $domainSize}]
 
-reg maxStirTime         [expr {  2 * $turnTime}]
-reg maxSimTime          [expr {  5 * $turnTime}]
+reg maxStirTime         [expr {2 * $turnTime}]
+reg maxSimTime          [expr {5 * $turnTime}]
 
 reg dtinit              [expr {$turnTime / 1e6}]
 reg dtmin               [expr {$turnTime / 1e10}]

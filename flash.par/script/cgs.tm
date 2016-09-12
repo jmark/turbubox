@@ -36,14 +36,14 @@ reg turnTime            [expr {$domainSize / $maxVelocity}]
 
 reg baseForcing         [expr {$maxVelocity**2 / $domainSize}]
 
-reg maxStirTime         [expr {  2 * $turnTime}]
-reg maxSimTime          [expr { 10 * $turnTime}]
+reg maxStirTime         [expr {2 * $turnTime}]
+reg maxSimTime          [expr {5 * $turnTime}]
 
 reg dtinit              [expr {$turnTime / 1e6}]
 reg dtmin               [expr {$turnTime / 1e10}]
 reg dtmax               [expr {$turnTime / 1e2}] 
 
-reg chkPtInterval       [expr {$maxSimTime / 400}]
+reg chkPtInterval       [expr {$maxSimTime / 200}]
 
 # enforce scientifc notation with specified precision
 proc scinot {quantity {prec 3}} {
