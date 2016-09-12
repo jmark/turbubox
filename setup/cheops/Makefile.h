@@ -6,23 +6,23 @@ LINK    = mpiifort
 PP      = -D
 
 FFLAGS_OPT   = -c -r8 -i4 -O3 -real_size 64
-FFLAGS_DEBUG = -c -g -r8 -i4 -check bounds \
-					-check format -check output_conversion \
-					-warn all -check uninit -traceback \
-					-fp-stack-check -real_size 64
 FFLAGS_TEST  = -c -r8 -i4 -O2 -real_size 64
+FFLAGS_DEBUG = -c -r8 -i4 -O1 -real_size 64 \
+				-g -check bounds -check format \
+				-warn all -check uninit -traceback \
+				-fp-stack-check -check output_conversion
 
 CFLAGS_OPT   = -c -O3 -D_LARGEFILE64_SOURCE
-CFLAGS_DEBUG = -c -g -debug extended -D_LARGEFILE64_SOURCE
 CFLAGS_TEST  = -c -O2 -D_LARGEFILE64_SOURCE
+CFLAGS_DEBUG = -c -O1 -D_LARGEFILE64_SOURCE -g -debug extended 
 
 CFLAGS_HDF5  = -DH5_USE_16_API
 CFLAGS_NCMPI =
 CFLAGS_MPI   =
 
-LFLAGS_OPT   = -r8 -i4 -Ur -o
-LFLAGS_DEBUG = -r8 -i4 -g -o
+LFLAGS_OPT   = -r8 -i4 -o
 LFLAGS_TEST  = -r8 -i4 -o
+LFLAGS_DEBUG = -r8 -i4 -o -g
 
 LIB_OPT   = 
 LIB_DEBUG = 
@@ -46,3 +46,7 @@ RM = rm -f
 CD = cd
 RL = ranlib
 ECHO = echo
+
+# needed only on my local machine
+CFLAGS_HDF5 += -I/usr/include/hdf5_18
+LIB_HDF5 += -L/usr/lib/hdf5_18
