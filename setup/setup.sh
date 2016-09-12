@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [[ "$1" == "help" ]]
+then
+	echo "usage: setup.sh <block size> <max blocks> <solver> <objdir> <site dir>"
+	exit 1
+fi
+
 BLOCKSIZE="${1:?No block size given!}"
 MAXBLOCKS="${2:?No maxblocks given}"
 SOLVER="${3:?No solver given!}"
