@@ -48,5 +48,5 @@ RL = ranlib
 ECHO = echo
 
 # needed only on my local machine
-CFLAGS_HDF5 += -I/usr/include/hdf5_18
-LIB_HDF5 += -L/usr/lib/hdf5_18
+# CFLAGS_HDF5 += -I/usr/include/hdf5_18
+# LIB_HDF5 += -L/usr/lib/hdf5_18
