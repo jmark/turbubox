@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ "$1" = "help" ]
+if test "$1" = "help"
 then
 	echo "usage: setup.sh <block size> <max blocks> <solver> <objdir> <site dir>"
 	exit 1
