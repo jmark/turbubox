@@ -20,7 +20,7 @@ set grid
 set xrange [1:130]
 set xtics 1,2,128
 
-set xlabel 'grid log_{10}({/:Italic k})   →'
+set xlabel 'grid number {/:Italic k}   →'
 set ylabel 'power transfer |{/:Italic P}|   →'
 
 plot for [i=1:words(datafiles)] word(datafiles,i) \

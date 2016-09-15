@@ -15,6 +15,10 @@ scale_y(x) = x
 
 set grid
 
+set xrange[0:5]
+
+set xtics 0.5
+
 set xlabel 'crossing time {/:Italic t / t_c}   →'
 set ylabel 'kinetic energy {/:Italic 𝓚}   →'
 

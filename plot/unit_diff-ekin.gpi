@@ -11,21 +11,17 @@ datafiles	= "`echo $GPI_datafiles`"
 legends		= "`echo $GPI_legends`"
 
 scale_x(x) = x / crosstime
-scale_y(x) = abs(x)
-
-set logscale xy
-set xtics 2,1,5
+scale_y(x) = log10(abs(x))
 
 set grid
-#set xtics 0.1
 
-
-set xrange [1.9:5]
+set xtics 0.2
+set xrange [2:5]
 
 set xlabel 'crossing time {/:Italic t / t_c}   →'
-set ylabel 'kinetic energy transfer rate |{/:Italic d𝓚/dt}|   →'
+set ylabel 'kinetic energy transfer rate log_{10}|{/:Italic d𝓚/dt}|   →'
 
-dfile = 'data/unit_128_b3-b5-es_mach-010_diff-ekin.dsv'
+dfile = 'data/unit_128_b3-b5-es_mach-10_diff-ekin.dsv'
 
 plot \
 	dfile u (scale_x($1)):(scale_y($5)) w l lw 2 t 'b3',\
