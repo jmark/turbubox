@@ -37,9 +37,8 @@ Vdomain = product(DS)
 
 density   = flash.get_box('dens')
 velocity  = [flash.get_box('vel'+dim) for dim in 'x y z'.split()]
-#vorticity = va3D.curl(velocity[0],velocity[1],velocity[2],CS[0],CS[1],CS[2])
 
-ekin = density/2.0 * va3D.norm(velocity[0],velocity[1],velocity[2])
+ekin = 0.5*Vcell*density * va3D.norm(velocity[0],velocity[1],velocity[2])
 
 from numpy.fft import rfftn, fftshift
 fekin = fftshift(np.abs(rfftn(ekin)))**2
