@@ -48,7 +48,7 @@ RL = ranlib
 ECHO = echo
 
 # needed only on my local machine
-ifeq ($(shell hostname),"archlinux-flash")
+ifeq ($(shell hostname),archlinux-flash)
 	CFLAGS_HDF5 += -I/usr/include/hdf5_18
 	LIB_HDF5 += -L/usr/lib/hdf5_18
 endif
