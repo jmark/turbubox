@@ -23,6 +23,9 @@
     - setup/
         install, compile and run scripts for various platforms
 
+    - cflash/
+        construction site, ignore this...
+
 ---
 
 [1] quickflash.sourceforge.net
