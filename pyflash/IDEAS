@@ -1,0 +1,5 @@
+python/pyflash.py
+    - real amr support:
+        - when calling '_.get_box(dname)' add keyword argument 'level' where
+          you can set max level/resolution: The scripts transforms then the
+          patchwork amr mesh into a uniform grid of desired resolution.
