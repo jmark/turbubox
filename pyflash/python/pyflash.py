@@ -18,9 +18,6 @@ class H5File(h5.File):
         else:
             raise KeyError(dname)
             
-def distance(a,b):
-    return np.abs(a-b)
-            
 class FlashFile:
 
     def __init__(self,fpath):
@@ -31,26 +28,19 @@ class FlashFile:
         self.meta['real scalars']     = self.list_to_dict('real scalars')
         self.meta['integer runtime']  = self.list_to_dict('integer runtime parameters')
         self.meta['real runtime']     = self.list_to_dict('real runtime parameters')
-        
+        self.meta['sim info']         = self.get_dataset('sim info')
+   
         self.meta['grid size'] = np.array([
-            self.meta['integer scalars']['nxb']*2**(self.meta['max refine level']-1),
-            self.meta['integer scalars']['nyb']*2**(self.meta['max refine level']-1),
-            self.meta['integer scalars']['nzb']*2**(self.meta['max refine level']-1)
-        ])
-        
-       	self.meta['min bounds'] = np.array([
-            self.meta['real runtime']['xmin'],
-            self.meta['real runtime']['ymin'],
-            self.meta['real runtime']['zmin']
-        ])
+            self.meta['integer scalars'][x]*2**(self.meta['max refine level']-1)
+                for x in 'nxb nyb nzb'.split()])
 
-        self.meta['max bounds'] = np.array([
-            self.meta['real runtime']['xmax'],
-            self.meta['real runtime']['ymax'],
-            self.meta['real runtime']['zmax']
-        ])
+        if str(self.meta['sim info']['setup call'][0]).find('+ug') >= 0:
+            self.meta['grid size'] *= 2 
 
-        self.meta['domain size'] = distance(self.meta['min bounds'],self.meta['max bounds'])
+       	self.meta['min bounds']  = np.array([self.meta['real runtime'][x] for x in 'xmin ymin zmin'.split()])
+        self.meta['max bounds']  = np.array([self.meta['real runtime'][x] for x in 'xmax ymax zmax'.split()])
+        self.meta['domain size'] = np.abs(self.meta['min bounds']-self.meta['max bounds'])
+        self.meta['block size']  = np.array([self.meta['integer scalars'][x] for x in 'nxb nyb nzb'.split()])
         self.meta['cell size']   = self.meta['domain size'] / self.meta['grid size']
 
     def get_dataset(self,dname):
@@ -59,36 +49,35 @@ class FlashFile:
     def list_to_dict(self,dname):
         return dict([(k.strip().decode(),v) for (k,v) in self.h5file.get(dname)])
     
-    def refine_level_indices(self):
-        return [i for (i,v) in enumerate(self.get_dataset('refine level')) if v == self.meta['max refine level']]
-    
-    def block_index_to_range(self,bix,dim):
-        n_b = [self.meta['integer scalars'][el] for el in ['nxb', 'nyb', 'nzb']]
-        #return (bix[dim] * n_b[dim], (bix[dim] + 1)*n_b[dim])
-        return (bix[dim], bix[dim] + n_b[dim])
-        
     def get_box(self,dname):
-        BOX = np.zeros(tuple(self.meta['grid size'][i] for i in range(0,3)))
+        # auxiliary variables for code clarity: shape: 3,
+        gridsize  = self.meta['grid size']
+        domsize   = self.meta['domain size']
+        offset    = -(self.meta['min bounds'])
+        blksize   = self.meta['block size']
+
+        # get block ids of desired refinement level
+        rl   = self.meta['max refine level'] 
+        rls  = self.get_dataset('refine level')
+        bids = [i for (i,x) in enumerate(rls) if x == rl]
         
-        rli = self.refine_level_indices()
-        
-        # following is a mess like hell ...
-        coords    = (self.get_dataset('coordinates'))[rli]
-        #subdomsize   = (self.get_dataset('block size'))[rli]
-        boxsize   = self.meta['grid size'][0]
-        blksize   = self.meta['integer scalars']['nxb']
-        domsize   = self.meta['domain size'][0]
-        offset    = (0.0 - self.meta['real runtime']['xmin']) * boxsize/domsize
-        bindices  = ((coords * boxsize/domsize - blksize/2 + offset).astype(np.int))
-        blocks    = (self.get_dataset(dname))[rli]           
-        
-        for bix,bindex in enumerate(bindices):
-            i_min,i_max = self.block_index_to_range(bindex,0)
-            j_min,j_max = self.block_index_to_range(bindex,1)
-            k_min,k_max = self.block_index_to_range(bindex,2)
-            
-            BOX[i_min:i_max,j_min:j_max,k_min:k_max] = blocks[bix].transpose((2,1,0))
-            
+        coords = (self.get_dataset('coordinates'))[bids] # shape: #bids,3
+        blocks = (self.get_dataset(dname))[bids] # shape: #bids,nxb*nyb*nzb
+
+        # note: using kung-fu broadcasting rules of numpy
+        positions = ((coords + offset)/domsize * gridsize).astype(np.int)
+
+        BOX = np.zeros(gridsize)
+
+        for bid, pos in enumerate(positions):
+            (i_min,i_max) = (pos[0] - blksize[0]//2, pos[0] + blksize[0]//2) 
+            (j_min,j_max) = (pos[1] - blksize[1]//2, pos[1] + blksize[1]//2) 
+            (k_min,k_max) = (pos[2] - blksize[2]//2, pos[2] + blksize[2]//2) 
+
+            #print(i_min,i_max,j_min,j_max,k_min,k_max)
+
+            BOX[i_min:i_max,j_min:j_max,k_min:k_max] = blocks[bid].transpose((2,1,0))
+
         return BOX
     
     def list_datasets(self):
