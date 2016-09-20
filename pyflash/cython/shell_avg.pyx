@@ -1,7 +1,10 @@
+cimport cython
 cimport numpy as np
 import numpy as np
-cimport cython
+
 from libc.math cimport sqrt
+
+np.import_array()
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
