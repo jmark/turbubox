@@ -6,7 +6,39 @@ then
 	exit 1
 fi
 
+# CHEOPS Profile
+# ==============
+#
+# INCA Rechenknoten (Dual-Socket)
+# ------------------------------- 
+#
+#   - 210 x 2 Nehalem EP Quad-Core Prozessoren
+#   - Xeon X5550, 2.66 GHz
+#   - 24 GB RAM
+#
+#   - 5 x 2 Nehalem EP Quad-Core Prozessoren
+#   - Xeon X5550, 2.66 GHz
+#   - 48 GB RAM
+#
+#   - 432 x 2 Westmere Hexa-Core Prozessoren
+#   - Xeon X5650, 2.66 GHz
+#   - 24 GB RAM
+#
+#   - 170 x 2 Westmere Hexa-Core Prozessoren
+#   - Xeon X5650, 2.66 GHz
+#   - 48 GB RAM
+#  
+# MESCA Rechenknoten (Quad-Socket)
+# --------------------------------
+#
+#   - 24 x 4 Nehalem EX Octo-Core Prozessoren
+#   - Xeon X7560, 2.27GHz
+#   - 512 GB RAM
+#
+#
 # Excerpt from FLASH 4.3 User Manual
+# ==================================
+#
 #   > The Uniform Grid has the same resolution in all the blocks throughout the
 #   > domain, and each processor has *exactly one block*. The uniform grid can operate
 #   > in either of two modes: fixed block size (FIXEDBLOCKSIZE) mode, and non-fixed
@@ -40,12 +72,12 @@ fi
 # Eg., for gridsize = 128^3:
 #
 #      (32 * 4)^3  = 128^3  --> 4^3 =  64 ... processes
+#      (16 * 8)^3  = 128^3  --> 8^3 = 512 ... processes # on CHEOPS not feasible
 #
 # Eg., for gridsize = 256^3:
 #
 #      (64 * 4)^3  = 256^3  --> 4^3 =  64 ... processes
-#      (32 * 8)^3  = 256^3  --> 8^3 = 512 ... processes
-
+#      (32 * 8)^3  = 256^3  --> 8^3 = 512 ... processes # on CHEOPS not feasible
 
 BLOCKSIZE="${1:?No block size given!}"
 MAXBLOCKS="${2:?No maxblocks given}"
