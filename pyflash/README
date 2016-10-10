@@ -1,24 +1,44 @@
-# Synopsis
+Synopsis
+--------
     In this folder there are several scripts for wrangling meaningful data out
-    of the checkpoint/plots files produced by FLASH.
+    of the checkpoint/plots files produced by FLASH, Flexi and Hopr.
 
-- python/
-    Python scripts. These are never run directly. See remarks for bin/ directory.
+Preparations
+------------
+    Before using the scripts one has to set $PYTHONPATH appropriately for python3 to 
+    find the libraries.
+
+    PROJECT_DIR=<this directory>    
+    export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/cython:$PROJECT_DIR/python"
+
+    In case you are working on CHEOPS load following modules:
+
+        if expr "$(hostname)" : '^cheops' > /dev/null
+        then
+            module load hdf5/1.8.13     2> /dev/null
+            module load openmpi         2> /dev/null
+            module load python/3.4.3    2> /dev/null
+        fi
+
+Directories
+-----------
+- lib/
+- cython/
+    Libraries for the toolz in bin/.
 
 - bin/
-    Preloader for all python scripts in python/ directory. Run like so:
-        
-    $ ./bin/<script name> arg0 arg1 arg2 ...
+    - flash2flexi.py [flash file] [mesh file] [flexi file]
+        Convert <flash file> to <flexi file> based on the information in <mesh file>.
 
-    - evolution
-        Loop over given files via stdin and condense data to global quantities of
+    - evolution.py < [flash file list] > out.dat
+        Loops over given files via stdin and condenses data to global quantities of
         the simulation, like total kinetic energy, etc...
 
-        $ find <path with checkpoint files> -name 'flash_hdf5_chk_0*' -type f \
-            | sort | ./bin/evolution | tee result.dat
+        $ find [path with checkpoint files] -name 'flash_hdf5_chk_*' -type f \
+            | sort | ./bin/evolution.py | tee result.dat
 
-    - powerspectrum.*.py
+    - powerspectrum.*.py [flash file]
         Compute powersectrum of given snapshot.
        
-        $ ./bin/powerspectrum.cython \
-            <path with checkpoint files>/flash_hdf5_chk_0XXX | tee result.dat
+        $ ./bin/powerspectrum.cython.py \
+            [path with checkpoint files]/flash_hdf5_chk_... | tee result.dat
