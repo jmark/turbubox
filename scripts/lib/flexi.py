@@ -7,7 +7,8 @@ class File:
         self.data = self.get('DG_Solution')
         self.mesh = mesh
         self.attr = self.h5file.get("/").attrs
-        self.N = self.attr['N'][0]
+        self.npoly = self.attr['N'][0]
+        self.nodetype = self.attr['NodeType'][0].decode('utf-8').lower()
 
     def get(self,dname):
         return self.h5file.get(dname)

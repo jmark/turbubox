@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import itertools
 
 eps = np.finfo(float).eps
 nit,TOL = 4,4*eps
@@ -199,3 +200,74 @@ def f4(N=None):
 
 def f5(N=None):
     return lambda x: x**(2*N+2)
+
+# =========================================================================== #
+
+def mk_exponent_vector(ndim,npoly):
+    #return (x for x in itertools.product(range(npoly+1),repeat=ndim) if sum(x) <= npoly)
+    return itertools.product(range(npoly+1),repeat=ndim)
+
+def mk_polynome_vector(x,npoly):
+    return [np.prod(np.power(x,e)) for e in mk_exponent_vector(x.shape[-1], npoly)]
+
+def mk_polynome_matrix(xs, npoly):
+    return np.array([mk_polynome_vector(x,npoly) for x in xs])
+
+def put_row(M,nrow,row):
+    tmp = M.copy()
+    tmp[nrow] = row
+    return tmp
+
+def mk_interpol_matrix(xs,Xs,npoly):
+    M = mk_polynome_matrix(xs,npoly)
+
+    return np.array([
+        [np.linalg.det(put_row(M,nrow,mk_polynome_vector(X,npoly)))
+        for nrow in range(len(M))] for X in Xs])/np.linalg.det(M)
+
+def mk_polynomial_interpolator(xs,Xs,npoly):
+    IM = mk_interpol_matrix(xs, Xs,npoly)
+    def closure(fs, domain):
+        return np.dot(IM,fs)
+    return closure 
+
+# =========================================================================== #
+
+def mk_lagrange_interpolator_2d(xs,ys, Xs):
+    def polyv(nodes,x):
+        return np.array([LagrangePolynomial(nodes,j,x) for j in range(len(nodes))])
+
+    def polyouter(x,y):
+        return np.einsum('i,j->ij',polyv(xs,x),polyv(ys,y))
+    
+    tensors = [polyouter(*X) for X in Xs]
+    
+    def interpolate(fs):
+        return np.array([np.sum(fs*t) for t in tensors])
+        
+    return interpolate
+
+def mk_lagrange_interpolator_3d(xs,ys,zs,Xs):
+    def polyv(nodes,x):
+        return np.array([LagrangePolynomial(nodes,j,x) for j in range(len(nodes))])
+
+    def polyouter(x,y,z):
+        return np.einsum('i,j,k->ijk',polyv(xs,x),polyv(ys,y),polyv(zs,z))
+    
+    tensors = [polyouter(*X) for X in Xs]
+
+    def interpolate(fs):
+        return np.array([np.sum(fs*t) for t in tensors])
+        
+    return interpolate
+
+def mk_nodes(npoly, ntype='gauss'):
+    if ntype == 'gauss':
+        fun = LegendreGaussNodesAndWeights
+    elif ntype == 'gauss-lobatto':
+        fun = LegendreGaussLobattoNodesAndWeights
+    else:
+        raise KeyError("unknown node type: '%s'" % ntype)
+
+    nodes, _ = fun(npoly)
+    return nodes

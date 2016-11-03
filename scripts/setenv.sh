@@ -11,4 +11,4 @@ then
     module load python/3.4.3    2> /dev/null
 fi
 
-export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/python:$PROJECT_DIR/cython"
+export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/bin"

@@ -20,14 +20,17 @@ Preparations
             module load python/3.4.3    2> /dev/null
         fi
 
+    Alternatively, you can source 'setenv.sh':
+    
+        $ source setenv.sh
+
 Directories
 -----------
 - lib/
-- cython/
-    Libraries for the toolz in bin/.
+    - module files which are not run on their own
 
 - bin/
-    - flash2flexi.py [flash file] [mesh file] [flexi file]
+    - flash_to_flexi.py [flash file] [mesh file] [flexi file]
         Convert <flash file> to <flexi file> based on the information in <mesh file>.
 
     - evolution.py < [flash file list] > out.dat
@@ -42,3 +45,5 @@ Directories
        
         $ ./bin/powerspectrum.cython.py \
             [path with checkpoint files]/flash_hdf5_chk_... | tee result.dat
+
+    - ...
