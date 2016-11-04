@@ -1,5 +1,5 @@
 CC		= gcc
-CFLAGS	= -O3
+CFLAGS	= -O3 -std=c99
 
 libinterpolate.so: libinterpolate.c
 	$(CC) $(CFLAGS) -shared -fPIC -o $@ $<
