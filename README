@@ -20,6 +20,8 @@
     - sandbox/
         construction and testing site, ignore this...
 
+    - attic/
+        Deprecated but still useful code gets archived here.
         - quickflash/
             This is an older branch, where I did extracting data and analysis in c++,
             resp. quickflash [1].
