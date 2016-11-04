@@ -1,9 +1,9 @@
 import numpy as np
 import ctypes as ct
 from numpy.ctypeslib import ndpointer
+import os
 
-#TODO: set more flexible library path
-libpath = '/home/jmark/projects/stirturb/turbubox/tools/lib/libshellavg.so'
+libpath = os.environ['PROJECTDIR'] + '/lib/libshellavg.so'
 lib     = ct.cdll.LoadLibrary(libpath)
 
 # enforce function prototype

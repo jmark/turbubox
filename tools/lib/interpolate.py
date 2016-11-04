@@ -1,8 +1,9 @@
 import numpy as np
 import ctypes as ct
 from numpy.ctypeslib import ndpointer
+import os
 
-libpath = '/home/jmark/projects/stirturb/turbubox/scripts/lib/libinterpolate.so'
+libpath = os.environ['PROJECTDIR'] + '/lib/libinterpolate.so'
 lib     = ct.cdll.LoadLibrary(libpath)
 
 lib.lagrange_interpolate_3d.argtypes = [
