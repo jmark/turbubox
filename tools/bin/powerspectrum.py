@@ -27,6 +27,9 @@ step = flash.integerscalars['nstep']
 c_s  = flash.realruntime['c_ambient']
 rho0 = flash.realruntime['rho_ambient']
 
+# c_s  = flash.realruntime['sim_cambient']
+# rho0 = flash.realruntime['sim_rhoambient']
+
 Vgrid   = np.prod(flash.gridsize)
 Vcell   = np.prod(flash.cellsize) 
 Vdomain = np.prod(flash.domainsize) 

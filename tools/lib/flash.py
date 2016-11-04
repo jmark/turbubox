@@ -1,7 +1,3 @@
-"""
-FLASH Code, FLEXI, HOPR utilities
-"""
-
 from h5 import H5File
 import numpy as np
 import sys
@@ -21,7 +17,8 @@ class File:
         self.realruntime    = H5File.dataset_to_dict(self.get('real runtime parameters'))
 
         self.gridsize = np.array([
-            self.integerscalars[x]*2**(self.maxrefinelevel-1) for x in 'nxb nyb nzb'.split()])
+            self.integerruntime[N] * self.integerscalars[n]*2**(self.maxrefinelevel-1) 
+                for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())])
 
         if str(self.siminfo['setup call'][0]).find('+ug') >= 0:
             self.gridsize *= 2 
@@ -30,7 +27,7 @@ class File:
 
        	self.domain  = np.array([
             [self.realruntime[x] for x in 'xmin ymin zmin'.split()],
-            [self.realruntime[x] for x in 'xmax ymax zmax'.split()]
+           [self.realruntime[x] for x in 'xmax ymax zmax'.split()]
         ])
 
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
@@ -56,10 +53,9 @@ class File:
         blocks = (self.get(dname))[bids]         # shape: (#bids,nxb*nyb*nzb)
 
         # note: using numpy broadcasting kung-fu: shape: coords.shape
-        positions = ((coords+offset)/domsize * gridsize).astype(np.int)
+        positions = np.round((coords+offset)/domsize * gridsize).astype(np.int)
 
         box = np.zeros(gridsize)
-
         for bid, pos in enumerate(positions):
             I = np.array((pos-blksize//2,pos+blksize//2)).transpose()
             box[[slice(*i) for i in I]] = blocks[bid].transpose((2,1,0))
@@ -85,9 +81,6 @@ class File:
         dt   = 0.0
 
         outfile.create_dataset("SIM_INFO", data=np.array([time,step,dt]))
-        #GS = self.meta['grid size']
-        #GV = GS[0]*GS[1]*GS[2]
-
         outfile.create_dataset("dens", data=self.get_box('dens').reshape(-1))
         outfile.create_dataset("velx", data=self.get_box('velx').reshape(-1))
         outfile.create_dataset("vely", data=self.get_box('vely').reshape(-1))
