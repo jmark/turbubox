@@ -161,7 +161,7 @@ def integrate(xs,ws,f):
 
 # =========================================================================== #
 
-def mkMassMatrix(xs,ws):
+def mk_mass_matrix(xs,ws):
     n = len(xs)
     M = np.empty([n,n])
     for i in range(n):
@@ -170,14 +170,14 @@ def mkMassMatrix(xs,ws):
             M[i,j] = integrate(xs,ws,f)
     return M
 
-def mkVisualMatrix(Xs,xs):
+def mk_visual_matrix(Xs,xs):
     M = np.empty([len(Xs),len(xs)])
     for i in range(len(Xs)):
         for j in range(len(xs)):
             M[i,j] = LagrangePolynomial(xs,j,Xs[i])
     return M
 
-def mkEdgeMatrix(N):
+def mk_corner_matrix(N):
     B = np.zeros([N,N])
     B[0,0] = -1
     B[-1,-1] = 1
