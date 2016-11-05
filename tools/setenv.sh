@@ -12,7 +12,7 @@
 # In an interactive shell session one has to 'source'
 # this script like so:
 #
-#   $ source <project path>/setenv.sh
+#   $ source setenv.sh ${project_path}/tools
 # 
 # Then run the programs like normal.
 #
