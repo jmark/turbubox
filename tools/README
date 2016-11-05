@@ -6,23 +6,19 @@ Synopsis
 Preparations
 ------------
     Before using the scripts one has to set $PYTHONPATH appropriately for python3 to 
-    find the libraries.
+    find the libraries, e.g.:
 
-    export PROJECTDIR=~/projects/stirturb/turbubox/tools
-    export PYTHONPATH="$PYTHONPATH:$PROJECTDIR/lib:$PROJECTDIR/bin"
+        $ export PYTHONPATH="$PYTHONPATH:$HOME/turbubox/tools/lib"
 
     In case you are working on CHEOPS load following modules:
 
-        if expr "$(hostname)" : '^cheops' > /dev/null
-        then
-            module load hdf5/1.8.13     2> /dev/null
-            module load openmpi         2> /dev/null
-            module load python/3.4.3    2> /dev/null
-        fi
+        $ module load hdf5/1.8.13
+        $ module load openmpi
+        $ module load python/3.4.3
 
     For more information consult 'setenv.sh', for example:
     
-        $ source setenv.sh
+        $ source setenv.sh ${project_path}/tools
 
 Directories
 -----------

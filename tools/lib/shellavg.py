@@ -1,12 +1,11 @@
 import numpy as np
 import ctypes as ct
 from numpy.ctypeslib import ndpointer
-import os
+import sys
+import ulz
 
-libpath = os.environ['PROJECTDIR'] + '/lib/libshellavg.so'
-lib     = ct.cdll.LoadLibrary(libpath)
+lib = ct.cdll.LoadLibrary(ulz.find_file('libshellavg.so', sys.path))
 
-# enforce function prototype
 lib.shell_avg_3d.argtypes = [
     # void shell_avg_3d(
     #     const double *X, const int Nx, const int Ny, const int Nz,

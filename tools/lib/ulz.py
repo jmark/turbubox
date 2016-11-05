@@ -1,6 +1,7 @@
 import itertools
 import hashlib
 import numpy as np
+import os
 
 def gen_key(unit,grid,solv,deli='/'):
     return '%s%s%d%s%s' % (unit,deli,grid,deli,solv)
@@ -146,3 +147,10 @@ def curl(X,Y,Z,Dx,Dy,Dz):
 
 def norm(X,Y,Z):
     return X**2 + Y**2 + Z**2
+
+def find_file(fname, paths):
+    for path in paths:
+        for root, dirs, files in os.walk(path):
+            if fname in files:
+                return os.path.join(root, fname)
+    raise FileNotFoundError("Cannot find '%s' in any of %s." % (fname, paths))
