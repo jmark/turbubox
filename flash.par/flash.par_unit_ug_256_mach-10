@@ -1,0 +1,245 @@
+#ctime=2016-09-06-15-14-42
+#cstamp=1473167682
+#unitsystem=unit
+#machNumber=10
+#boltzmannConstant=1
+#massComp=1
+#domainSize=1
+#ambientDens=1
+#ambientTemp=1
+#adiabaticIndex=1.6666666666666667
+#meanMolWeight=1
+#Bx=0.0
+#By=0.0
+#Bz=0.0
+#polytropeConst=1
+#ambientPres=1
+#soundSpeed=1.0
+#maxVelocity=10.0
+#turnTime=0.1
+#baseForcing=100.0
+#maxStirTime=0.2
+#maxSimTime=0.5
+#dtinit=1.0000000000000001e-7
+#dtmin=1.0000000000000001e-11
+#dtmax=0.001
+#chkPtInterval=0.0025
+
+## ======================================================================== #
+## Human Readable Report
+## ======================================================================== #
+##
+## > Physical Constants:
+##     Boltzmann Constant          1.00000000
+## 
+## > Box Parameters
+##     domain size:                1.00000000
+## 
+## > Hydrodynamics
+##     adiabatic index:            1.667
+##     ambient temperature:        1.00000000
+##     mass components:            1.00000000
+##     ambient density:            1.00000000
+##     ambient pressure:           1.00000000
+##     polytropic constant:        1.00000000
+##     speed of sound:             1.00000000
+## 
+## > Magnetodynamics:
+##     external magnetic field:
+##         Bx                      0.00000000
+##         By                      0.00000000
+##         Bz                      0.00000000
+## 
+## > Turbulent Stirring
+##     mach number                 10.00000000
+##     characteristic velocity:    10.00000000
+##     base forcing:               100.00000000
+##     turnover time:              0.10000000
+## 
+## > Simulation
+##     chk point interval:         0.0025 =  0.02 t/t_c
+##     max stirring time:          0.2 =  2.00 t/t_c
+##     max simulation time:        0.5 =  5.00 t/t_c
+##     
+## > Misc
+##     check point count:          200 
+## 
+## ======================================================================== #
+
+#########################################
+# PARAMETER FILE FOR GIRICHIDIS STIRRING
+#########################################
+
+# Mach 10 turbulent stirring
+
+######################
+# physics switches
+######################
+
+usePolytrope    = .true.
+useStir         = .true.
+
+######################
+# box parameters
+######################
+
+# physical box
+xmin = 0.
+ymin = 0.
+zmin = 0.
+
+# box dimensions
+xmax = 1.0000000000e+00 
+ymax = 1.0000000000e+00 
+zmax = 1.0000000000e+00 
+
+# external magnetic field
+bx = 0.0
+by = 0.0
+bz = 0.0
+
+######################
+# numerical params
+######################
+
+cfl         = 0.5
+nend        = 9999999
+tmax        = 5.0000000000e-01 
+
+# a rarely used switch which ensures that internal energy calculations
+# maintain sufficient precision.
+eintSwitch  = 0.0
+
+dtinit      = 1.0000000000e-07 
+dtmin       = 1.0000000000e-11 
+dtmax       = 1.0000000000e-03 
+
+smallt      = 1.e-40    # min. temperature
+smalle      = 1.e-40    # min. internal energy
+smlrho      = 1.e-40    # min. density
+
+######################
+# forcing params
+######################
+
+# (1) GENERAL PARAMETERS
+#----------------------------------
+st_tmax                  = 2.0000000000e-01
+st_Lbox                  = -1.0
+st_verbose               = .true.   
+st_correct_bulk_motion   = .true.
+
+# dEkin scaling modes:
+#  0: fixed scaling
+#  1: fixed energy input rate
+#  2: fixed rms velocity
+st_forcing_scaling_mode = 2
+
+# mode 0 parameter
+st_dVel_fixed_factor    = 0
+
+# mode 1 parameter
+st_dEkin_input_rate     = 0
+
+# mode 2 parameter
+st_rms_velocity         = 1.0000000000e+01
+st_dVel_max_ampli       = 100.0
+st_dVel_fraction        = 0.05
+
+# (2) Forcing from predefined file
+#     used if forcing_use_external_sequence = .true.
+#-----------------------------------------------
+st_use_external_sequence = .false.
+#ste_forcing_file        = "forcing.dat"
+
+# (3) Forcing using live OU computation
+#     used if st_use_external_sequence = .false.
+#------------------------------------------------
+
+# these must be changed according to used dimensions
+stl_F0   = 1.0000000000e+02
+stl_Tac  = 1.0000000000e-01
+
+stl_g0   = 1.0
+stl_kmin = 1.0
+stl_kmax = 3.0
+stl_seed = 173
+stl_zeta = 0.5
+
+######################
+# IO and file names
+######################
+
+basenm              = "flash_"
+log_file            = "LOG.TXT"
+output_directory    = "checkpoints"
+
+plot_var_1  = "dens"
+plot_var_2  = "velx"
+plot_var_3  = "vely"
+plot_var_4  = "velz"
+plot_var_5  = "accx"
+plot_var_6  = "accy"
+plot_var_7  = "accz"
+plot_var_8  = "magx"
+plot_var_9  = "magy"
+plot_var_10 = "magz"
+
+restart     = .false.
+#restart     = .true.
+
+checkpointFileNumber    =  0
+plotFileNumber          =  0
+
+checkpointFileIntervalTime  = 2.5000000000e-03
+checkpointFileIntervalStep  = 0
+
+plotFileIntervalTime	    = 1e200 
+plotFileIntervalStep	    = 0
+
+wall_clock_time_limit       = 9999999
+wall_clock_checkpoint       = 9999999
+
+######################
+# thermodynamics
+######################
+
+eosMode         = "dens_pres"
+
+rho_ambient     = 1.0000000000e+00 
+polytropeKonst  = 1.0000000000e+00 
+gamma           = 1.6666666667e+00 
+c_ambient       = 1.0000000000e+00 
+
+polytropeGamma1 = 1.001
+
+# not needed, but must be defined nevertheless
+polytropeGamma2 = 1.001
+polytropeGamma3 = 1.0
+polytropeGamma4 = 1.0
+polytropeGamma5 = 1.0
+
+polytropeDens1  = 1e-99
+polytropeDens2  = 1e99
+polytropeDens3  = 1e99
+polytropeDens4  = 1e99
+polytropeDens5  = 1e99
+
+######################
+# boundary conditions
+######################
+
+xl_boundary_type      = "periodic"
+xr_boundary_type      = "periodic"
+yl_boundary_type      = "periodic"
+yr_boundary_type      = "periodic"
+zl_boundary_type      = "periodic"
+zr_boundary_type      = "periodic"
+
+######################
+# UG parameters
+######################
+
+iprocs = 4
+jprocs = 4
+kprocs = 4
