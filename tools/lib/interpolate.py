@@ -1,10 +1,10 @@
 import numpy as np
 import ctypes as ct
 from numpy.ctypeslib import ndpointer
-import os
+import sys
+import ulz
 
-libpath = os.environ['PROJECTDIR'] + '/lib/libinterpolate.so'
-lib     = ct.cdll.LoadLibrary(libpath)
+lib = ct.cdll.LoadLibrary(ulz.find_file('libinterpolate.so', sys.path))
 
 lib.lagrange_interpolate_3d.argtypes = [
     # xs,ys,zs,fs
