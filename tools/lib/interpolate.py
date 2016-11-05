@@ -1,8 +1,9 @@
 import numpy as np
 import ctypes as ct
 from numpy.ctypeslib import ndpointer
+import os
 
-libpath = '/home/jmark/projects/stirturb/turbubox/pyflash/lib/libinterpolate.so'
+libpath = os.environ['PROJECTDIR'] + '/lib/libinterpolate.so'
 lib     = ct.cdll.LoadLibrary(libpath)
 
 lib.lagrange_interpolate_3d.argtypes = [
@@ -41,6 +42,12 @@ lib.flash_to_flexi.argtypes = [
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"), ct.c_int]
 
+lib.flash_to_flexi_RG.argtypes = [
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"), ct.c_int, ndpointer(ct.c_double, flags="C_CONTIGUOUS"), 
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"), ct.c_int, ndpointer(ct.c_double, flags="C_CONTIGUOUS"), 
+    ndpointer(ct.c_int, flags="C_CONTIGUOUS"), ct.c_int
+]
+
 def lagrange_interpolate_3d(xs,ys,zs,fs,Xs,Ys,Zs):
     xs = np.require(xs.ravel(), dtype=np.double, requirements=['C', 'A'])
     ys = np.require(ys.ravel(), dtype=np.double, requirements=['C', 'A'])
@@ -76,15 +83,9 @@ def lagrange_interpolate_3d(xs,ys,zs,fs,Xs,Ys,Zs):
     return Fs 
 
 
-def flash_to_flexi(Is,Js,Ks, IOs,JOs,KOs, xs,ys,zs,fss, Xs,Ys,Zs):
+def flash_to_flexi(xs,ys,zs, Xs,Ys,Zs, Is, fss):
 
     Is = np.require(Is.ravel(), dtype=np.int32, requirements=['C', 'A'])
-    Js = np.require(Js.ravel(), dtype=np.int32, requirements=['C', 'A'])
-    Ks = np.require(Ks.ravel(), dtype=np.int32, requirements=['C', 'A'])
-
-    IOs = np.require(IOs.ravel(), dtype=np.int32, requirements=['C', 'A'])
-    JOs = np.require(JOs.ravel(), dtype=np.int32, requirements=['C', 'A'])
-    KOs = np.require(KOs.ravel(), dtype=np.int32, requirements=['C', 'A'])
 
     xs = np.require(xs.ravel(), dtype=np.double, requirements=['C', 'A'])
     ys = np.require(ys.ravel(), dtype=np.double, requirements=['C', 'A'])
@@ -108,11 +109,26 @@ def flash_to_flexi(Is,Js,Ks, IOs,JOs,KOs, xs,ys,zs,fss, Xs,Ys,Zs):
     Fss = np.require(Fss.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
 
     lib.flash_to_flexi(
-        Is,Js,Ks, IOs,JOs,KOs, IJKslen, 
-        xs,xslen,
-        ys,yslen,
-        zs,zslen,
-        fss,*fssshape,fslen,
-        Xs,Ys,Zs,Fss,Fslen)
+        xs,ys,zs, xslen,yslen,zslen,
+        Xs,Ys,Zs, Xslen,Yslen,Zslen,
+        Is, fss, fslen)
 
     return Fss
+
+
+def flash_to_flexi_RG(xs, Xs, Is, fss):
+
+    xs = np.require(xs.ravel(), dtype=np.double, requirements=['C', 'A'])
+    Xs = np.require(Xs.ravel(), dtype=np.double, requirements=['C', 'A'])
+    Is = np.require(Is.ravel(), dtype=np.int32, requirements=['C', 'A'])
+
+    fss = np.require(fss.ravel(), dtype=np.double, requirements=['C', 'A'])
+    Fss = np.empty(len(Is) * len(Xs)**3, dtype=np.double)
+    Fss = np.require(Fss.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
+
+    lib.flash_to_flexi_RG(
+        xs, len(xs), fss,
+        Xs, len(Xs), Fss,
+        Is, len(Is))
+
+    return Fss.reshape(len(Is),*[len(Xs)]*3)

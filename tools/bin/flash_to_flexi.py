@@ -345,28 +345,22 @@ def lagrange_3d_5th_order3():
     else:
         fls = flash.File(flshfile)
 
-    linspace = ulz.mk_body_centered_linspace(-1,1,npoly+1, withBoundaryNodes=True)
-    xs,ys,zs = [linspace]*3
-
-    Linspace = ulz.mk_body_centered_linspace(-1,1,npoly+1) 
-    Xs,Ys,Zs = np.meshgrid(*[Linspace]*3, indexing='ij')
-
+    xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1, withBoundaryNodes=True)
+    Xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1) 
     fss = ulz.wrap_in_guard_cells(fls.data('dens'))        
 
     # ll ... lower left
     # tr ... top right
     lls, trs = flx.mesh.get_cell_coords()
-
     elemsize = flx.mesh.cellsize / (npoly+1)
     I,J,K    = tuple(np.round(lls/elemsize).astype(int).T)
-    IO,JO,KO = tuple(np.round(trs/elemsize).astype(int).T + 2)
-    shape    = [flx.mesh.nrelems] + [npoly+1]*3
+    Is       = ((I * fss.shape[1]) + J) * fss.shape[2] + K
 
     start = time.time()
-    snkdata = interpolate.flash_to_flexi(I,J,K, IO,JO,KO, xs,ys,zs,fss, Xs,Ys,Zs)
+    snkdata = interpolate.flash_to_flexi_RG(xs, Xs, Is, fss)
     print("Elapsed: %f s" % (time.time() - start))
 
-    flx.data[:,:,:,:,0] = snkdata.reshape(shape).transpose(0,3,2,1)
+    flx.data[:,:,:,:,0] = snkdata.transpose(0,3,2,1)
 
     srcdata = fss
     idat = flx.data[:,:,:,:,0]

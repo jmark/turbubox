@@ -8,8 +8,8 @@ Preparations
     Before using the scripts one has to set $PYTHONPATH appropriately for python3 to 
     find the libraries.
 
-    PROJECT_DIR=<this directory>    
-    export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/cython:$PROJECT_DIR/python"
+    export PROJECTDIR=~/projects/stirturb/turbubox/tools
+    export PYTHONPATH="$PYTHONPATH:$PROJECTDIR/lib:$PROJECTDIR/bin"
 
     In case you are working on CHEOPS load following modules:
 
@@ -20,7 +20,7 @@ Preparations
             module load python/3.4.3    2> /dev/null
         fi
 
-    Alternatively, you can source 'setenv.sh':
+    For more information consult 'setenv.sh', for example:
     
         $ source setenv.sh
 
