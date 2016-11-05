@@ -1,5 +1,7 @@
 #!/bin/sh
 
+echo "$0"
+
 export SCRIPT_NAME="$(basename  "$0")"
 export SCRIPT_DIR="$(readlink -m "$0")"
 export PROJECT_DIR="${SCRIPT_DIR}/.."
