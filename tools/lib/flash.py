@@ -6,6 +6,7 @@ class File:
     def __init__(self,fpath):
         self.h5file = H5File(fpath,'r')
 
+        # transform meta information to python data types
         self.siminfo        = self.get('sim info')
         
         self.refine_levels  = self.get('refine level')
@@ -16,18 +17,20 @@ class File:
         self.integerruntime = H5File.dataset_to_dict(self.get('integer runtime parameters'))
         self.realruntime    = H5File.dataset_to_dict(self.get('real runtime parameters'))
 
+        # figure out global grid size
         self.gridsize = np.array([
             self.integerruntime[N] * self.integerscalars[n]*2**(self.maxrefinelevel-1) 
                 for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())])
 
+        # handle uniform grid case
         if str(self.siminfo['setup call'][0]).find('+ug') >= 0:
-            self.gridsize *= 2 
+            self.gridsize *= np.array([self.integerscalars[key] for key in 'iprocs jprocs kprocs'.split()])
 
         self.grid = np.array([[0,0,0], self.gridsize-1])
 
        	self.domain  = np.array([
             [self.realruntime[x] for x in 'xmin ymin zmin'.split()],
-           [self.realruntime[x] for x in 'xmax ymax zmax'.split()]
+            [self.realruntime[x] for x in 'xmax ymax zmax'.split()]
         ])
 
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
@@ -47,7 +50,7 @@ class File:
         # get block ids of desired refinement level
         rls  = self.get('refine level')
         rl   = rls.max()
-        bids = [i for (i,x) in enumerate(rls) if x == rl] # block ids
+        bids = [i for (i,x) in enumerate(rls) if x == rl] # filter desired blocks
         
         coords = (self.get('coordinates'))[bids] # shape: (#bids,3)
         blocks = (self.get(dname))[bids]         # shape: (#bids,nxb*nyb*nzb)
@@ -65,7 +68,7 @@ class File:
     def list_datasets(self):
         return self.h5file.keys()
 
-    def to_hdf(self,fpath):
+    def to_hdf(self,fpath): # WIP!
 
         outfile = H5File(fpath,'w')
 
