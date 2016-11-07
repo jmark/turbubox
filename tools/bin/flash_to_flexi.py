@@ -44,7 +44,7 @@ class FakeFlashFile:
         ret = np.zeros(grd)
         fillby = self.fillby
 
-        Y,X,Z = np.meshgrid(*tuple(ulz.mk_body_centered_linspace(*d, s) for d,s in zip(dom, grd)))
+        X,Y,Z = np.meshgrid(*tuple(ulz.mk_body_centered_linspace(*d, s) for d,s in zip(dom, grd)), indexing='ij')
 
         if dname == 'dens':
 
@@ -52,6 +52,9 @@ class FakeFlashFile:
                 ret[:] = 1.0
 
             elif fillby == 'planeX':
+                ret[:] = X
+
+            elif fillby == 'planeX+':
                 ret = np.where(
                     (1/8-1/grd[0]<X) * (X<7/8+1/grd[0]) * \
                     (1/8-1/grd[1]<Y) * (Y<7/8+1/grd[1]) * \
@@ -346,23 +349,21 @@ def lagrange_3d_5th_order3():
         fls = flash.File(flshfile)
 
     xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1, withBoundaryNodes=True)
-    Xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1) 
-    fss = ulz.wrap_in_guard_cells(fls.data('dens'))        
+    box = ulz.wrap_in_guard_cells(fls.data('dens'))        
 
-    # ll ... lower left
-    # tr ... top right
-    lls, trs = flx.mesh.get_cell_coords()
-    elemsize = flx.mesh.cellsize / (npoly+1)
-    I,J,K    = tuple(np.round(lls/elemsize).astype(int).T)
-    Is       = ((I * fss.shape[1]) + J) * fss.shape[2] + K
+    #xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1)
+    #box = fls.data('dens')
+
+    #Xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1) 
+    Xs  = gausslobatto.mk_nodes(npoly, ntype)
 
     start = time.time()
-    snkdata = interpolate.flash_to_flexi_RG(xs, Xs, Is, fss)
+    snkdata = interpolate.box_to_flexi(xs, Xs, box, flx)
     print("Elapsed: %f s" % (time.time() - start))
 
     flx.data[:,:,:,:,0] = snkdata.transpose(0,3,2,1)
 
-    srcdata = fss
+    srcdata = box 
     idat = flx.data[:,:,:,:,0]
     print("Writing nvar '%s': (orig/itpl) min %f/%f max %f/%f" % \
             ('dens', srcdata.min(), idat.min(), srcdata.max(), idat.max()), file=sys.stderr)
