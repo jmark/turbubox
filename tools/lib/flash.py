@@ -1,6 +1,7 @@
 from h5 import H5File
 import numpy as np
 import sys
+import ulz
 
 class File:
     def __init__(self,fpath):
@@ -41,6 +42,9 @@ class File:
         return self.h5file.get(dname).value
    
     def data(self, dname):
+        return self.get_box(dname)
+
+    def get_data(self, dname):
         # auxiliary variables for code clarity: shape: (3,)
         gridsize  = self.gridsize
         domsize   = self.domainsize
@@ -64,7 +68,24 @@ class File:
             box[[slice(*i) for i in I]] = blocks[bid].transpose((2,1,0))
 
         return box 
-    
+
+    def set_data(self, dname, fun):
+        # auxiliary variables for code clarity: shape: (3,)
+        gridsize  = self.gridsize
+        domsize   = self.domainsize
+        offset    = -(self.domain[0])
+        blksize   = self.blocksize
+
+        linspace  = ulz.mk_body_centered_linspace
+        X,Y,Z     = np.meshgrid(*tuple(linspace(-1, 1, nb) for nb in blksize))
+
+        coords = self.get('coordinates')    # shape: (#bids,3)
+        blocks = self.get(dname)            # shape: (#bids,nxb*nyb*nzb)
+
+        for bid, coord in enumerate(coords):
+            mg = np.meshgrid(*tuple(linspace(cs[0], cs[1], nb) for cs,nb in zip(coord,blksize)), indexing='ij')
+            blocks[bid] = fun(*mg).transpose((2,1,0))
+
     def list_datasets(self):
         return self.h5file.keys()
 

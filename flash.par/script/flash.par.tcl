@@ -24,6 +24,10 @@ proc reg {vname vdata} {
 
 ## ... params + report
 
+dict set meta {creation time} [clock format $NOW -format {%Y-%m-%d-%H-%M-%S}]
+dict set meta cstamp $NOW
+dict set meta {unit system} $UNITSYSTEM
+
 switch -exact $UNITSYSTEM {
     unit    {source unit.tm}
     cgs     {source cgs.tm}
@@ -34,15 +38,12 @@ switch -exact $OUTPUT {
     human   {puts $report}
     json    {puts [json::dict2json $meta]}
     machine { 
-        puts "#ctime=[clock format $NOW -format {%Y-%m-%d-%H-%M-%S}]"
-        puts "#cstamp=$NOW"
-        puts "#unitsystem=$UNITSYSTEM"
-
+        puts {# _BEGIN_}
         dict for {k v} $meta {
-            puts "#$k=$v"
+            puts "# $k = $v"
         }
+        puts {# _END_}
         puts {}
-
         puts "## [string repeat = 72] #"
         puts {## Human Readable Report}
         puts "## [string repeat = 72] #"

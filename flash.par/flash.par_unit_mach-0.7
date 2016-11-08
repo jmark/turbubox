@@ -1,8 +1,78 @@
+# _BEGIN_
+# creation time = 2016-11-08-09-15-13
+# cstamp = 1478592913
+# unit system = unit
+# machNumber = 0.7
+# boltzmannConstant = 1
+# massComp = 1
+# domainSize = 1
+# ambientDens = 1
+# ambientTemp = 1
+# adiabaticIndex = 1.6666666666666667
+# meanMolWeight = 1
+# Bx = 0.0
+# By = 0.0
+# Bz = 0.0
+# polytropeConst = 1
+# ambientPres = 1
+# soundSpeed = 1.0
+# maxVelocity = 0.7
+# turnTime = 1.4285714285714286
+# baseForcing = 0.48999999999999994
+# maxStirTime = 2.857142857142857
+# maxSimTime = 7.142857142857143
+# dtinit = 1.4285714285714286e-6
+# dtmin = 1.4285714285714285e-10
+# dtmax = 0.014285714285714285
+# chkPtInterval = 0.03571428571428572
+# _END_
+
+## ======================================================================== #
+## Human Readable Report
+## ======================================================================== #
+##
+## > Physical Constants:
+##     Boltzmann Constant          1.00000000
+## 
+## > Box Parameters
+##     domain size:                1.00000000
+## 
+## > Hydrodynamics
+##     adiabatic index:            1.667
+##     ambient temperature:        1.00000000
+##     mass components:            1.00000000
+##     ambient density:            1.00000000
+##     ambient pressure:           1.00000000
+##     polytropic constant:        1.00000000
+##     speed of sound:             1.00000000
+## 
+## > Magnetodynamics:
+##     external magnetic field:
+##         Bx                      0.00000000
+##         By                      0.00000000
+##         Bz                      0.00000000
+## 
+## > Turbulent Stirring
+##     mach number                 0.70000000
+##     characteristic velocity:    0.70000000
+##     base forcing:               0.49000000
+##     turnover time:              1.42857143
+## 
+## > Simulation
+##     chk point interval:         0.03571428571428572 =  0.03 t/t_c
+##     max stirring time:          2.857142857142857 =  2.00 t/t_c
+##     max simulation time:        7.142857142857143 =  5.00 t/t_c
+##     
+## > Misc
+##     check point count:          200 
+## 
+## ======================================================================== #
+
 #########################################
 # PARAMETER FILE FOR GIRICHIDIS STIRRING
 #########################################
 
-\# Mach $machNumber turbulent stirring
+# Mach 0.7 turbulent stirring
 
 ######################
 # physics switches
@@ -21,14 +91,14 @@ ymin = 0.
 zmin = 0.
 
 # box dimensions
-xmax = [scinot $domainSize] 
-ymax = [scinot $domainSize] 
-zmax = [scinot $domainSize] 
+xmax = 1.0000000000e+00 
+ymax = 1.0000000000e+00 
+zmax = 1.0000000000e+00 
 
 # external magnetic field
-bx = $Bx
-by = $By
-bz = $Bz
+bx = 0.0
+by = 0.0
+bz = 0.0
 
 ######################
 # numerical params
@@ -36,15 +106,15 @@ bz = $Bz
 
 cfl         = 0.5
 nend        = 9999999
-tmax        = [scinot $maxSimTime] 
+tmax        = 7.1428571429e+00 
 
 # a rarely used switch which ensures that internal energy calculations
 # maintain sufficient precision.
 eintSwitch  = 0.0
 
-dtinit      = [scinot $dtinit] 
-dtmin       = [scinot $dtmin] 
-dtmax       = [scinot $dtmax] 
+dtinit      = 1.4285714286e-06 
+dtmin       = 1.4285714286e-10 
+dtmax       = 1.4285714286e-02 
 
 smallt      = 1.e-40    # min. temperature
 smalle      = 1.e-40    # min. internal energy
@@ -56,7 +126,7 @@ smlrho      = 1.e-40    # min. density
 
 # (1) GENERAL PARAMETERS
 #----------------------------------
-st_tmax                  = [scinot $maxStirTime]
+st_tmax                  = 2.8571428571e+00
 st_Lbox                  = -1.0
 st_verbose               = .true.   
 st_correct_bulk_motion   = .true.
@@ -74,7 +144,7 @@ st_dVel_fixed_factor    = 0
 st_dEkin_input_rate     = 0
 
 # mode 2 parameter
-st_rms_velocity         = [scinot $maxVelocity]
+st_rms_velocity         = 7.0000000000e-01
 st_dVel_max_ampli       = 100.0
 st_dVel_fraction        = 0.05
 
@@ -89,8 +159,8 @@ st_use_external_sequence = .false.
 #------------------------------------------------
 
 # these must be changed according to used dimensions
-stl_F0   = [scinot $baseForcing]
-stl_Tac  = [scinot $turnTime]
+stl_F0   = 4.9000000000e-01
+stl_Tac  = 1.4285714286e+00
 
 stl_g0   = 1.0
 stl_kmin = 1.0
@@ -123,7 +193,7 @@ restart     = .false.
 checkpointFileNumber    =  0
 plotFileNumber          =  0
 
-checkpointFileIntervalTime  = [scinot $chkPtInterval]
+checkpointFileIntervalTime  = 3.5714285714e-02
 checkpointFileIntervalStep  = 0
 
 plotFileIntervalTime	    = 1e200 
@@ -138,10 +208,10 @@ wall_clock_checkpoint       = 9999999
 
 eosMode         = "dens_pres"
 
-rho_ambient     = [scinot $ambientDens] 
-polytropeKonst  = [scinot $polytropeConst] 
-gamma           = [scinot $adiabaticIndex] 
-c_ambient       = [scinot $soundSpeed] 
+rho_ambient     = 1.0000000000e+00 
+polytropeKonst  = 1.0000000000e+00 
+gamma           = 1.6666666667e+00 
+c_ambient       = 1.0000000000e+00 
 
 polytropeGamma1 = 1.001
 
