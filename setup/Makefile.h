@@ -1,3 +1,5 @@
+# Makefile for FLASH Code 4.3
+
 FCOMP   = mpiifort
 CCOMP   = mpiicc
 CPPCOMP = mpiicpc
@@ -16,7 +18,7 @@ CFLAGS_OPT   = -c -O3 -D_LARGEFILE64_SOURCE
 CFLAGS_TEST  = -c -O2 -D_LARGEFILE64_SOURCE
 CFLAGS_DEBUG = -c -O1 -D_LARGEFILE64_SOURCE -g -debug extended 
 
-CFLAGS_HDF5  = -DH5_USE_16_API
+CFLAGS_HDF5  = $(ENV_CFLAGS_HDF5) -DH5_USE_16_API
 CFLAGS_NCMPI =
 CFLAGS_MPI   =
 
@@ -29,7 +31,7 @@ LIB_DEBUG =
 LIB_TEST  =
 
 LIB_HDF4  = 
-LIB_HDF5  = -lhdf5 -lz -lstdc++
+LIB_HDF5  = $(ENV_LIB_HDF5) -lhdf5 -lz -lstdc++
 
 LIB_PAPI  =
 LIB_MATH  = 
@@ -46,9 +48,3 @@ RM = rm -f
 CD = cd
 RL = ranlib
 ECHO = echo
-
-# needed only on my local machine
-ifeq ($(shell hostname),archlinux-flash)
-	CFLAGS_HDF5 += -I/usr/include/hdf5_18
-	LIB_HDF5 += -L/usr/lib/hdf5_18
-endif

@@ -14,11 +14,4 @@
 #SBATCH --mail-user=jmarker2@uni-koeln.de
 #SBATCH --mail-type=all
 
-module load hdf5
-module load intel
-module load intelmpi
-
-FLASH_EXE="$1"
-FLASH_PAR="$2"
-
-srun -n "$SLURM_NTASKS" "$FLASH_EXE" -par_file "$FLASH_PAR"
+"$@" "$SLURM_NTASKS"
