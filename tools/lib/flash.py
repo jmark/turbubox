@@ -42,7 +42,7 @@ class File:
         return self.h5file.get(dname).value
    
     def data(self, dname):
-        return self.get_box(dname)
+        return self.get_data(dname)
 
     def get_data(self, dname):
         # auxiliary variables for code clarity: shape: (3,)
