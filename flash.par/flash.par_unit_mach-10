@@ -1,29 +1,31 @@
-#ctime=2016-09-06-15-14-42
-#cstamp=1473167682
-#unitsystem=unit
-#machNumber=10
-#boltzmannConstant=1
-#massComp=1
-#domainSize=1
-#ambientDens=1
-#ambientTemp=1
-#adiabaticIndex=1.6666666666666667
-#meanMolWeight=1
-#Bx=0.0
-#By=0.0
-#Bz=0.0
-#polytropeConst=1
-#ambientPres=1
-#soundSpeed=1.0
-#maxVelocity=10.0
-#turnTime=0.1
-#baseForcing=100.0
-#maxStirTime=0.2
-#maxSimTime=0.5
-#dtinit=1.0000000000000001e-7
-#dtmin=1.0000000000000001e-11
-#dtmax=0.001
-#chkPtInterval=0.0025
+# _BEGIN_
+# creation time = 2016-11-09-09-59-31
+# cstamp = 1478681971
+# unit system = unit
+# machNumber = 10.0
+# boltzmannConstant = 1
+# massComp = 1
+# domainSize = 1
+# ambientDens = 1
+# ambientTemp = 1
+# adiabaticIndex = 1.6666666666666667
+# meanMolWeight = 1
+# Bx = 0.0
+# By = 0.0
+# Bz = 0.0
+# polytropeConst = 1
+# ambientPres = 1
+# soundSpeed = 1.0
+# maxVelocity = 10.0
+# turnTime = 0.1
+# baseForcing = 100.0
+# maxStirTime = 0.2
+# maxSimTime = 0.5
+# dtinit = 1.0000000000000001e-7
+# dtmin = 1.0000000000000001e-11
+# dtmax = 0.001
+# chkPtInterval = 0.0025
+# _END_
 
 ## ======================================================================== #
 ## Human Readable Report
@@ -70,7 +72,7 @@
 # PARAMETER FILE FOR GIRICHIDIS STIRRING
 #########################################
 
-# Mach 10 turbulent stirring
+# Mach 10.0 turbulent stirring
 
 ######################
 # physics switches
@@ -237,9 +239,22 @@ zl_boundary_type      = "periodic"
 zr_boundary_type      = "periodic"
 
 ######################
-# UG parameters
 ######################
 
-iprocs = 4
-jprocs = 4
-kprocs = 4
+FIXME
+# Parameters below define the grid size.
+
+# AMR parameters
+# --------------
+
+# lrefine_min = 3
+# lrefine_max = 3
+# nref = 999999
+# refine_var_1 = "dens"
+
+# UG parameters
+# -------------
+
+# iprocs = 4
+# jprocs = 4
+# kprocs = 4
