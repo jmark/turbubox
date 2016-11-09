@@ -1,8 +1,9 @@
 #!/bin/sh
 
+set -eu
+
 FLASH_EXE="${1:?No FLASH executable given!}" && shift
 FLASH_PAR="${1:?No parameter file given!}" && shift
-MPI_NTASK="${1:?No MPI NTASKS given!}" && shift
 
 if expr "$(hostname)" : '^cheops' > /dev/null
 then
@@ -26,7 +27,7 @@ then
     export I_MPI_F77=ifort
     export I_MPI_F90=ifort
 
-    source /etc/profile.d/intel*
+    set +u ; source /etc/profile.d/intel* ; set -u
 
-    mpirun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
+    echo mpirun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
 fi
