@@ -31,7 +31,7 @@ class CartesianMeshFile(MeshFile):
             raise AssertionError("type of all elements must be '108 aka. cube'")
 
         self.cellsize = np.abs(self.nodeCoords[7]-self.nodeCoords[0])
-        self.gridsize = self.domainsize / self.cellsize
+        self.gridsize = self.domainsize // self.cellsize
         self.nrelems  = len(self.elemInfo)
  
     def get_cell_coords(self):

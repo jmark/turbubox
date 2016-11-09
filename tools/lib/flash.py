@@ -21,7 +21,7 @@ class File:
         # figure out global grid size
         self.gridsize = np.array([
             self.integerruntime[N] * self.integerscalars[n]*2**(self.maxrefinelevel-1) 
-                for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())])
+                for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())]).astype(np.int)
 
         # handle uniform grid case
         if str(self.siminfo['setup call'][0]).find('+ug') >= 0:

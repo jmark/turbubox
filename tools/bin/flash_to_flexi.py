@@ -338,36 +338,45 @@ def lagrange_3d_5th_order3():
     flexfile = sys.argv.pop() 
 
     flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
-    npoly = flx.npoly
-    ntype = flx.nodetype
-    gridsize = (flx.mesh.gridsize * (npoly+1)).astype(int)
 
     if '--generate=' in flshfile:
         fillby = flshfile.split('=')[-1]
-        fls = FakeFlashFile([[0,0,0],[1,1,1]], gridsize, fillby=fillby)
+        fls = FakeFlashFile([[0,0,0],[1,1,1]], fillby=fillby)
     else:
         fls = flash.File(flshfile)
 
-    xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1, withBoundaryNodes=True)
-    box = ulz.wrap_in_guard_cells(fls.data('dens'))        
+    # init grid spaces
+    xs  = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=True)
+    Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype)
 
-    #xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1)
-    #box = fls.data('dens')
+    # interpolate
+    prims = []
+    for dbname in 'dens velx vely velz pres magx magy magz'.split():
+        src = ulz.wrap_in_guard_cells(fls.data(dbname))        
+        snk = interpolate.box_to_flexi(xs, Xs, src, flx)
 
-    #Xs  = ulz.mk_body_centered_linspace(-1,1,npoly+1) 
-    Xs  = gausslobatto.mk_nodes(npoly, ntype)
+        print("Writing nvar '%s': min %f -> %f | max %f -> %f" % \
+                (dbname, src.min(), snk.min(), src.max(), snk.max()), file=sys.stderr)
 
-    start = time.time()
-    snkdata = interpolate.box_to_flexi(xs, Xs, box, flx)
-    print("Elapsed: %f s" % (time.time() - start))
+        prims.append(snk)
 
-    flx.data[:,:,:,:,0] = snkdata.transpose(0,3,2,1)
+    # convert primitive to conservative form
+    kappa = 5/3
+    mu0   = 1
+ 
+    cons    = [None]*len(prims)
+    cons[0] = prims[0]            # density
+    cons[1] = prims[0]*prims[1]   # momentum x
+    cons[2] = prims[0]*prims[2]   # momentum y
+    cons[3] = prims[0]*prims[3]   # momentum z
+    cons[4] = prims[4]/(kappa-1) + prims[0]/2*(prims[1]**2+prims[2]**2+prims[3]**2) + (prims[5]**2+prims[6]**2+prims[7]**2)/2/mu0 # total energy
+    cons[5] = prims[5]           # mag x
+    cons[6] = prims[6]           # mag y
+    cons[7] = prims[7]           # mag z
 
-    srcdata = box 
-    idat = flx.data[:,:,:,:,0]
-    print("Writing nvar '%s': (orig/itpl) min %f/%f max %f/%f" % \
-            ('dens', srcdata.min(), idat.min(), srcdata.max(), idat.max()), file=sys.stderr)
-
+    # write to file
+    for i,con in enumerate(cons):
+        flx.data[:,:,:,:,i] = con.transpose(0,3,2,1)
 
 if __name__ == '__main__':
     #linear_3d()
