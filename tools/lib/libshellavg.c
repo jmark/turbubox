@@ -6,6 +6,33 @@
 // rs[nsamples] -> radii
 // ts[nsamples] -> totals
 
+void shell_avg_2d(
+    const double *X, const int Nx, const int Ny,
+    double *cs, double *rs, double *ts, const int nsamples
+)
+{
+    // cell half-width offsets
+    const double cxofs = .5/Nx;
+    const double cyofs = .5/Ny;
+
+    const double I_max = Nx/2. + cxofs;
+    const double J_max = Ny/2. + cyofs;
+    const double r_max = sqrt(I_max*I_max + J_max*J_max);
+
+    for (int i = 0; i < Nx; i++)
+    for (int j = 0; j < Ny; j++)
+    {
+        const double I = i - Nx/2. + cxofs;
+        const double J = j - Ny/2. + cyofs;
+        const double r = sqrt(I*I + J*J);
+        const    int R = r/r_max * nsamples;
+
+        cs[R] += 1;
+        rs[R] += r;
+        ts[R] += X[(i * Ny) + j];
+    }
+}
+
 void shell_avg_3d(
     const double *X, const int Nx, const int Ny, const int Nz,
     double *cs, double *rs, double *ts, const int nsamples

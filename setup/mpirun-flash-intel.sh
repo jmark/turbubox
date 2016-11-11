@@ -29,5 +29,5 @@ then
 
     set +u ; source /etc/profile.d/intel* ; set -u
 
-    echo mpirun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
+    mpirun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
 fi

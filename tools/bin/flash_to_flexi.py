@@ -16,7 +16,7 @@ import interpolate
 class FakeFlashFile:
     def __init__(self, domain, boxdims, fillby='constant', blockdims=None):
        	self.domain     = np.array(domain)
-        self.gridsize   = np.array(boxdims)
+        self.gridsize   = np.array(boxdims).astype(np.int)
         self.grid       = np.array([[0,0,0], self.gridsize-1])
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
         self.cellsize   = self.domainsize / self.gridsize
@@ -43,6 +43,9 @@ class FakeFlashFile:
         grd = self.gridsize
         ret = np.zeros(grd)
         fillby = self.fillby
+
+        def exp3D(A,sigma,p,x,y,z):
+            return A * np.exp(-((x-p[0])**2 + (y-p[1])**2 + (z-p[2])**2)/sigma/2.)
 
         X,Y,Z = np.meshgrid(*tuple(ulz.mk_body_centered_linspace(*d, s) for d,s in zip(dom, grd)), indexing='ij')
 
@@ -82,11 +85,17 @@ class FakeFlashFile:
             else:
                 raise NotImplementedError('unknow fillby: %s' % fillby)
 
-        if dname == 'pres':
+        elif dname == 'pres':
             # constant
-                ret[:] = 1.0
+            #ret[:] = 1.0
             # plane
             #ret = X+Y
+
+            # shear flow
+            ret = np.ones_like(X)
+            #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
+            ret[np.where((6/16 <= Y) * (Y <= 10/16))] = 5.0
+            #ret[np.where((Y < 5/16) + (11/16 < Y))] = -5.0
 
             # gaussian2d
             # ret = 1 + 1 * 10**1 * np.exp(-((X-0.5)**2 + (Y-0.5)**2)/2/0.02)
@@ -111,8 +120,28 @@ class FakeFlashFile:
             # sin2d
             #return X+Y+Z
 
+        elif dname == 'velx':
+            # V0 = -1.0
+            # V1 = -2 * V0 
+            # s1 = 0.01
+            # p1 = [0.5,0.5,0.5] 
+
+            # ret = V0 * np.ones_like(X) + exp3D(V1, s1, p1, X,Y,Z)
+
+            #ret = np.zeros_like(X)
+            ret = 0.1 * (2 * np.random.rand(*X.shape) - 1)
+            #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
+            ret[np.where((6/16 <= Y) * (Y <= 10/16))] = 5.0
+            ret[np.where((Y < 23/64) + (41/64 < Y))] = -5.0
+
+        elif dname in 'vely velz magx magy magz'.split():
+            ret[:] = 0.0
+
+        else:
+            raise KeyError('%s not found!' % dname) 
+
         return ret
-        
+                
 # =========================================================================== #
 
 def linear_3d():
@@ -270,66 +299,6 @@ def lagrange_3d_5th_order():
     print("Writing nvar '%s': (orig/itpl) min %f/%f max %f/%f" % \
             ('dens', dens.min(), idat.min(), dens.max(), idat.max()), file=sys.stderr)
 
-
-def lagrange_3d_5th_order2():
-    sys.argv.reverse()
-    progname = sys.argv.pop()
-    flshfile = sys.argv.pop()
-    meshfile = sys.argv.pop()
-    flexfile = sys.argv.pop() 
-
-    flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
-    npoly = flx.npoly
-    ntype = flx.nodetype
-    gridsize = (flx.mesh.gridsize * (npoly+1)).astype(int)
-
-    if '--generate=' in flshfile:
-        fillby = flshfile.split('=')[-1]
-        fls = FakeFlashFile([[0,0,0],[1,1,1]], gridsize, fillby=fillby)
-    else:
-        fls = flash.File(flshfile)
-
-    linspace = ulz.mk_body_centered_linspace(-1,1,npoly+1, withBoundaryNodes=True)
-    xs,ys,zs = [linspace]*3
-
-    Linspace = ulz.mk_body_centered_linspace(-1,1,npoly+1) 
-    Xs,Ys,Zs = np.meshgrid(*[Linspace]*3, indexing='ij')
-
-    ipl = interpolate.lagrange_interpolate_3d
-
-    dens     = fls.data('dens')
-    burrito  = ulz.wrap_in_guard_cells(dens)        
-    elemsize = flx.mesh.cellsize / (npoly+1)
-
-    # ll ... lower left
-    # tr ... top right
-    lls, trs = flx.mesh.get_cell_coords()
-    snk = flx.data
-
-    I,J,K    = tuple(np.round(lls/elemsize).astype(int).T)
-    IO,JO,KO = tuple(np.round(trs/elemsize).astype(int).T + 2)
-    shp      = (npoly+1,)*3
-
-    #snkdata = flash_to_flexi(Is, IOs, xs, ys, zs, srcdata, Xs, Ys, Zs)
-    start = time.time()
-
-    for i,j,k,io,jo,ko,ll,tr,snk in zip(I,J,K,IO,JO,KO,lls,trs,snk):
-        srcdata         = burrito[i:io,j:jo,k:ko]
-        snkdata         = ipl(xs,ys,zs,srcdata,Xs,Ys,Zs).reshape(shp)
-        snk[:,:,:,0]    = snkdata.transpose(2,1,0)
-
-        #print("%d / %d" % (i,flx.mesh.nrelems))
-
-        # print(srcdata.shape)
-        # print(xs.shape)
-        # print(ys.shape)
-        # print(zs.shape)
-
-    print("Elapsed: %f s" % (time.time() - start))
-    idat = flx.data[:,:,:,:,0]
-    print("Writing nvar '%s': (orig/itpl) min %f/%f max %f/%f" % \
-            ('dens', dens.min(), idat.min(), dens.max(), idat.max()), file=sys.stderr)
-
 def lagrange_3d_5th_order3():
     sys.argv.reverse()
     progname = sys.argv.pop()
@@ -337,22 +306,27 @@ def lagrange_3d_5th_order3():
     meshfile = sys.argv.pop()
     flexfile = sys.argv.pop() 
 
+    withNeighborCells = False
+
     flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
 
     if '--generate=' in flshfile:
         fillby = flshfile.split('=')[-1]
-        fls = FakeFlashFile([[0,0,0],[1,1,1]], fillby=fillby)
+        fls = FakeFlashFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=fillby)
     else:
         fls = flash.File(flshfile)
 
     # init grid spaces
-    xs  = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=True)
+    xs  = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=withNeighborCells)
     Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype)
 
     # interpolate
     prims = []
     for dbname in 'dens velx vely velz pres magx magy magz'.split():
-        src = ulz.wrap_in_guard_cells(fls.data(dbname))        
+        src = fls.data(dbname)
+        if withNeighborCells:
+            src = ulz.wrap_in_guard_cells(src)        
+
         snk = interpolate.box_to_flexi(xs, Xs, src, flx)
 
         print("Writing nvar '%s': min %f -> %f | max %f -> %f" % \
