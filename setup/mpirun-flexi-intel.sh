@@ -12,7 +12,7 @@ then
     module load intel
     module load intelmpi
 
-    #srun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
+    srun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then

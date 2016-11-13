@@ -3,6 +3,21 @@ import hashlib
 import numpy as np
 import os
 
+def str2bool(str):
+    if str.lower() in 't true yes on'.split():
+        return True
+    if str.lower() in 'f false no off'.split():
+        return False
+    raise ValueError("%s cannot be converted to boolean" % str) 
+    
+def coerce(str):
+    for f in [int,float,str2bool]:
+        try:
+            return f(str)
+        except:
+            pass
+    return str
+
 def gen_key(unit,grid,solv,deli='/'):
     return '%s%s%d%s%s' % (unit,deli,grid,deli,solv)
 
@@ -154,3 +169,31 @@ def find_file(fname, paths):
             if fname in files:
                 return os.path.join(root, fname)
     raise FileNotFoundError("Cannot find '%s' in any of %s." % (fname, paths))
+
+def mhd_primitive_to_conservative(prims, kappa=5/3, mu0=1.0):
+    cons    = [None]*len(prims)
+    cons[0] = prims[0]            # density
+    cons[1] = prims[0]*prims[1]   # momentum x
+    cons[2] = prims[0]*prims[2]   # momentum y
+    cons[3] = prims[0]*prims[3]   # momentum z
+    cons[4] = prims[4]/(kappa-1) +  prims[0]/2*(prims[1]**2+prims[2]**2+prims[3]**2) \
+                                 + (prims[5]**2+prims[6]**2+prims[7]**2)/2/mu0 # total energy
+    cons[5] = prims[5]           # mag x
+    cons[6] = prims[6]           # mag y
+    cons[7] = prims[7]           # mag z
+
+    return cons
+
+def mhd_conservative_to_primitive(cons, kappa=5/3, mu0=1.0):
+    prims    = [None]*len(cons)
+    prims[0] = cons[0]             # density
+    prims[1] = cons[1] / cons[0]   # velx
+    prims[2] = cons[2] / cons[0]   # vely
+    prims[3] = cons[3] / cons[0]   # velz
+    prims[4] = (kappa-1)*(cons[4] -  cons[0]/2*(cons[1]**2+cons[2]**2+cons[3]**2) \
+                                  - (cons[5]**2+cons[6]**2+cons[7]**2)/2/mu0) # pressure
+    prims[5] = cons[5]           # mag x
+    prims[6] = cons[6]           # mag y
+    prims[7] = cons[7]           # mag z
+
+    return prims

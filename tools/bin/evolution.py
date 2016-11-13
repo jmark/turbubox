@@ -16,8 +16,8 @@ for count,filepath in enumerate(sys.stdin):
     rho0 = flash.realruntime['rho_ambient']
 
     GS = flash.gridsize
-    CS = flash.cellsize
     DS = flash.domainsize
+    CS = flash.cellsize
 
     Vgrid   = np.prod(GS)
     Vcell   = np.prod(CS) 
@@ -25,9 +25,12 @@ for count,filepath in enumerate(sys.stdin):
 
     density   = flash.data('dens')
     velocity  = [flash.data('vel'+dim) for dim in 'x y z'.split()]
-    vorticity = ulz.curl(velocity[0],velocity[1],velocity[2],CS[0],CS[1],CS[2])
 
-    ekintotal = Vcell/2.0     * np.sum(density * ulz.norm(velocity[0],velocity[1],velocity[2]))
-    evortotal = CS[0]**5/12.0 * np.sum(density * ulz.norm(vorticity[0],vorticity[1],vorticity[2]))
+    mach      = np.sqrt(np.sum(density * ulz.norm(*velocity))/np.sum(density)) / c_s
 
-    print("\t".join(map(str,[count,step,time,ekintotal,evortotal])), flush=True)
+    ekintotal = Vcell/2.0 * np.sum(density * ulz.norm(*velocity))
+
+    vorticity = ulz.curl(*velocity,*tuple(CS))
+    evortotal = CS[0]**5/12.0 * np.sum(density * ulz.norm(*vorticity))
+
+    print("\t".join(map(str,[count,step,time,mach,ekintotal,evortotal])), flush=True)
