@@ -2,7 +2,7 @@
 
 set -eu
 
-if expr "$1" : 'help|usage' > /dev/null
+if expr "$1" : 'help' > /dev/null
 then
 	echo "usage: setup.sh <block size> <max blocks> <solver> <objdir> <site dir> <additional options>"
 	exit 1
@@ -31,7 +31,7 @@ then
 fi
 
 ./setup Girichidis-StirTurb \
-    -3d -auto -portable -opt +ug \
+    -3d -auto -portable -opt \
 	-nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -nzb=$BLOCKSIZE -maxblocks=$MAXBLOCKS \
 	-site="$SITEDIR" -objdir="$OBJDIR" ${SOLVERUNIT[$SOLVER]} \
     "$@"

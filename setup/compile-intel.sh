@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -eu
 
 if expr "$(hostname)" : '^cheops' > /dev/null
 then
@@ -9,7 +9,7 @@ then
     module load intel
     module load intelmpi
 
-    make -j4
+    make -j4 "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -24,7 +24,7 @@ then
     export I_MPI_F77=ifort
     export I_MPI_F90=ifort
 
-    source /etc/profile.d/intel*
+    set +u ; source /etc/profile.d/intel* ; set -u
 
 	export ENV_CFLAGS_HDF5=-I/usr/include/hdf5_18
 	export ENV_LIB_HDF5=-L/usr/lib/hdf5_18
@@ -36,6 +36,6 @@ then
     ln -sf $(which python2) $TMPDIR/python 
     export PATH="/$TMPDIR:$PATH"
 
-    make -j 6
+    make -j 6 "$@"
 fi
 
