@@ -23,10 +23,9 @@ for count,filepath in enumerate(sys.stdin):
     Vcell   = np.prod(CS) 
     Vdomain = np.prod(DS) 
 
+    mach      = np.sqrt(np.sum(density * ulz.norm(*velocity))/np.sum(density)) / c_s
     density   = flash.data('dens')
     velocity  = [flash.data('vel'+dim) for dim in 'x y z'.split()]
-
-    mach      = np.sqrt(np.sum(density * ulz.norm(*velocity))/np.sum(density)) / c_s
 
     ekintotal = Vcell/2.0 * np.sum(density * ulz.norm(*velocity))
 
