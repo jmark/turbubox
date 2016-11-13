@@ -24,14 +24,15 @@
 # ======
 # Mode 1
 # ======
-export PROJECT_DIR=$(readlink -m "$1")
+
+export PROJECT_DIR=$(readlink -m "${1:? No project directory given!}")
 
 if expr "$(hostname)" : '^cheops' > /dev/null
 then
     module purge
-    module load hdf5/1.8.13     2> /dev/null
-    module load openmpi         2> /dev/null
-    module load python/3.4.3    2> /dev/null
+    module load hdf5/1.8.13
+    module load openmpi
+    module load python/3.4.3
 fi
 
 export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib"
@@ -57,6 +58,6 @@ fi
 export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib"
 
 # Run script file with parameters.
-python3 $@
+python3 "$@"
 
 fi
