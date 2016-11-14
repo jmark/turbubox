@@ -67,6 +67,88 @@ lagrange_interpolate_3d_RG(
 }
 
 void
+box_to_flexi_with_averaged_boundaries(
+    const int xslen, const double *xs, 
+    const int Nx, const int Ny, const int Nz, const double *fss,
+    const int Xslen, const double *Xs,       double *Fss,
+    const int oflen, const int *offsets
+)
+{
+    const int xslenM1 = xslen - 1;
+    const int xslenM2 = xslen - 2;
+    // init Lagrange Interpolation Matrix
+    double *Ls = malloc(sizeof(double) * Xslen * xslenM2);
+    // init reduced input value array 
+    double *fsM2 = malloc(sizeof(double) * xslenM2 * xslenM2 * xslenM2);
+
+    for (int I = 0; I < Xslen; I++)
+    for (int i = 0; i < xslenM2; i++)
+        Ls[I*xslenM2 + i] = LagrangePolynomial(xs, xslenM2, i, Xs[I]);
+
+    const int Stride = Xslen * Xslen * Xslen;
+
+    // loop over elements provided by FLEXI
+    for (int elemid = 0; elemid < oflen; elemid++) {
+        const double *fs = fss + offsets[elemid];
+              double *Fs = Fss + Stride *elemid;
+
+        // fill reduced input data
+        for (int i = 1; i < xslenM1; i++)
+        for (int j = 1; j < xslenM1; j++)
+        for (int k = 1; k < xslenM1; k++) {
+            const double f = fs[((i * Ny) + j) * Nz + k];
+           
+            int count = 1; 
+            if (i == 1) {
+                f += fs[((0 * Ny) + j) * Nz + k];
+                count++;
+            }
+            if (j == 1) {
+                f += fs[((i * Ny) + 0) * Nz + k];
+                count++;
+            }
+            if (k == 1) {
+                f += fs[((i * Ny) + j) * Nz + 0];
+                count++;
+            }
+            if (i == xslenM2) {
+                f += fs[((xslenM1 * Ny) + j) * Nz + k];
+                count++;
+            }
+            if (j == xslenM2) {
+                f += fs[((i * Ny) + xslenM1) * Nz + k];
+                count++;
+            }
+            if (k == xslenM2) {
+                f += fs[((i * Ny) + j) * Nz + xslenM1];
+                count++;
+            }
+
+            fsM2[(((i-1) * xslenM2) + (j-1)) * xslenM2 + (k-1)] = f / count;
+        }
+
+        // interpolate
+        for (int I = 0; I < Xslen; I++)
+        for (int J = 0; J < Xslen; J++)
+        for (int K = 0; K < Xslen; K++) {
+            double F = 0;
+
+            for (int i = 0; i < xslenM2; i++)
+            for (int j = 0; j < xslenM2; j++)
+            for (int k = 0; k < xslenM2; k++) {
+                const double f = fsM2[((i * xslenM2) + j) * xslenM2 + k];
+                F += f * Ls[I*xslenM2 + i]*Ls[J*xslenM2 + j]*Ls[K*xslenM2 + k];
+            }
+            Fs[((I * Xslen) + J) * Xslen + K] = F;
+        }
+    }
+
+    free(Ls);
+    free(fsM2);
+}
+
+
+void
 box_to_flexi(
     const int xslen, const double *xs, 
     const int Nx, const int Ny, const int Nz, const double *fss,
@@ -152,3 +234,5 @@ flexi_to_box(
 
     free(Ls);
 }
+
+

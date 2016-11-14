@@ -35,7 +35,7 @@ then
     module load python/3.4.3
 fi
 
-export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib"
+export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/bin"
 
 # ======
 # Mode 2
@@ -55,7 +55,7 @@ then
     module load python/3.4.3    2> /dev/null
 fi
 
-export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib"
+export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/bin"
 
 # Run script file with parameters.
 python3 "$@"
