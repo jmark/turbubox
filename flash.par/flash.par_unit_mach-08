@@ -1,0 +1,260 @@
+# _BEGIN_
+# creation time = 2016-11-14-18-58-31
+# cstamp = 1479146311
+# unit system = unit
+# machNumber = 0.8
+# boltzmannConstant = 1
+# massComp = 1
+# domainSize = 1
+# ambientDens = 1
+# ambientTemp = 1
+# adiabaticIndex = 1.6666666666666667
+# meanMolWeight = 1
+# Bx = 0.0
+# By = 0.0
+# Bz = 0.0
+# polytropeConst = 1
+# ambientPres = 1
+# soundSpeed = 1.0
+# maxVelocity = 0.8
+# turnTime = 1.25
+# baseForcing = 0.6400000000000001
+# maxStirTime = 2.5
+# maxSimTime = 6.25
+# dtinit = 1.25e-6
+# dtmin = 1.25e-10
+# dtmax = 0.0125
+# chkPtInterval = 0.03125
+# _END_
+
+## ======================================================================== #
+## Human Readable Report
+## ======================================================================== #
+##
+## > Physical Constants:
+##     Boltzmann Constant          1.00000000
+## 
+## > Box Parameters
+##     domain size:                1.00000000
+## 
+## > Hydrodynamics
+##     adiabatic index:            1.667
+##     ambient temperature:        1.00000000
+##     mass components:            1.00000000
+##     ambient density:            1.00000000
+##     ambient pressure:           1.00000000
+##     polytropic constant:        1.00000000
+##     speed of sound:             1.00000000
+## 
+## > Magnetodynamics:
+##     external magnetic field:
+##         Bx                      0.00000000
+##         By                      0.00000000
+##         Bz                      0.00000000
+## 
+## > Turbulent Stirring
+##     mach number                 0.80000000
+##     characteristic velocity:    0.80000000
+##     base forcing:               0.64000000
+##     turnover time:              1.25000000
+## 
+## > Simulation
+##     chk point interval:         0.03125 =  0.03 t/t_c
+##     max stirring time:          2.5 =  2.00 t/t_c
+##     max simulation time:        6.25 =  5.00 t/t_c
+##     
+## > Misc
+##     check point count:          200 
+## 
+## ======================================================================== #
+
+#########################################
+# PARAMETER FILE FOR GIRICHIDIS STIRRING
+#########################################
+
+# Mach 0.8 turbulent stirring
+
+######################
+# physics switches
+######################
+
+usePolytrope    = .true.
+useStir         = .true.
+
+######################
+# box parameters
+######################
+
+# physical box
+xmin = 0.
+ymin = 0.
+zmin = 0.
+
+# box dimensions
+xmax = 1.0000000000e+00 
+ymax = 1.0000000000e+00 
+zmax = 1.0000000000e+00 
+
+# external magnetic field
+bx = 0.0
+by = 0.0
+bz = 0.0
+
+######################
+# numerical params
+######################
+
+cfl         = 0.5
+nend        = 9999999
+tmax        = 6.2500000000e+00 
+
+# a rarely used switch which ensures that internal energy calculations
+# maintain sufficient precision.
+eintSwitch  = 0.0
+
+dtinit      = 1.2500000000e-06 
+dtmin       = 1.2500000000e-10 
+dtmax       = 1.2500000000e-02 
+
+smallt      = 1.e-40    # min. temperature
+smalle      = 1.e-40    # min. internal energy
+smlrho      = 1.e-40    # min. density
+
+######################
+# forcing params
+######################
+
+# (1) GENERAL PARAMETERS
+#----------------------------------
+st_tmax                  = 2.5000000000e+00
+st_Lbox                  = -1.0
+st_verbose               = .true.   
+st_correct_bulk_motion   = .true.
+
+# dEkin scaling modes:
+#  0: fixed scaling
+#  1: fixed energy input rate
+#  2: fixed rms velocity
+st_forcing_scaling_mode = 2
+
+# mode 0 parameter
+st_dVel_fixed_factor    = 0
+
+# mode 1 parameter
+st_dEkin_input_rate     = 0
+
+# mode 2 parameter
+st_rms_velocity         = 8.0000000000e-01
+st_dVel_max_ampli       = 100.0
+st_dVel_fraction        = 0.05
+
+# (2) Forcing from predefined file
+#     used if forcing_use_external_sequence = .true.
+#-----------------------------------------------
+st_use_external_sequence = .false.
+#ste_forcing_file        = "forcing.dat"
+
+# (3) Forcing using live OU computation
+#     used if st_use_external_sequence = .false.
+#------------------------------------------------
+
+# these must be changed according to used dimensions
+stl_F0   = 6.4000000000e-01
+stl_Tac  = 1.2500000000e+00
+
+stl_g0   = 1.0
+stl_kmin = 1.0
+stl_kmax = 3.0
+stl_seed = 173
+stl_zeta = 0.5
+
+######################
+# IO and file names
+######################
+
+basenm              = "flash_"
+log_file            = "LOG.TXT"
+output_directory    = "checkpoints"
+
+plot_var_1  = "dens"
+plot_var_2  = "velx"
+plot_var_3  = "vely"
+plot_var_4  = "velz"
+plot_var_5  = "accx"
+plot_var_6  = "accy"
+plot_var_7  = "accz"
+plot_var_8  = "magx"
+plot_var_9  = "magy"
+plot_var_10 = "magz"
+
+restart     = .false.
+#restart     = .true.
+
+checkpointFileNumber    =  0
+plotFileNumber          =  0
+
+checkpointFileIntervalTime  = 3.1250000000e-02
+checkpointFileIntervalStep  = 0
+
+plotFileIntervalTime	    = 1e200 
+plotFileIntervalStep	    = 0
+
+wall_clock_time_limit       = 9999999
+wall_clock_checkpoint       = 9999999
+
+######################
+# thermodynamics
+######################
+
+eosMode         = "dens_pres"
+
+rho_ambient     = 1.0000000000e+00 
+polytropeKonst  = 1.0000000000e+00 
+gamma           = 1.6666666667e+00 
+c_ambient       = 1.0000000000e+00 
+
+polytropeGamma1 = 1.001
+
+# not needed, but must be defined nevertheless
+polytropeGamma2 = 1.001
+polytropeGamma3 = 1.0
+polytropeGamma4 = 1.0
+polytropeGamma5 = 1.0
+
+polytropeDens1  = 1e-99
+polytropeDens2  = 1e99
+polytropeDens3  = 1e99
+polytropeDens4  = 1e99
+polytropeDens5  = 1e99
+
+######################
+# boundary conditions
+######################
+
+xl_boundary_type      = "periodic"
+xr_boundary_type      = "periodic"
+yl_boundary_type      = "periodic"
+yr_boundary_type      = "periodic"
+zl_boundary_type      = "periodic"
+zr_boundary_type      = "periodic"
+
+######################
+######################
+
+FIXME
+# Parameters below define the grid size.
+
+# AMR parameters
+# --------------
+
+# lrefine_min = 3
+# lrefine_max = 3
+# nref = 999999
+# refine_var_1 = "dens"
+
+# UG parameters
+# -------------
+
+# iprocs = 4
+# jprocs = 4
+# kprocs = 4
