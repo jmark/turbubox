@@ -15,10 +15,10 @@
 #SBATCH --mail-user=jmarker2@uni-koeln.de
 #SBATCH --mail-type=all
 
-#SBATCH --cpus-per-task=1
+##SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
 #SBATCh --ntasks-per-node=16
-#SBATCH --ntasks=64
+##SBATCH --ntasks=16
 #SBATCH --mem=22gb
 #SBATCH --time=01:00:00
 
