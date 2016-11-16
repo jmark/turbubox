@@ -9,7 +9,7 @@ then
     module load intel
     module load intelmpi
 
-    make -j4 "$@"
+    make -j "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -36,6 +36,5 @@ then
     ln -sf $(which python2) $TMPDIR/python 
     export PATH="/$TMPDIR:$PATH"
 
-    make -j 6 "$@"
+    make -j "$@"
 fi
-

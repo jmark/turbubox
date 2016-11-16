@@ -1,9 +1,7 @@
 #!/bin/sh
 
-MPI_NTASK="${1:?No MPI NTASKS given!}" && shift
 FLEXI_EXE="${1:?No FLASH executable given!}" && shift
 FLEXI_INI="${1:?No parameter file given!}" && shift
-START_FILE="${1:?No restart file given!}" && shift
 
 if expr "$(hostname)" : '^cheops' > /dev/null
 then
@@ -12,7 +10,7 @@ then
     module load intel
     module load intelmpi
 
-    srun -n "$MPI_NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR"
+    srun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -29,5 +27,5 @@ then
 
     source /etc/profile.d/intel*
 
-    mpirun -n "$MPI_NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$START_FILE"
+    mpirun -n "$NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$@"
 fi
