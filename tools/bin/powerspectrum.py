@@ -8,7 +8,7 @@ from pathlib import Path
 import flash
 from shellavg import shell_avg_3d
 import ulz
-import dslargs
+import dslopts
 
 def path_exists(pth):
     if not pth.exists():
@@ -20,7 +20,7 @@ def is_positive(x):
         return x
     raise ValueError("'%d' must be positive!" % x)
 
-with dslargs.Handler(scope=globals()) as hdl:
+with dslopts.Handler(scope=globals()) as hdl:
     hdl.arg(name='fp'       ,desc='flash file path' ,type=Path  ,check=path_exists)
     hdl.opt(name='nsamples' ,desc='no. of samples'  ,type=int   ,check=is_positive)
 

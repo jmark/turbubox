@@ -11,7 +11,7 @@ import numpy as np
 import sys
 import ulz
 import interpolate
-import dslargs
+import dslopts
 from pathlib import Path
                
 # =========================================================================== #
@@ -194,7 +194,7 @@ def lagrange_3d_5th_order3():
     3 -> like '1' (new version)
     4 -> with neighboring cells which get averaged with boundary cells: n-th order interpolation"""
 
-    with dslargs.Handler(scope=globals(),appendix=appendix) as hdl:
+    with dslopts.Handler(scope=globals(),appendix=appendix) as hdl:
         hdl.arg(name='flshfile' ,desc='flash file path' ,type=Path  ,check=path_exists)
         hdl.arg(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
         hdl.arg(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)

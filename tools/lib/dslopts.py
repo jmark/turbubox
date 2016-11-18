@@ -1,11 +1,55 @@
+'''
+Damn Small Commandline Arguments/Options Parse and Retrieval Agent
+
+This is a nice KISS python module for parsing commandline arguments without
+defining switches.
+
+It builds a nice formmatted usage page automatically.
+
+Example:
+
+* conventional:
+    import dslopts
+    
+    hdl = dslopts.Handler()
+    hdl.arg(name='flshfile', desc='flash file path', type=Path, check=path_exists)
+    args = hdl.parse() # returns a dictionary
+
+    print(args['flshfile'])
+
+* with context manager:
+    import dslopts
+
+    appendix = """  Methods are:
+
+        0 -> without neighboring cells: n-th order interpolation (old version)
+        1 -> with neighboring cells: (n+2)-th order interpolation (old version)   
+        2 -> like '0' (new version)
+        3 -> like '1' (new version)
+        4 -> with neighboring cells which get averaged with boundary cells: n-th order interpolation"""
+
+    with dslopts.Handler(scope=globals(),appendix=appendix) as hdl:
+        hdl.arg(name='flshfile' ,desc='flash file path' ,type=Path  ,check=path_exists)
+        hdl.arg(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
+        hdl.arg(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)
+        hdl.opt(name='method'   ,desc='method nr: 0-4'  ,type=int   ,check=meth_exists, default=3)
+'''
+
 import sys
 
 class Handler:
-    def __init__(self, scope=None, appendix=''):
-        self.ahandlers  = list()
+    def __init__(self, argsdict=None, scope=None, appendix=''):
+        """
+            argsdict    -> fill given dictionary with parsed parameters
+            scope       -> install arguments as variables in given scope
+            appendix    -> add appendix to the end of the usage message
+        """
+
+        self.ahandlers = list()
         self.ohandlers = list()
         self.arguments = {'_progname_': sys.argv[0]}
         self.helpkws   = 'help usage what how ?'.split()
+        self.argsdict  = argsdict
         self.scope     = scope
         self.appendix  = appendix
 
@@ -14,10 +58,12 @@ class Handler:
 
     def __exit__(self, *args):
         self.parse()
+        if self.argsdict:
+            self.argsdict.update(self.arguments)
         if self.scope:
             self.install_into_scope(self.scope)
 
-    def arg(self, name, desc='--', type=str, check=None, default=None):
+    def arg(self, name, desc='--', type=str, default=None, check=None):
         self.ahandlers.append({
             'name':         name,
             'desc':         desc,
@@ -26,7 +72,7 @@ class Handler:
             'default':      default,
         })
 
-    def opt(self, name, desc='--', type=str, check=None, default=None):
+    def opt(self, name, desc='--', type=str, default=None, check=None):
         self.ohandlers.append({
             'name':         name,
             'desc':         desc,
@@ -145,7 +191,9 @@ class Handler:
 
         primer = "usage: %s [1] [2] ... : [n+1] [n+2] ... (optional args) :: ... (ignored args)\n\n" % self.arguments['_progname_']
         primer += "  * A hyphen '-' as argument activates default value.\n"
-        primer += "  * Either '%s' triggers this help message.\n\n" % "', '".join(self.helpkws)
+        primer += "  * Either '%s' triggers this help message." % "', '".join(self.helpkws)
+        primer += " For more\n    information try: pydoc dslopts\n"
+        primer += "\n"
 
         aheader = "   argn  | %-*s  | %-*s  | %-*s  | %-*s\n" % \
                     (lenName, titName, lenType, titType, lenDeft, titDeft, lenDesc, titDesc)
