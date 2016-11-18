@@ -195,11 +195,10 @@ def lagrange_3d_5th_order3():
     4 -> with neighboring cells which get averaged with boundary cells: n-th order interpolation"""
 
     with dslargs.Handler(scope=globals(),appendix=appendix) as hdl:
-        hdl.add(name='flshfile' ,desc='flash file path' ,type=Path  ,check=path_exists)
-        hdl.add(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
-        hdl.add(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)
-        hdl.add(name='method'   ,desc='method nr: 0-4'  ,type=int   ,check=meth_exists, default=3)
-
+        hdl.arg(name='flshfile' ,desc='flash file path' ,type=Path  ,check=path_exists)
+        hdl.arg(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
+        hdl.arg(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)
+        hdl.opt(name='method'   ,desc='method nr: 0-4'  ,type=int   ,check=meth_exists, default=3)
 
     flx = flexi.File(str(flexfile), hopr.CartesianMeshFile(str(meshfile)))
 

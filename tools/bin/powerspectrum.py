@@ -15,9 +15,14 @@ def path_exists(pth):
         raise OSError("'%s' does not exists!" % pth)
     return pth
 
+def is_positive(x):
+    if x > 0:
+        return x
+    raise ValueError("'%d' must be positive!" % x)
+
 with dslargs.Handler(scope=globals()) as hdl:
-    hdl.add(name='fp'       ,desc='flash file path' ,type=Path  ,check=path_exists)
-    hdl.add(name='nsamples' ,desc='no. of samples'  ,type=int)
+    hdl.arg(name='fp'       ,desc='flash file path' ,type=Path  ,check=path_exists)
+    hdl.opt(name='nsamples' ,desc='no. of samples'  ,type=int   ,check=is_positive)
 
 flash = flash.File(str(fp))
 
