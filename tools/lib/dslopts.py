@@ -33,6 +33,10 @@ Example:
         hdl.arg(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
         hdl.arg(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)
         hdl.opt(name='method'   ,desc='method nr: 0-4'  ,type=int   ,check=meth_exists, default=3)
+
+    print(meshfile)
+
+    method == 2
 '''
 
 import sys
@@ -88,85 +92,64 @@ class Handler:
         ahdls = self.ahandlers # shortcut
         ohdls = self.ohandlers # shortcut
 
+        # discriminate between arguments, options and ignored args
         argv = []
         optv = []
         ignv = []
 
-        ll = argv
+        _tmp = argv
         for arg in ARGV:
             if arg == ':':
-                ll = optv
+                _tmp = optv
                 continue
             if arg == '::':
-                ll = ignv
+                _tmp = ignv
                 continue
-            ll.append(arg)
+            _tmp.append(arg)
 
         # scan of help/usage arguments
         if any(x.lower() in self.helpkws for x in argv + optv):
             self.print_usage()
             sys.exit(1)
 
-        # when arguments and associated handlers not matching somthin' is fishy
+        # when arguments and associated handlers not match somthin' is fishy
         if len(argv) != len(ahdls):
             raise AssertionError(
                 "Defined and given arguments list do not match up!\n\n"
                 + "parameter list: '" + "' '".join(ARGV) + "'\n\n" + self.usage())
 
-        # parse obligatory arguments
-        for i, (arg, hdl) in enumerate(zip(argv,ahdls),1):
-            if arg is '-':
-                value = hdl['default']
-            else:
-                # poor man's type checking
-                try:
-                    value = hdl['type'](arg)
-                except ValueError:
-                    raise ValueError(
-                        "Parameter %d must be of type '%s'.\n\n" % (i, hdl['type'].__name__)
-                        + "received:       '" + arg + "'\n"
-                        + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
-
-                if hdl['check']:
-                    try:
-                        value = hdl['check'](value)
-                    except Exception:
-                        raise AssertionError(
-                            "Checking routine raised an error for parameter: %d\n\n" % (i)
-                            + "received:       '" + arg + "'\n"
-                            + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
-
-
-            self.arguments[hdl['name']] = value
-
         # preset optional args
         for hdl in ohdls:
             self.arguments[hdl['name']] = hdl['default']
 
-        # parse optional arguments
-        for i, (arg, hdl) in enumerate(zip(optv,ohdls),len(argv)+1):
-            if arg is '-':
-                value = hdl['default']
-            else:
-                # poor man's type checking
-                try:
-                    value = hdl['type'](arg)
-                except ValueError:
-                    raise ValueError(
-                        "Parameter %d must be of type '%s'.\n\n" % (i, hdl['type'].__name__)
-                        + "received:       '" + arg + "'\n"
-                        + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
-
-                if hdl['check']:
+        def _parse(_argv, _hdls):
+            for i, (arg, hdl) in enumerate(zip(_argv,_hdls),1):
+                if arg is '-':
+                    value = hdl['default']
+                else:
+                    # poor man's type checking
                     try:
-                        value = hdl['check'](value)
-                    except Exception:
-                        raise AssertionError(
-                            "Checking routine raised an error for parameter: %d\n\n" % (i)
+                        value = hdl['type'](arg)
+                    except ValueError:
+                        raise ValueError(
+                            "Parameter %d must be of type '%s'.\n\n" % (i, hdl['type'].__name__)
                             + "received:       '" + arg + "'\n"
                             + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
 
-            self.arguments[hdl['name']] = value
+                    # hook up user defined checking
+                    if hdl['check']:
+                        try:
+                            value = hdl['check'](value)
+                        except Exception:
+                            raise AssertionError(
+                                "Checking routine raised an error for parameter: %d\n\n" % (i)
+                                + "received:       '" + arg + "'\n"
+                                + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
+
+                self.arguments[hdl['name']] = value
+
+        _parse(argv, ahdls)
+        _parse(optv, ohdls)
 
         self.arguments['_ignored_'] = ignv
         return self.arguments
@@ -179,15 +162,15 @@ class Handler:
         ohdls = self.ohandlers # shortcut
         hdls  = ahdls + ohdls
 
-        titName = 'name'
-        titType = 'type'
-        titDeft = 'default value'
-        titDesc = 'description'
+        hdName = 'name'
+        hdType = 'type'
+        hdDeft = 'default value'
+        hdDesc = 'description'
 
-        lenName = max([len(titName)]+[len(x['name']) for x in hdls])
-        lenType = max([len(titType)]+[len(x['type'].__name__) for x in hdls])
-        lenDeft = max([len(titDeft)]+[len(str(x['default'])) for x in hdls])
-        lenDesc = max([len(titDesc)]+[len(x['desc']) for x in hdls])
+        lenName = max([len(hdName)]+[len(x['name']) for x in hdls])
+        lenType = max([len(hdType)]+[len(x['type'].__name__) for x in hdls])
+        lenDeft = max([len(hdDeft)]+[len(str(x['default'])) for x in hdls])
+        lenDesc = max([len(hdDesc)]+[len(x['desc']) for x in hdls])
 
         primer = "usage: %s [1] [2] ... : [n+1] [n+2] ... (optional args) :: ... (ignored args)\n\n" % self.arguments['_progname_']
         primer += "  * A hyphen '-' as argument activates default value.\n"
@@ -196,16 +179,19 @@ class Handler:
         primer += "\n"
 
         aheader = "   argn  | %-*s  | %-*s  | %-*s  | %-*s\n" % \
-                    (lenName, titName, lenType, titType, lenDeft, titDeft, lenDesc, titDesc)
-        line    = '  ' + '-' * (len(aheader)-2) + "\n"
-
-        atable  = aheader + line
-        for i, hdl in enumerate(ahdls,1):
-            atable += "    %3d  | %-*s  | %-*s  | %-*s  | %-*s\n" % (
-                i, lenName, hdl['name'], lenType, hdl['type'].__name__, lenDeft, str(hdl['default']), lenDesc, hdl['desc'])
+                    (lenName, hdName, lenType, hdType, lenDeft, hdDeft, lenDesc, hdDesc)
+        stroke  = '  ' + '-' * (len(aheader)-2) + "\n"
 
         if ohdls:
-            otable = "\n   optn\n" + line
+            atable  = aheader + stroke 
+            for i, hdl in enumerate(ahdls,1):
+                atable += "    %3d  | %-*s  | %-*s  | %-*s  | %-*s\n" % (
+                    i, lenName, hdl['name'], lenType, hdl['type'].__name__, lenDeft, str(hdl['default']), lenDesc, hdl['desc'])
+        else:
+            atable = "  No arguments defined.\n"
+
+        if ohdls:
+            otable = "\n   optn\n" + stroke
             for i, hdl in enumerate(ohdls,len(ahdls)+1):
                 otable += "    %3d  | %-*s  | %-*s  | %-*s  | %-*s\n" % (
                     i, lenName, hdl['name'], lenType, hdl['type'].__name__, lenDeft, str(hdl['default']), lenDesc, hdl['desc'])
