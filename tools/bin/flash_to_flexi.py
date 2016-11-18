@@ -11,7 +11,8 @@ import numpy as np
 import sys
 import ulz
 import interpolate
-
+import dslargs
+from pathlib import Path
                
 # =========================================================================== #
 
@@ -171,64 +172,77 @@ def lagrange_3d_5th_order():
             ('dens', dens.min(), idat.min(), dens.max(), idat.max()), file=sys.stderr)
 
 def lagrange_3d_5th_order3():
-    sys.argv.reverse()
-    progname = sys.argv.pop()
-    flshfile = sys.argv.pop()
-    meshfile = sys.argv.pop()
-    flexfile = sys.argv.pop() 
-    method   = int(sys.argv.pop())
+    def path_exists(pth):
+        if '--generate=' in str(pth):
+            fillby = str(pth).split('=')[-1]
+            return fillby
 
-    #withNeighborCells = False
-    withNeighborCells = True
+        if not pth.exists():
+            raise OSError("'%s' does not exists!" % pth)
+        return pth
 
-    flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
+    def meth_exists(nr):
+        if 0 <= nr <= 4:
+            return nr
+        raise ValueError("Method number must be within 0 and 4: '%d' given!")
 
-    if '--generate=' in flshfile:
-        fillby = flshfile.split('=')[-1]
-        fls = flash.FakeFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=fillby)
+    appendix = """  Methods are:
+
+    0 -> without neighboring cells: n-th order interpolation (old version)
+    1 -> with neighboring cells: (n+2)-th order interpolation (old version)   
+    2 -> like '0' (new version)
+    3 -> like '1' (new version)
+    4 -> with neighboring cells which get averaged with boundary cells: n-th order interpolation"""
+
+    with dslargs.Handler(scope=globals(),appendix=appendix) as hdl:
+        hdl.add(name='flshfile' ,desc='flash file path' ,type=Path  ,check=path_exists)
+        hdl.add(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
+        hdl.add(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)
+        hdl.add(name='method'   ,desc='method nr: 0-4'  ,type=int   ,check=meth_exists, default=3)
+
+
+    flx = flexi.File(str(flexfile), hopr.CartesianMeshFile(str(meshfile)))
+
+    if isinstance(flshfile, Path):
+        fls = flash.File(str(flshfile))
     else:
-        fls = flash.File(flshfile)
+        fls = flash.FakeFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=flshfile)
 
-    # target grid space
-    Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype)
-    # selecting interpolation method
+
+    Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype) # target grid space
   
     if method == 0: 
         xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1)
         trafo   = lambda box: interpolate.box_to_flexi(xs, Xs, box, flx)
-
     elif method == 1: 
         xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=True)
         trafo   = lambda box: interpolate.box_to_flexi(xs, Xs, ulz.wrap_in_guard_cells(box), flx)
-
     elif method == 2:
         xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1)
         trafo_  = lambda box: interpolate.box_to_elements(box,flx, 0)
         trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
-
     elif method == 3: 
         xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=True)
         trafo_  = lambda box: interpolate.box_to_elements(box,flx, 1)
         trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
-
     elif method == 4: 
         xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1)
         xs[0]   = -1 
         xs[-1]  =  1
         trafo_  = lambda box: interpolate.box_to_elements_avg_boundaries(box,flx)
         trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
-
     else:
         raise NotImplementedError('unknow method: %d' % method)
 
     # interpolate
     prims = []
+    print("  var   |       min    ->    min     |       max    ->    max     ")
+    print("  ------|----------------------------|----------------------------")
     for dbname in 'dens velx vely velz pres magx magy magz'.split():
         src = fls.data(dbname)
         snk = trafo(src)
 
-        #'{:>12}  {:>12}  {:>12}'.format(word[0], word[1], word[2])
-        print("Writing nvar '%s': min %f -> %f | max %f -> %f" % \
+        print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % \
                 (dbname, src.min(), snk.min(), src.max(), snk.max()), file=sys.stderr)
 
         prims.append(snk)
