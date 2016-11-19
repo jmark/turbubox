@@ -17,7 +17,9 @@ class MeshFile:
 
     def get(self,dname):
         return self.h5file.get(dname)
-    
+
+    def close(self):
+        self.h5file.close()
 
 class CartesianMeshFile(MeshFile):
 

@@ -1,79 +1,78 @@
 #!/usr/bin/env python3
 
-import sys
-from matplotlib import pylab as plt
-from mpl_toolkits.mplot3d import axes3d
+#SBATCH --partition=devel
+#SBATCH --account=AGWalch
+#SBATCH --mail-user=jmarker2@uni-koeln.de
+#SBATCH --mail-type=all
+
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCh --ntasks-per-node=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=20gb
+#SBATCH --time=00:30:00
+
+# stdlib
 import numpy as np
-import imp
-import gausslobatto
-import flash, flexi, hopr
-import flash_to_flexi as flfl
-import scipy.misc
-import ulz
-import interpolate
-import glob
+from matplotlib import pylab as plt
+import multiprocessing
 
-#PROJPATH = "/home/jmark/projects/stirturb/flexi-sims/smashing-balls"
-#flshfilepath = "%s/flash_hdf5_chk_0080" % PROJPATH
-#flexfilepath = "%s/run/sim_ERROR_State_0000000.787411102.h5" % PROJPATH
+# jmark
+import flexi, hopr, ulz, dslopts
 
-sys.argv.reverse()
-progname = sys.argv.pop()
-hoprfilepath = sys.argv.pop()
-flexfilepath = sys.argv.pop()
-sinkpath = sys.argv.pop() 
+def trafo(data):
+    return np.sum(data,axis=2).T
 
-flx = flexi.File(flexfilepath, hopr.CartesianMeshFile(hoprfilepath))
-cons = [flx.flexi_to_box(i) for i in range(0,8)]
-prims = ulz.mhd_conservative_to_primitive(cons)
-flx.h5file.close()
+def property(meshfile, flexfile, taskID):
+    flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
+    cons = [flx.flexi_to_box(i) for i in range(0,8)]
+    prim = ulz.mhd_conservative_to_primitive(cons)
 
-fig = plt.figure(figsize=(15, 12))
+    #func = lambda x: np.max(trafo(x))
+    func = lambda x: np.min(trafo(x))
+    print(
+        func(prim[0]),
+        func(prim[1]),
+        func(prim[4]),
+        func(cons[4]), flush=True)
 
-subplt = [2,2,0]
+def mkplot(meshfile, flexfile, sinkpath, taskID):
+    with flexi.File(flexfile, hopr.CartesianMeshFile(meshfile)) as flx:
+        cons = [flx.flexi_to_box(i) for i in range(0,8)]
+        prim = ulz.mhd_conservative_to_primitive(cons)
 
-subplt[2] += 1
-crange = {'vmin': -1, 'vmax': 1}
-ys = np.sum(prims[1],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column velx: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+    fig = plt.figure(figsize=(15, 12))
+    subplt = [2,2,0]
 
-subplt[2] += 1
-crange = {'vmin': 0, 'vmax': 2}
-ys = np.sum(cons[4],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column energy: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+    def plot(data, title, crange=None):
+        subplt[2] += 1
+        ax = fig.add_subplot(*subplt)
+        ax.set_title('column %s: %d^3' % (title,len(data)))
+        ax.set_xlabel('x'); ax.set_ylabel('y')
+        if crange is not None:
+            img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), vmin=crange[0], vmax=crange[1])
+        else:
+            img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
+        plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
 
-subplt[2] += 1
-crange = {'vmin': 0, 'vmax': 2}
-ys = np.sum(prims[4],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column pressure: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+    plot(trafo(prim[0]), 'density', ( 50,90))
+    plot(trafo(prim[1]), 'velx',    (-15,32))
+    plot(trafo(prim[4]), 'pressure',( 45,100))
+    plot(trafo(cons[4]), 'energy',  ( 70,170))
 
-subplt[2] += 1
-crange = {'vmin': 0, 'vmax': 2}
-ys = np.sum(prims[0],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column density: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+    outfile = sinkpath % taskID
+    print(outfile, flush=True)
+    plt.savefig(outfile,bbox_inches='tight')
 
-plt.savefig(sinkpath,bbox_inches='tight')
+with dslopts.Manager(scope=globals(),appendix="flexifiles are defined after '--'") as mgr:
+    mgr.add('meshfilepath')
+    mgr.add('sinkfilepath', 'path to store: <dir>/%03d.png')
+
+#flexifiles = sorted(_ignored_)[:5]
+flexifiles = sorted(_ignored_)
+
+def task(x):
+    mkplot(meshfilepath, x[1], sinkfilepath, x[0])
+    #property(meshfilepath, x[1], x[0])
+
+multiprocessing.Pool().map(task,enumerate(flexifiles))

@@ -36,3 +36,16 @@ class File:
             box = ulz.wrap_in_guard_cells(box)        
 
         return interpolate.box_to_flexi(xs, Xs, box, self)
+
+    def close(self):
+        self.h5file.close()
+        self.hopr.close()
+
+    # provide context manager interface
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+        if isinstance(value,Exception):
+            raise
