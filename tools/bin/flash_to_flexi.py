@@ -12,7 +12,7 @@ import sys
 import ulz
 import interpolate
 import dslopts
-from pathlib import Path
+import pathlib
                
 # =========================================================================== #
 
@@ -172,16 +172,18 @@ def lagrange_3d_5th_order():
             ('dens', dens.min(), idat.min(), dens.max(), idat.max()), file=sys.stderr)
 
 def lagrange_3d_5th_order3():
-    def path_exists(pth):
-        if '--generate=' in str(pth):
-            fillby = str(pth).split('=')[-1]
+    def ExistingPath(arg):
+        if '--generate=' in arg:
+            fillby = arg.split('=',1)[-1]
             return fillby
 
+        pth = pathlib.Path(arg)
         if not pth.exists():
             raise OSError("'%s' does not exists!" % pth)
         return pth
 
-    def meth_exists(nr):
+    def ConstrainedInt(arg):
+        nr = int(arg)
         if 0 <= nr <= 4:
             return nr
         raise ValueError("Method number must be within 0 and 4: '%d' given!")
@@ -194,19 +196,18 @@ def lagrange_3d_5th_order3():
     3 -> like '1' (new version)
     4 -> with neighboring cells which get averaged with boundary cells: n-th order interpolation"""
 
-    with dslopts.Handler(scope=globals(),appendix=appendix) as hdl:
-        hdl.arg(name='flshfile' ,desc='flash file path' ,type=Path  ,check=path_exists)
-        hdl.arg(name='meshfile' ,desc='mesh file path'  ,type=Path  ,check=path_exists)
-        hdl.arg(name='flexfile' ,desc='flexi file path' ,type=Path  ,check=path_exists)
-        hdl.opt(name='method'   ,desc='method nr: 0-4'  ,type=int   ,check=meth_exists, default=3)
+    with dslopts.Manager(scope=globals(),appendix=appendix) as mgr:
+        mgr.add(name='flashfile' ,desc='flash file path' ,type=ExistingPath)
+        mgr.add(name='meshfile'  ,desc=' mesh file path' ,type=ExistingPath)
+        mgr.add(name='flexifile' ,desc='flexi file path' ,type=ExistingPath)
+        mgr.add(name='method'    ,desc='method nr: 0-4'  ,type=ConstrainedInt, default=3)
 
-    flx = flexi.File(str(flexfile), hopr.CartesianMeshFile(str(meshfile)))
+    flx = flexi.File(str(flexifile), hopr.CartesianMeshFile(str(meshfile)))
 
-    if isinstance(flshfile, Path):
-        fls = flash.File(str(flshfile))
+    if isinstance(flashfile, pathlib.Path):
+        fls = flash.File(str(flashfile))
     else:
         fls = flash.FakeFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=flshfile)
-
 
     Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype) # target grid space
   

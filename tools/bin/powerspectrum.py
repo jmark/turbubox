@@ -3,26 +3,28 @@
 import numpy as np
 from numpy.fft import rfftn, fftshift
 import sys
-from pathlib import Path
+import pathlib
 
 import flash
 from shellavg import shell_avg_3d
 import ulz
 import dslopts
 
-def path_exists(pth):
+def ExistingPath(arg):
+    pth = pathlib.Path(arg)
     if not pth.exists():
         raise OSError("'%s' does not exists!" % pth)
     return pth
 
-def is_positive(x):
-    if x > 0:
+def PositiveInt(arg):
+    x = int(arg)
+    if x >= 0:
         return x
     raise ValueError("'%d' must be positive!" % x)
 
-with dslopts.Handler(scope=globals()) as hdl:
-    hdl.arg(name='fp'       ,desc='flash file path' ,type=Path  ,check=path_exists)
-    hdl.opt(name='nsamples' ,desc='no. of samples'  ,type=int   ,check=is_positive)
+with dslopts.Manager(scope=locals()) as mgr:
+    mgr.add('fp'       ,'flash file path' ,ExistingPath)
+    mgr.add('nsamples' ,'no. of samples'  ,PositiveInt, 0)
 
 flash = flash.File(str(fp))
 

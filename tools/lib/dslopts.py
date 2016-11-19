@@ -1,3 +1,36 @@
+# -----------------------------------------------------------------------------
+# MIT License
+# 
+# Copyright (c) 2016 Johannes Markert <me@jmark.de> http://www.jmark.de
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# -----------------------------------------------------------------------------
+# In addition to the license above:
+#
+# BEER-WARE License
+# 
+# Johannes Markert <me@jmark.de> is the author of this project. As long as you
+# retain this notice you can do whatever you want with this stuff. If we meet
+# some day, and you think this stuff is worth it, you can buy me a beer in
+# return.
+# -----------------------------------------------------------------------------
+
 '''
 Damn Small Commandline Arguments/Options Parse and Retrieval Agent
 
@@ -41,165 +74,151 @@ Example:
 
 import sys
 
-class Handler:
+class Manager:
     def __init__(self, argsdict=None, scope=None, appendix=''):
         """
             argsdict    -> fill given dictionary with parsed parameters
             scope       -> install arguments as variables in given scope
             appendix    -> add appendix to the end of the usage message
         """
+        self.argn = list() # argument position
+        self.proc = dict() # argument processing routines
 
-        self.ahandlers = list()
-        self.ohandlers = list()
-        self.arguments = {'_progname_': sys.argv[0]}
+        self.args      = {'_progname_': sys.argv[0]}
         self.helpkws   = 'help usage what how ?'.split()
         self.argsdict  = argsdict
         self.scope     = scope
         self.appendix  = appendix
+        self.add.__func__.kword = False
+        self.parse.__func__.kword = False
 
     def __enter__(self):
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, type, value, traceback):
+        if isinstance(value,Exception):
+            raise
         self.parse()
         if self.argsdict:
-            self.argsdict.update(self.arguments)
+            self.argsdict.update(self.args)
         if self.scope:
             self.install_into_scope(self.scope)
 
-    def arg(self, name, desc='--', type=str, default=None, check=None):
-        self.ahandlers.append({
-            'name':         name,
-            'desc':         desc,
-            'type':         type,
-            'check':        check,
-            'default':      default,
-        })
+    def add(self, name, desc='--', type=str, default=None):
+        if self.add.__func__.kword is True and default is None:
+            raise SyntaxError("Non-default argument '%s' follows default argument at %d." % (name, len(self.argn)))
+        if default is not None:
+            self.add.__func__.kword = True
 
-    def opt(self, name, desc='--', type=str, default=None, check=None):
-        self.ohandlers.append({
-            'name':         name,
-            'desc':         desc,
-            'type':         type,
-            'check':        check,
-            'default':      default,
-        })
+        self.argn.append(name)
+        self.args[name] = default
+        self.proc[name] = {
+            'name':     name,
+            'desc':     desc,
+            'type':     type,
+            'default':  default,
+        }
 
     def parse(self, ARGV=None):
-        if not ARGV:
-            ARGV = sys.argv[1:]
+        if ARGV is None: ARGV = sys.argv[1:]
 
-        ahdls = self.ahandlers # shortcut
-        ohdls = self.ohandlers # shortcut
+        # shortcuts
+        argn = self.argn
+        proc = self.proc
+        args = self.args
+        func = self.parse.__func__
 
-        # discriminate between arguments, options and ignored args
-        argv = []
-        optv = []
-        ignv = []
+        argv = []; ignv = []; ispos = True
+        for i, arg in enumerate(ARGV):
+            # detect ignored arguments
+            if arg == '--':
+                ignv = ARGV[i+1:]
+                break
 
-        _tmp = argv
-        for arg in ARGV:
-            if arg == ':':
-                _tmp = optv
-                continue
-            if arg == '::':
-                _tmp = ignv
-                continue
-            _tmp.append(arg)
+            # scan for help/usage arguments
+            if arg.lower() in self.helpkws:
+                self.print_usage()
+                sys.exit(1)
 
-        # scan of help/usage arguments
-        if any(x.lower() in self.helpkws for x in argv + optv):
-            self.print_usage()
-            sys.exit(1)
+            # parse given argument
+            kv = arg.split('=',1)
+            if len(kv) == 1:
+                name, value = argn[i], arg
+                if func.kword:
+                    raise SyntaxError("Positional argument %d follows keyword argument." % (i+1))
+            elif len(kv) == 2:
+                name, value = kv
+                func.kword = True
 
-        # when arguments and associated handlers not match somthin' is fishy
-        if len(argv) != len(ahdls):
-            raise AssertionError(
-                "Defined and given arguments list do not match up!\n\n"
-                + "parameter list: '" + "' '".join(ARGV) + "'\n\n" + self.usage())
+            # type checking
+            args[name] = proc[name]['type'](value)
 
-        # preset optional args
-        for hdl in ohdls:
-            self.arguments[hdl['name']] = hdl['default']
+        # check if all defined arguments are set
+        for i,name in enumerate(argn,1):
+            if args[name] is None:
+                raise TypeError("Missing required positional argument: '%s' at %d." % (name, i))
 
-        def _parse(_argv, _hdls):
-            for i, (arg, hdl) in enumerate(zip(_argv,_hdls),1):
-                if arg is '-':
-                    value = hdl['default']
-                else:
-                    # poor man's type checking
-                    try:
-                        value = hdl['type'](arg)
-                    except ValueError:
-                        raise ValueError(
-                            "Parameter %d must be of type '%s'.\n\n" % (i, hdl['type'].__name__)
-                            + "received:       '" + arg + "'\n"
-                            + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
-
-                    # hook up user defined checking
-                    if hdl['check']:
-                        try:
-                            value = hdl['check'](value)
-                        except Exception:
-                            raise AssertionError(
-                                "Checking routine raised an error for parameter: %d\n\n" % (i)
-                                + "received:       '" + arg + "'\n"
-                                + "all parameters: '" + "', '".join(ARGV) + "'\n\n" + self.usage())
-
-                self.arguments[hdl['name']] = value
-
-        _parse(argv, ahdls)
-        _parse(optv, ohdls)
-
-        self.arguments['_ignored_'] = ignv
-        return self.arguments
+        args['_ignored_'] = ignv
+        return args
 
     def install_into_scope(self, scope):
-        scope.update(self.arguments)
+        scope.update(self.args)
 
     def usage(self):
-        ahdls = self.ahandlers # shortcut
-        ohdls = self.ohandlers # shortcut
-        hdls  = ahdls + ohdls
+        # shortcuts
+        proc   = self.proc
+        args   = self.args
+        argn   = self.argn
 
         hdName = 'name'
         hdType = 'type'
         hdDeft = 'default value'
         hdDesc = 'description'
 
-        lenName = max([len(hdName)]+[len(x['name']) for x in hdls])
-        lenType = max([len(hdType)]+[len(x['type'].__name__) for x in hdls])
-        lenDeft = max([len(hdDeft)]+[len(str(x['default'])) for x in hdls])
-        lenDesc = max([len(hdDesc)]+[len(x['desc']) for x in hdls])
+        lnName = max([len(hdName)]+[len(proc[x]['name']) for x in argn])
+        lnType = max([len(hdType)]+[len(proc[x]['type'].__name__) for x in argn])
+        lnDeft = max([len(hdDeft)]+[len(str(proc[x]['default'])) for x in argn])
+        lnDesc = max([len(hdDesc)]+[len(proc[x]['desc']) for x in argn])
 
-        primer = "usage: %s [1] [2] ... : [n+1] [n+2] ... (optional args) :: ... (ignored args)\n\n" % self.arguments['_progname_']
-        primer += "  * A hyphen '-' as argument activates default value.\n"
+        primer = "usage: %s arg0 arg1 ... opt0=value0 opt1=value1 ... -- ... (ignored args)\n\n" % args['_progname_']
         primer += "  * Either '%s' triggers this help message." % "', '".join(self.helpkws)
-        primer += " For more\n    information try: pydoc dslopts\n"
+        primer += " For more\n    information try: 'pydoc dslopts'.\n"
         primer += "\n"
 
-        aheader = "   argn  | %-*s  | %-*s  | %-*s  | %-*s\n" % \
-                    (lenName, hdName, lenType, hdType, lenDeft, hdDeft, lenDesc, hdDesc)
-        stroke  = '  ' + '-' * (len(aheader)-2) + "\n"
+        header = "       | %-*s  | %-*s  | %-*s  | %-*s\n" % \
+                    (lnName, hdName, lnType, hdType, lnDeft, hdDeft, lnDesc, hdDesc)
+        stroke = '  ' + '-' * (len(header)-2) + "\n"
 
-        if ohdls:
-            atable  = aheader + stroke 
-            for i, hdl in enumerate(ahdls,1):
-                atable += "    %3d  | %-*s  | %-*s  | %-*s  | %-*s\n" % (
-                    i, lenName, hdl['name'], lenType, hdl['type'].__name__, lenDeft, str(hdl['default']), lenDesc, hdl['desc'])
-        else:
-            atable = "  No arguments defined.\n"
+        table  = header + stroke 
+        for i, arg in enumerate((proc[x] for x in argn),1):
+            table += "  %3d  | %-*s  | %-*s  | %-*s  | %-*s\n" % (
+                i, lnName, arg['name'], lnType, arg['type'].__name__, lnDeft, str(arg['default']), lnDesc, arg['desc'])
+        if self.appendix: table += "\n"
 
-        if ohdls:
-            otable = "\n   optn\n" + stroke
-            for i, hdl in enumerate(ohdls,len(ahdls)+1):
-                otable += "    %3d  | %-*s  | %-*s  | %-*s  | %-*s\n" % (
-                    i, lenName, hdl['name'], lenType, hdl['type'].__name__, lenDeft, str(hdl['default']), lenDesc, hdl['desc'])
-        else:
-            otable = ""
-
-        if self.appendix: otable += "\n"
-        return primer + atable + otable + self.appendix
+        return primer + table + self.appendix
 
     def print_usage(self):
         print(self.usage(), file=sys.stderr)
+
+if __name__ == '__main__':
+    import pathlib
+
+    def ExistingPath(arg):
+        pth = pathlib.Path(arg)
+        if not pth.exists():
+            raise OSError("'%s' does not exists!" % pth)
+        return pth
+
+    def PositiveInt(arg):
+        x = int(arg)
+        if x > 0:
+            return x
+        raise ValueError("'%d' must be positive!" % x)
+
+    with Manager(scope=locals()) as mgr:
+        mgr.add(name='arg0', desc='argument 0', type=ExistingPath)
+        mgr.add(name='arg1', desc='argument 1', type=PositiveInt)
+        mgr.add(name='arg2', desc='argument 2', default='some default value')
+
+    print(arg0)
+    print(arg1)
