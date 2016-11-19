@@ -67,92 +67,10 @@ lagrange_interpolate_3d_RG(
 }
 
 void
-box_to_flexi_with_averaged_boundaries(
-    const int xslen, const double *xs, 
-    const int Nx, const int Ny, const int Nz, const double *fss,
-    const int Xslen, const double *Xs,       double *Fss,
-    const int oflen, const int *offsets
-)
-{
-    const int xslenM1 = xslen - 1;
-    const int xslenM2 = xslen - 2;
-    // init Lagrange Interpolation Matrix
-    double *Ls = malloc(sizeof(double) * Xslen * xslenM2);
-    // init reduced input value array 
-    double *fsM2 = malloc(sizeof(double) * xslenM2 * xslenM2 * xslenM2);
-
-    for (int I = 0; I < Xslen; I++)
-    for (int i = 0; i < xslenM2; i++)
-        Ls[I*xslenM2 + i] = LagrangePolynomial(xs, xslenM2, i, Xs[I]);
-
-    const int Stride = Xslen * Xslen * Xslen;
-
-    // loop over elements provided by FLEXI
-    for (int elemid = 0; elemid < oflen; elemid++) {
-        const double *fs = fss + offsets[elemid];
-              double *Fs = Fss + Stride *elemid;
-
-        // fill reduced input data
-        for (int i = 1; i < xslenM1; i++)
-        for (int j = 1; j < xslenM1; j++)
-        for (int k = 1; k < xslenM1; k++) {
-            const double f = fs[((i * Ny) + j) * Nz + k];
-           
-            int count = 1; 
-            if (i == 1) {
-                f += fs[((0 * Ny) + j) * Nz + k];
-                count++;
-            }
-            if (j == 1) {
-                f += fs[((i * Ny) + 0) * Nz + k];
-                count++;
-            }
-            if (k == 1) {
-                f += fs[((i * Ny) + j) * Nz + 0];
-                count++;
-            }
-            if (i == xslenM2) {
-                f += fs[((xslenM1 * Ny) + j) * Nz + k];
-                count++;
-            }
-            if (j == xslenM2) {
-                f += fs[((i * Ny) + xslenM1) * Nz + k];
-                count++;
-            }
-            if (k == xslenM2) {
-                f += fs[((i * Ny) + j) * Nz + xslenM1];
-                count++;
-            }
-
-            fsM2[(((i-1) * xslenM2) + (j-1)) * xslenM2 + (k-1)] = f / count;
-        }
-
-        // interpolate
-        for (int I = 0; I < Xslen; I++)
-        for (int J = 0; J < Xslen; J++)
-        for (int K = 0; K < Xslen; K++) {
-            double F = 0;
-
-            for (int i = 0; i < xslenM2; i++)
-            for (int j = 0; j < xslenM2; j++)
-            for (int k = 0; k < xslenM2; k++) {
-                const double f = fsM2[((i * xslenM2) + j) * xslenM2 + k];
-                F += f * Ls[I*xslenM2 + i]*Ls[J*xslenM2 + j]*Ls[K*xslenM2 + k];
-            }
-            Fs[((I * Xslen) + J) * Xslen + K] = F;
-        }
-    }
-
-    free(Ls);
-    free(fsM2);
-}
-
-
-void
 box_to_flexi(
     const int xslen, const double *xs, 
     const int Nx, const int Ny, const int Nz, const double *fss,
-    const int Xslen, const double *Xs,       double *Fss,
+    const int Xslen, const double *Xs, double *Fss,
     const int oflen, const int *offsets
 )
 {
@@ -189,6 +107,127 @@ box_to_flexi(
     }
 
     free(Ls);
+}
+
+# define PIX(index, dim) (\
+    (index) < 0      ? (index) + (dim) : \
+    (index) >= (dim) ? (index) - (dim) : index)
+
+void
+box_to_elements(
+    const int Nx, const int Ny, int Nz, double *box, 
+    int nelems, double *indices, int nx, int ny, int nz, double *elems, int offset)
+{
+    const int stride = nx*ny*nz;
+    for (int elemid = 0; elemid < nelems; elemid++) {
+
+        const double *const index = indices + elemid * 3;
+        const int I = round(index[0]);
+        const int J = round(index[1]);
+        const int K = round(index[2]);
+
+        double *const elem = elems + elemid * stride;
+
+        for (int i = 0; i < nx; i++)
+        for (int j = 0; j < ny; j++)
+        for (int k = 0; k < nz; k++) {
+            const int _i = PIX(I + i - offset, Nx);
+            const int _j = PIX(J + j - offset, Ny);
+            const int _k = PIX(K + k - offset, Nz);
+
+            elem[((i * ny) + j) * nz + k] = box[((_i * Ny) + _j) * Nz + _k];
+        }
+    }
+}
+
+void
+box_to_elements_avg_boundaries(
+    const int Nx, const int Ny, int Nz, double *box, 
+    int nelems, double *indices, int nx, int ny, int nz, double *elems)
+{
+    const int stride = nx*ny*nz;
+    for (int elemid = 0; elemid < nelems; elemid++) {
+
+        const double *const index = indices + elemid * 3;
+        const int I = round(index[0]);
+        const int J = round(index[1]);
+        const int K = round(index[2]);
+
+        double *const elem = elems + elemid * stride;
+
+        for (int i = 0; i < nx; i++)
+        for (int j = 0; j < ny; j++)
+        for (int k = 0; k < nz; k++) {
+
+            const int _i = I + i;
+            const int _j = J + j;
+            const int _k = K + k;
+
+            double acc = box[((_i * Ny) + _j) * Nz + _k];
+            double cnt = 1.0;
+
+            if (i == 0) {
+                acc += box[((PIX(_i-1,Nx) * Ny) + _j) * Nz + _k];
+                cnt++;
+            }
+            if (j == 0) {
+                acc += box[((_i * Ny) + PIX(_j-1,Ny)) * Nz + _k];
+                cnt++;
+            }
+            if (k == 0) {
+                acc += box[((_i * Ny) + _j) * Nz + PIX(_k-1,Nz)];
+                cnt++;
+            }
+
+            if (i == nx-1) {
+                acc += box[((PIX(_i+1,Nx) * Ny) + _j) * Nz + _k];
+                cnt++;
+            }
+            if (j == ny-1) {
+                acc += box[((_i * Ny) + PIX(_j+1,Ny)) * Nz + _k];
+                cnt++;
+            }
+            if (k == nz-1) {
+                acc += box[((_i * Ny) + _j) * Nz + PIX(_k+1,Nz)];
+                cnt++;
+            }
+
+            elem[((i * ny) + j) * nz + k] = acc/cnt;
+        }
+    }
+}
+
+void
+change_grid_space(
+    const int nelems,
+    const int nx, const int ny, const int nz ,const double *xs, double *fss, 
+    const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss)
+{
+    double *Ls = malloc(sizeof(double) * Nx * nx);
+    for (int I = 0; I < Nx; I++)
+    for (int i = 0; i < nx; i++)
+        Ls[I*nx + i] = LagrangePolynomial(xs, nx, i, Xs[I]);
+
+    const int stride = nx*ny*nz;
+    const int Stride = Nx*Ny*Nz;
+
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * stride;
+              double *const Fs = Fss + elemid * Stride;
+
+        for (int I = 0; I < Nx; I++)
+        for (int J = 0; J < Ny; J++)
+        for (int K = 0; K < Nz; K++) {
+            double F = 0;
+
+            for (int i = 0; i < nx; i++)
+            for (int j = 0; j < ny; j++)
+            for (int k = 0; k < nz; k++)
+                F += fs[((i * ny) + j) * nz + k] * Ls[I*nx + i]*Ls[J*ny + j]*Ls[K*nz + k];
+
+            Fs[((I * Ny) + J) * Nz + K] = F;
+        }
+    }
 }
 
 void
@@ -234,5 +273,3 @@ flexi_to_box(
 
     free(Ls);
 }
-
-

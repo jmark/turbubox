@@ -1,5 +1,5 @@
 CC		= gcc
-CFLAGS	= -O3 -std=c99 -pedantic
+CFLAGS	= -O3 -std=c99 -pedantic -I.
 
 all: libinterpolate.so libshellavg.so
 

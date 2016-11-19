@@ -3,23 +3,30 @@
 import numpy as np
 from numpy.fft import rfftn, fftshift
 import sys
+import pathlib
 
 import flash
 from shellavg import shell_avg_3d
 import ulz
+import dslopts
 
-try:
-    fp = sys.argv[1]
-except IndexError:
-    print("usage: %s [checkpoint file] [nsamples (optional)]" % sys.argv[0])
-    sys.exit(1)
+def ExistingPath(arg):
+    pth = pathlib.Path(arg)
+    if not pth.exists():
+        raise OSError("'%s' does not exists!" % pth)
+    return pth
 
-try:
-    nsamples = int(sys.argv[2])
-except IndexError:
-    nsamples = None
+def PositiveInt(arg):
+    x = int(arg)
+    if x >= 0:
+        return x
+    raise ValueError("'%d' must be positive!" % x)
 
-flash = flash.File(fp)
+with dslopts.Manager(scope=locals()) as mgr:
+    mgr.add('fp'       ,'flash file path' ,ExistingPath)
+    mgr.add('nsamples' ,'no. of samples'  ,PositiveInt, 0)
+
+flash = flash.File(str(fp))
 
 time = flash.realscalars['time']
 step = flash.integerscalars['nstep']
