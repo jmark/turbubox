@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
 
-#SBATCH --partition=devel
-#SBATCH --account=AGWalch
-#SBATCH --mail-user=jmarker2@uni-koeln.de
-#SBATCH --mail-type=all
-
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCh --ntasks-per-node=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=20gb
-#SBATCH --time=00:30:00
-
 # stdlib
 import numpy as np
 from matplotlib import pylab as plt
