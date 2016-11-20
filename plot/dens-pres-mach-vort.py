@@ -14,21 +14,44 @@ matplotlib.rcParams.update({'font.size': 20})
 # jmark
 import flash, ulz, dslopts
 
-def trafo(data):
-    return np.sum(data,axis=2).T
+def property(flashfp, taskID):
+    fls = flash.File(flashfp, mode='r')
 
-def property(meshfile, flexfile, taskID):
-    flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
-    cons = [flx.flexi_to_box(i) for i in range(0,8)]
-    prim = ulz.mhd_conservative_to_primitive(cons)
+    time = fls.realscalars['time']
+    step = fls.integerscalars['nstep']
+    c_s  = fls.realruntime['c_ambient']
+    rho0 = fls.realruntime['rho_ambient']
+    LEN  = fls.domainsize[0]
 
-    #func = lambda x: np.max(trafo(x))
-    func = lambda x: np.min(trafo(x))
+    turntime = time / (LEN / c_s / 10)
+
+    GS = fls.gridsize
+    DS = fls.domainsize
+    CS = fls.cellsize
+
+    Vgrid   = np.prod(GS)
+    Vcell   = np.prod(CS) 
+    Vdomain = np.prod(DS) 
+
+    dens = fls.data('dens')
+    pres = fls.data('pres')
+    vels = [fls.data('vel'+dim) for dim in 'x y z'.split()]
+    mach = np.sqrt(ulz.norm(*vels)/3) / c_s
+    vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(vels[0],vels[1],vels[2],CS[0],CS[1],CS[2]))
+
+    ax = 2
+    cdens = np.log10(np.sum(dens,axis=ax))
+    cpres = np.log10(np.sum(pres,axis=ax))
+    cmach = np.sum(mach,axis=ax)/mach.shape[ax]
+    cvort = np.log10(np.sum(vort,axis=ax))
+
+    #func = np.min
+    func = np.max
     print(
-        func(prim[0]),
-        func(prim[1]),
-        func(prim[4]),
-        func(cons[4]), flush=True)
+        func(cdens),
+        func(cpres),
+        func(cmach),
+        func(cvort), flush=True)
 
 SOLVER = 'B5'
 MACH = 10
@@ -69,7 +92,7 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
     fig = plt.figure(figsize=(20, 18))
 
     st = plt.suptitle(
-        "Stirred turbulence in periodic box: mach %d | %s | t_d = %1.3f (frame: %03d/%03d)" % \
+        "Stirred turbulence in periodic box: mach %d | %s | t_d = % 2.4f (frame: %03d/%03d)" % \
             (MACH, SOLVER, turntime, taskID, ntasks),
         fontsize='x-large')
     st.set_y(1.01)
@@ -85,10 +108,10 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
         plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
 
-    plot(cdens, 'density (log10)', (0,4))
-    plot(cpres, 'pressure (log10)', (0,4))
-    plot(cmach, 'sonic mach number (grid normalized)', (0,10))
-    plot(cvort, 'vorticity (log10)', (-3,4))
+    plot(cdens, 'density (log10)', (0,3.0))
+    plot(cpres, 'pressure (log10)', (0,3.0))
+    plot(cmach, 'sonic mach number (grid normalized)', (0,0.8))
+    plot(cvort, 'vorticity (log10)', (-5,4))
 
     outfile = sinkfp % taskID
     fig.tight_layout()
@@ -114,7 +137,7 @@ SOLVER = solvername
 MACH   = machnumber
 
 def task(x):
-    #property(meshfilepath, x[1], x[0])
+    #property(x[1], x[0])
     mkplot(x[1], sinkfilepath, x[0], nflsfps)
 
 multiprocessing.Pool().map(task,enumerate(flsfps))
