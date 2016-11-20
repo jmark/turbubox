@@ -39,7 +39,6 @@ class File:
 
     def close(self):
         self.h5file.close()
-        self.hopr.close()
 
     # provide context manager interface
     def __enter__(self):

@@ -15,7 +15,7 @@ class MeshFile:
 
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
 
-    def get(self,dname):
+    def get(self,dname, copy=True):
         return self.h5file.get(dname)
 
     def close(self):

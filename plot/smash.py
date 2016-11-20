@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 # stdlib
+import sys
 import numpy as np
 from matplotlib import pylab as plt
+from itertools import chain
 import multiprocessing
 
 # jmark
@@ -24,8 +26,8 @@ def property(meshfile, flexfile, taskID):
         func(prim[4]),
         func(cons[4]), flush=True)
 
-def mkplot(meshfile, flexfile, sinkpath, taskID):
-    with flexi.File(flexfile, hopr.CartesianMeshFile(meshfile)) as flx:
+def mkplot(meshfilepath, flexfilepath, sinkpath, taskID):
+    with flexi.File(flexfilepath, hopr.CartesianMeshFile(meshfilepath), mode='r') as flx:
         cons = [flx.flexi_to_box(i) for i in range(0,8)]
         prim = ulz.mhd_conservative_to_primitive(cons)
 
@@ -49,18 +51,21 @@ def mkplot(meshfile, flexfile, sinkpath, taskID):
     plot(trafo(cons[4]), 'energy',  ( 70,170))
 
     outfile = sinkpath % taskID
-    print(outfile, flush=True)
+    print(outfile)
     plt.savefig(outfile,bbox_inches='tight')
 
-with dslopts.Manager(scope=globals(),appendix="flexifiles are defined after '--'") as mgr:
+with dslopts.Manager(scope=globals(),appendix="flexifiles can be defined after '--' or passed via stdin.") as mgr:
     mgr.add('meshfilepath')
-    mgr.add('sinkfilepath', 'path to store: <dir>/%03d.png')
-
-#flexifiles = sorted(_ignored_)[:5]
-flexifiles = sorted(_ignored_)
+    mgr.add('sinkfilepath',  'path to store: <dir>/%03d.png')
+    mgr.add('readfromstdin', 'yes/no', default='no')
 
 def task(x):
-    mkplot(meshfilepath, x[1], sinkfilepath, x[0])
     #property(meshfilepath, x[1], x[0])
+    mkplot(meshfilepath, x[1], sinkfilepath, x[0])
 
-multiprocessing.Pool().map(task,enumerate(flexifiles))
+if readfromstdin == 'yes':
+    flxfps = chain(_ignored_, map(str.strip,sys.stdin))
+else:
+    flxfps = _ignored_
+
+multiprocessing.Pool().map(task,enumerate(flxfps))
