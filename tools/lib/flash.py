@@ -4,8 +4,8 @@ import sys
 import ulz
 
 class File:
-    def __init__(self,fpath):
-        self.h5file = H5File(fpath,'r')
+    def __init__(self,fpath, mode='r'):
+        self.h5file = H5File(fpath, mode)
 
         # transform meta information to python data types
         self.siminfo        = self.get('sim info')
@@ -37,6 +37,12 @@ class File:
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
         self.blocksize  = np.array([self.integerscalars[x] for x in 'nxb nyb nzb'.split()])
         self.cellsize   = self.domainsize / self.gridsize
+
+    def close(self):
+        self.h5file.close()
+
+    def __delete__(self):
+        self.close()
 
     def get(self,dname):
         return self.h5file.get(dname).value

@@ -3,9 +3,12 @@
 # stdlib
 import sys
 import numpy as np
-from matplotlib import pylab as plt
 from itertools import chain
 import multiprocessing
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+
 
 # jmark
 import flexi, hopr, ulz, dslopts
@@ -53,6 +56,7 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID):
     outfile = sinkpath % taskID
     print(outfile)
     plt.savefig(outfile,bbox_inches='tight')
+    plt.close()
 
 with dslopts.Manager(scope=globals(),appendix="flexifiles can be defined after '--' or passed via stdin.") as mgr:
     mgr.add('meshfilepath')
