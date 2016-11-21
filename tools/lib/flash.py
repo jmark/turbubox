@@ -160,7 +160,7 @@ class FakeFile:
             D1 =  1.0
             D2 =  2.0
 
-            ret = np.exp(-((Y-0.5)**2)/2/0.01)
+            ret = 0.1 + 0.9 * np.exp(-((Y-0.5)**2)/2/0.01)
             #ret = D1 * np.ones_like(X)
             #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = D2 
             #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = D2 
@@ -251,14 +251,14 @@ class FakeFile:
             #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
             #ret[np.where((Y < 23/64) + (41/64 < Y))] = -5.0
 
-            U1 = -0.2
-            U2 =  0.2
+            U1 = -0.4
+            U2 =  0.4
 
             ret = U1 * np.ones_like(X)
             ret[np.where((6/16 <= Y) * (Y <= 10/16))] = U2 
 
         elif dname == 'vely':
-            U1 =  0.05
+            U1 =  0.02
             ret = U1 * np.sin(4*np.pi*X)
 
         elif dname in 'velz magx magy magz'.split():

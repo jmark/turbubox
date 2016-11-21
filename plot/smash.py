@@ -55,17 +55,16 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
         crange = None
         subplt[2] += 1
         ax = fig.add_subplot(*subplt)
-        ax.set_title(title)
-        ax.set_xlabel('x'); ax.set_ylabel('y')
+        ax.set_title(title); ax.set_xlabel('x'); ax.set_ylabel('y')
         xs = np.arange(0,len(data)+4, 4)
-        ax.set_xticks(xs)
-        ax.set_yticks(xs)
-        ax.grid()
+        ax.set_xticks(xs); ax.set_yticks(xs); ax.grid()
 
+        x0 = y0 = 0 - 1/2/len(data); x1 = y1 = len(data) + 1/2/len(data)
+        args = {'X': data, 'cmap': plt.get_cmap('cubehelix'), 'extent': (x0,x1,y0,y1)}
         if crange is not None:
-            img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), vmin=crange[0], vmax=crange[1])
-        else:
-            img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
+            args.update({'vmin': crange[0], 'vmax': crange[1]})
+        img = ax.imshow(**args)
+
         plt.colorbar(img,fraction=0.045, pad=0.04, format='%1.2f')
 
     plot(trafo(prim[0]) ,'column density'  ,( 50,90))
