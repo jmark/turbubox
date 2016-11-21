@@ -15,8 +15,8 @@ class File:
         self.npoly      = self.attr['N'][0]
         self.time       = self.attr['Time'][0]
         
-        self.params = dict((k,ulz.coerce(v)) for k,v in 
-            [x.decode('utf8').split('=') for x in self.attr['Parameters']])
+        #self.params = dict((k,ulz.coerce(v)) for k,v in 
+        #    [x.decode('utf8').split('=') for x in self.attr['Parameters']])
 
     def flexi_to_box(self, iVar, Nvisu=None):
         if not Nvisu:

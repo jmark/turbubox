@@ -100,7 +100,7 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
     def plot(data, title, crange=None):
         subplt[2] += 1
         ax = fig.add_subplot(*subplt)
-        ax.set_title('column %s' % title)
+        ax.set_title(title)
         ax.set_xlabel('x index'); ax.set_ylabel('y index')
         if crange is not None:
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), vmin=crange[0], vmax=crange[1])
@@ -108,10 +108,10 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
         plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
 
-    plot(cdens, 'density (log10)', (0,3.0))
-    plot(cpres, 'pressure (log10)', (0,3.0))
-    plot(cmach, 'sonic mach number (grid normalized)', (0,0.8))
-    plot(cvort, 'vorticity (log10)', (-5,4))
+    plot(cdens, 'column density (log10)', (0,3.0))
+    plot(cpres, 'column pressure (log10)', (0,3.0))
+    plot(cmach, 'column sonic mach number (grid normalized)', (0,0.8))
+    plot(cvort, 'column vorticity (log10)', (-5,4))
 
     outfile = sinkfp % taskID
     fig.tight_layout()

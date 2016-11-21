@@ -7,6 +7,7 @@ from itertools import chain
 import multiprocessing
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': 20})
 from matplotlib import pyplot as plt
 
 # jmark
@@ -28,47 +29,67 @@ def property(meshfile, flexfile, taskID):
         func(prim[4]),
         func(cons[4]), flush=True)
 
-def mkplot(meshfilepath, flexfilepath, sinkpath, taskID):
+def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
     with flexi.File(flexfilepath, hopr.CartesianMeshFile(meshfilepath), mode='r') as flx:
-        cons = [flx.flexi_to_box(i) for i in range(0,8)]
-        prim = ulz.mhd_conservative_to_primitive(cons)
+        #TODO: distinguish navier and mhd case
+        #cons = [flx.flexi_to_box(i) for i in range(0,8)]
+        #prim = ulz.mhd_conservative_to_primitive(cons)
+        cons = [flx.flexi_to_box(i) for i in range(0,5)]
+        prim = ulz.navier_conservative_to_primitive(cons)
 
-    fig = plt.figure(figsize=(15, 12))
-    subplt = [2,2,0]
+    subplt = [2,3,0]
+    fig = plt.figure(figsize=(40, 22))
 
     def plot(data, title, crange=None):
+        crange = None
         subplt[2] += 1
         ax = fig.add_subplot(*subplt)
-        ax.set_title('column %s: %d^3' % (title,len(data)))
+        ax.set_title(title)
         ax.set_xlabel('x'); ax.set_ylabel('y')
         if crange is not None:
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), vmin=crange[0], vmax=crange[1])
         else:
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
-        plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+        plt.colorbar(img,fraction=0.045, pad=0.04, format='%1.2f')
 
-    plot(trafo(prim[0]), 'density', ( 50,90))
-    plot(trafo(prim[1]), 'velx',    (-15,32))
-    plot(trafo(prim[4]), 'pressure',( 45,100))
-    plot(trafo(cons[4]), 'energy',  ( 70,170))
+    plot(trafo(prim[0]) ,'column density'  ,( 50,90))
+    plot(trafo(prim[4]) ,'column pressure' ,( 45,100))
+    plot(trafo(cons[4]) ,'column energy'   ,( 70,170))
+    plot(trafo(prim[1]) ,'column velx'     ,(-15,32))
+    plot(trafo(prim[2]) ,'column vely'     ,( 45,100))
+
+    title = "KHI in periodic box\n\nframe: %03d/%03d" % (taskID+1, ntasks)
+
+    subplt[2] += 1
+    ax = fig.add_subplot(*subplt)
+    ax.axis('off')
+
+    ax.text(0.5, 0.5,title,
+        fontsize='xx-large',
+        horizontalalignment='center',
+        verticalalignment='center',
+        transform = ax.transAxes)
 
     outfile = sinkpath % taskID
-    print(outfile)
     plt.savefig(outfile,bbox_inches='tight')
     plt.close()
+    print(outfile)
 
 with dslopts.Manager(scope=globals(),appendix="flexifiles can be defined after '--' or passed via stdin.") as mgr:
     mgr.add('meshfilepath')
     mgr.add('sinkfilepath',  'path to store: <dir>/%03d.png')
     mgr.add('readfromstdin', 'yes/no', default='no')
 
-def task(x):
-    #property(meshfilepath, x[1], x[0])
-    mkplot(meshfilepath, x[1], sinkfilepath, x[0])
-
 if readfromstdin == 'yes':
-    flxfps = chain(_ignored_, map(str.strip,sys.stdin))
+    flsfps = chain(_ignored_, map(str.strip,sys.stdin))
 else:
-    flxfps = _ignored_
+    flsfps = _ignored_
 
-multiprocessing.Pool().map(task,enumerate(flxfps))
+fps  = list(flsfps)
+nfps = len(flsfps)
+
+def task(x):
+    #property(x[1], x[0])
+    mkplot(meshfilepath, x[1], sinkfilepath, x[0], nfps)
+
+multiprocessing.Pool().map(task,enumerate(fps))

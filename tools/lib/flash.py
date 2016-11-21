@@ -157,39 +157,48 @@ class FakeFile:
 
         if dname == 'dens':
 
-            if fillby == 'constant':
-                ret[:] = 1.0
+            D1 =  1.0
+            D2 =  2.0
 
-            elif fillby == 'planeX':
-                ret[:] = X
+            ret = np.exp(-((Y-0.5)**2)/2/0.01)
+            #ret = D1 * np.ones_like(X)
+            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = D2 
+            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = D2 
 
-            elif fillby == 'planeX+':
-                ret = np.where(
-                    (2/8-1/grd[0]<X) * (X<6/8+1/grd[0]) * \
-                    (2/8-1/grd[1]<Y) * (Y<6/8+1/grd[1]) * \
-                    (2/8-1/grd[2]<Z) * (Z<6/8+1/grd[2]), X,0*X)
+            # --------------------------------------------------------------- #
+            # if fillby == 'constant':
+            #     ret[:] = 1.0
 
-            elif fillby == 'planeXYZ':
-                ret = np.where(
-                    (1/8-1/grd[0]<X) * (X<7/8+1/grd[0]) * \
-                    (1/8-1/grd[1]<Y) * (Y<7/8+1/grd[1]) * \
-                    (1/8-1/grd[2]<Z) * (Z<7/8+1/grd[2]), X+Y+Z,0*X)
+            # elif fillby == 'planeX':
+            #     ret[:] = X
 
-            elif fillby == 'plane+wiggle':
-                ret = np.where(
-                    (1/16-1/grd[0]<X) * (X<15/16+1/grd[0]) * \
-                    (1/16-1/grd[1]<Y) * (Y<15/16+1/grd[1]) * \
-                    (1/16-1/grd[2]<Z) * (Z<15/16+1/grd[2]),
-                    X+Y+Z + 0.5*self.wiggle(X+1/16,Y+1/16,Z+1/16),0*X)
+            # elif fillby == 'planeX+':
+            #     ret = np.where(
+            #         (2/8-1/grd[0]<X) * (X<6/8+1/grd[0]) * \
+            #         (2/8-1/grd[1]<Y) * (Y<6/8+1/grd[1]) * \
+            #         (2/8-1/grd[2]<Z) * (Z<6/8+1/grd[2]), X,0*X)
 
-            elif fillby == 'gaussianXYZ':
-                ret = np.exp(-((X-0.5)**2 + (Y-0.5)**2 + (Z-0.5)**2)/2/0.02)
+            # elif fillby == 'planeXYZ':
+            #     ret = np.where(
+            #         (1/8-1/grd[0]<X) * (X<7/8+1/grd[0]) * \
+            #         (1/8-1/grd[1]<Y) * (Y<7/8+1/grd[1]) * \
+            #         (1/8-1/grd[2]<Z) * (Z<7/8+1/grd[2]), X+Y+Z,0*X)
 
-            elif fillby == 'stepsXYZ':
-                ret = X + 100*X*(np.sin(4*2*np.pi*X) + 0.2*np.cos(20*2*np.pi*X) + 0.1*np.sin(20*2*np.pi*X))**2 
+            # elif fillby == 'plane+wiggle':
+            #     ret = np.where(
+            #         (1/16-1/grd[0]<X) * (X<15/16+1/grd[0]) * \
+            #         (1/16-1/grd[1]<Y) * (Y<15/16+1/grd[1]) * \
+            #         (1/16-1/grd[2]<Z) * (Z<15/16+1/grd[2]),
+            #         X+Y+Z + 0.5*self.wiggle(X+1/16,Y+1/16,Z+1/16),0*X)
 
-            else:
-                raise NotImplementedError('unknow fillby: %s' % fillby)
+            # elif fillby == 'gaussianXYZ':
+            #     ret = np.exp(-((X-0.5)**2 + (Y-0.5)**2 + (Z-0.5)**2)/2/0.02)
+
+            # elif fillby == 'stepsXYZ':
+            #     ret = X + 100*X*(np.sin(4*2*np.pi*X) + 0.2*np.cos(20*2*np.pi*X) + 0.1*np.sin(20*2*np.pi*X))**2 
+
+            # else:
+            #     raise NotImplementedError('unknow fillby: %s' % fillby)
 
         elif dname == 'pres':
             # constant
@@ -197,10 +206,11 @@ class FakeFile:
             # plane
             #ret = X+Y
 
+            # --------------------------------------------------------------- #
             # shear flow
             ret = np.ones_like(X)
             #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
-            ret[np.where((6/16 <= Y) * (Y <= 10/16))] = 5.0
+            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = 5.0
             #ret[np.where((Y < 5/16) + (11/16 < Y))] = -5.0
 
             # gaussian2d
@@ -227,20 +237,31 @@ class FakeFile:
             #return X+Y+Z
 
         elif dname == 'velx':
-            # V0 = -1.0
-            # V1 = -2 * V0 
-            # s1 = 0.01
-            # p1 = [0.5,0.5,0.5] 
+            ## smashing balls
+            #V0 = -0.8
+            #V1 = -2 * V0 
+            #s1 = 0.01
+            #p1 = [0.5,0.5,0.5] 
 
-            # ret = V0 * np.ones_like(X) + exp3D(V1, s1, p1, X,Y,Z)
+            #ret = V0 * np.ones_like(X) + exp3D(V1, s1, p1, X,Y,Z)
 
-            #ret = np.zeros_like(X)
-            ret = 0.1 * (2 * np.random.rand(*X.shape) - 1)
+            # --------------------------------------------------------------- #
+            ## beam
+            #ret = 0.1 * (2 * np.random.rand(*X.shape) - 1)
             #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
-            ret[np.where((6/16 <= Y) * (Y <= 10/16))] = 5.0
-            ret[np.where((Y < 23/64) + (41/64 < Y))] = -5.0
+            #ret[np.where((Y < 23/64) + (41/64 < Y))] = -5.0
 
-        elif dname in 'vely velz magx magy magz'.split():
+            U1 = -0.2
+            U2 =  0.2
+
+            ret = U1 * np.ones_like(X)
+            ret[np.where((6/16 <= Y) * (Y <= 10/16))] = U2 
+
+        elif dname == 'vely':
+            U1 =  0.05
+            ret = U1 * np.sin(4*np.pi*X)
+
+        elif dname in 'velz magx magy magz'.split():
             ret[:] = 0.0
 
         else:

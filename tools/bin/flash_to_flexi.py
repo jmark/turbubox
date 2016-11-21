@@ -207,7 +207,7 @@ def lagrange_3d_5th_order3():
     if isinstance(flashfile, pathlib.Path):
         fls = flash.File(str(flashfile))
     else:
-        fls = flash.FakeFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=flshfile)
+        fls = flash.FakeFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=flashfile)
 
     Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype) # target grid space
   
@@ -238,7 +238,8 @@ def lagrange_3d_5th_order3():
     prims = []
     print("  var   |       min    ->    min     |       max    ->    max     ")
     print("  ------|----------------------------|----------------------------")
-    for dbname in 'dens velx vely velz pres magx magy magz'.split():
+    #for dbname in 'dens velx vely velz pres magx magy magz'.split():
+    for dbname in 'dens velx vely velz pres'.split():
         src = fls.data(dbname)
         snk = trafo(src)
 
@@ -247,19 +248,7 @@ def lagrange_3d_5th_order3():
 
         prims.append(snk)
 
-    # convert primitive to conservative form
-    kappa = 5/3
-    mu0   = 1
- 
-    cons    = [None]*len(prims)
-    cons[0] = prims[0]            # density
-    cons[1] = prims[0]*prims[1]   # momentum x
-    cons[2] = prims[0]*prims[2]   # momentum y
-    cons[3] = prims[0]*prims[3]   # momentum z
-    cons[4] = prims[4]/(kappa-1) + prims[0]/2*(prims[1]**2+prims[2]**2+prims[3]**2) + (prims[5]**2+prims[6]**2+prims[7]**2)/2/mu0 # total energy
-    cons[5] = prims[5]           # mag x
-    cons[6] = prims[6]           # mag y
-    cons[7] = prims[7]           # mag z
+    cons = ulz.navier_primitive_to_conservative(prims)
 
     # write to file
     for i,con in enumerate(cons):

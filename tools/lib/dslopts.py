@@ -141,7 +141,10 @@ class Manager:
                 sys.exit(1)
 
             # parse given argument
-            kv = arg.split('=',1)
+            if arg[0] == '~':
+                kv = arg[1:].split('=',1)
+            else:
+                kv = [arg]                
             if len(kv) == 1:
                 name, value = argn[i], arg
                 if func.kword:

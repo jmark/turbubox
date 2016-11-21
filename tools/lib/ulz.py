@@ -170,6 +170,26 @@ def find_file(fname, paths):
                 return os.path.join(root, fname)
     raise FileNotFoundError("Cannot find '%s' in any of %s." % (fname, paths))
 
+def navier_primitive_to_conservative(prims, kappa=5/3):
+    cons    = [None]*len(prims)
+    cons[0] = prims[0]            # density
+    cons[1] = prims[0]*prims[1]   # momentum x
+    cons[2] = prims[0]*prims[2]   # momentum y
+    cons[3] = prims[0]*prims[3]   # momentum z
+    cons[4] = prims[4]/(kappa-1) \
+        +  prims[0]/2*(prims[1]**2+prims[2]**2+prims[3]**2) # total energy
+    return cons
+
+def navier_conservative_to_primitive(cons, kappa=5/3):
+    prims    = [None]*len(cons)
+    prims[0] = cons[0]             # density
+    prims[1] = cons[1] / cons[0]   # velx
+    prims[2] = cons[2] / cons[0]   # vely
+    prims[3] = cons[3] / cons[0]   # velz
+    prims[4] = (kappa-1)*(cons[4] \
+        - prims[0]/2*(prims[1]**2+prims[2]**2+prims[3]**2)) # pressure
+    return prims
+
 def mhd_primitive_to_conservative(prims, kappa=5/3, mu0=1.0):
     cons    = [None]*len(prims)
     cons[0] = prims[0]            # density
@@ -190,7 +210,7 @@ def mhd_conservative_to_primitive(cons, kappa=5/3, mu0=1.0):
     prims[1] = cons[1] / cons[0]   # velx
     prims[2] = cons[2] / cons[0]   # vely
     prims[3] = cons[3] / cons[0]   # velz
-    prims[4] = (kappa-1)*(cons[4] -  cons[0]/2*(cons[1]**2+cons[2]**2+cons[3]**2) \
+    prims[4] = (kappa-1)*(cons[4] -  cons[0]/2*(prims[1]**2+prims[2]**2+prims[3]**2) \
                                   - (cons[5]**2+cons[6]**2+cons[7]**2)/2/mu0) # pressure
     prims[5] = cons[5]           # mag x
     prims[6] = cons[6]           # mag y
