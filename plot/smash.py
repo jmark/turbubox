@@ -13,8 +13,19 @@ from matplotlib import pyplot as plt
 # jmark
 import flexi, hopr, ulz, dslopts
 
+title = \
+'''Kelvin-Helmholtz Instability
+
+  - FLEXI: 3rd order -> 4 nodes (GAUSS-LOBATTO) per element
+  - periodic box: 64 x 64 x 1 elements
+  - Euler equation, ideal monoatomic gas, isothermal EOS
+  - subsonic: (relative) mach = 0.4 initial condition
+
+frame: %03d/%03d'''
+
 def trafo(data):
-    return np.sum(data,axis=2).T
+    axis = 2
+    return np.sum(data,axis=axis).T/data.shape[axis]
 
 def property(meshfile, flexfile, taskID):
     flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
@@ -46,6 +57,11 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
         ax = fig.add_subplot(*subplt)
         ax.set_title(title)
         ax.set_xlabel('x'); ax.set_ylabel('y')
+        xs = np.arange(0,len(data)+4, 4)
+        ax.set_xticks(xs)
+        ax.set_yticks(xs)
+        ax.grid()
+
         if crange is not None:
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), vmin=crange[0], vmax=crange[1])
         else:
@@ -58,16 +74,14 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
     plot(trafo(prim[1]) ,'column velx'     ,(-15,32))
     plot(trafo(prim[2]) ,'column vely'     ,( 45,100))
 
-    title = "KHI in periodic box\n\nframe: %03d/%03d" % (taskID+1, ntasks)
-
     subplt[2] += 1
     ax = fig.add_subplot(*subplt)
     ax.axis('off')
 
-    ax.text(0.5, 0.5,title,
-        fontsize='xx-large',
-        horizontalalignment='center',
-        verticalalignment='center',
+    ax.text(0.0, 1.0,title % (taskID+1, ntasks),
+        #fontsize='large',
+        horizontalalignment='left',
+        verticalalignment='top',
         transform = ax.transAxes)
 
     outfile = sinkpath % taskID
