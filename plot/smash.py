@@ -21,7 +21,7 @@ title = \
   - Euler equation, ideal monoatomic gas, isothermal EOS
   - subsonic: (relative) mach = 0.4 initial condition
 
-frame: %03d/%03d'''
+frame: %03d/%03d | time: % 5.3f'''
 
 def trafo(data):
     axis = 2
@@ -40,13 +40,22 @@ def property(meshfile, flexfile, taskID):
         func(prim[4]),
         func(cons[4]), flush=True)
 
-def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
+def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks, Nvisu=None):
     with flexi.File(flexfilepath, hopr.CartesianMeshFile(meshfilepath), mode='r') as flx:
         #TODO: distinguish navier and mhd case
         #cons = [flx.flexi_to_box(i) for i in range(0,8)]
         #prim = ulz.mhd_conservative_to_primitive(cons)
-        cons = [flx.flexi_to_box(i) for i in range(0,5)]
+        if Nvisu is None or Nvisu <= 0:
+            Nvisu = flx.Nout
+
+        time = flx.time
+        Nout = flx.Nout
+
+        cons = [flx.as_box(i,Nvisu) for i in range(0,5)]
+        dens, momx, momy, momz, ener = cons 
+
         prim = ulz.navier_conservative_to_primitive(cons)
+        dens, velx, vely, velz, pres = prim
 
     subplt = [2,3,0]
     fig = plt.figure(figsize=(40, 22))
@@ -57,27 +66,41 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
         ax = fig.add_subplot(*subplt)
         ax.set_title(title); ax.set_xlabel('x'); ax.set_ylabel('y')
         xs = np.arange(0,len(data)+4, 4)
-        ax.set_xticks(xs); ax.set_yticks(xs); ax.grid()
+        #ax.set_xticks(xs); ax.set_yticks(xs); ax.grid()
 
         x0 = y0 = 0 - 1/2/len(data); x1 = y1 = len(data) + 1/2/len(data)
-        args = {'X': data, 'cmap': plt.get_cmap('cubehelix'), 'extent': (x0,x1,y0,y1)}
+        args = {
+            'X': data,
+            'cmap': plt.get_cmap('cubehelix'),
+            'extent': (x0,x1,y0,y1),
+            'interpolation': 'none'
+        }
         if crange is not None:
             args.update({'vmin': crange[0], 'vmax': crange[1]})
         img = ax.imshow(**args)
 
         plt.colorbar(img,fraction=0.045, pad=0.04, format='%1.2f')
 
-    plot(trafo(prim[0]) ,'column density'  ,( 50,90))
-    plot(trafo(prim[4]) ,'column pressure' ,( 45,100))
-    plot(trafo(cons[4]) ,'column energy'   ,( 70,170))
-    plot(trafo(prim[1]) ,'column velx'     ,(-15,32))
-    plot(trafo(prim[2]) ,'column vely'     ,( 45,100))
+
+    plot(trafo(dens) ,'column density'  ,( 50,90))
+    plot(trafo(ener) ,'column energy'   ,( 70,170))
+    plot(trafo(pres) ,'column pressure' ,( 45,100))
+    plot(trafo(velx) ,'column velx'     ,(-15,32))
+    plot(trafo(vely) ,'column vely'     ,( 45,100))
+
+    #mach = np.sqrt(dens*ulz.norm(velx,vely,velz) / pres)
+    # plot(trafo(mach) ,'mach'            ,( 45,100))
+    # plot(trafo(dens) ,'column density'  ,( 50,90))
+    # plot(trafo(ener) ,'column energy'   ,( 70,170))
+    # plot(trafo(momx) ,'column velx'     ,(-15,32))
+    # plot(trafo(momy) ,'column vely'     ,( 45,100))
+    # plot(trafo(momz) ,'column vely'     ,( 45,100))
 
     subplt[2] += 1
     ax = fig.add_subplot(*subplt)
     ax.axis('off')
 
-    ax.text(0.0, 1.0,title % (taskID+1, ntasks),
+    ax.text(0.0, 1.0,title % (taskID+1, ntasks, time),
         #fontsize='large',
         horizontalalignment='left',
         verticalalignment='top',
@@ -91,18 +114,19 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks):
 with dslopts.Manager(scope=globals(),appendix="flexifiles can be defined after '--' or passed via stdin.") as mgr:
     mgr.add('meshfilepath')
     mgr.add('sinkfilepath',  'path to store: <dir>/%03d.png')
+    mgr.add('Nvisu', 'Nvisu = 0 -> Nvisu = Nout', int, default=0)
     mgr.add('readfromstdin', 'yes/no', default='no')
 
 if readfromstdin == 'yes':
-    flsfps = chain(_ignored_, map(str.strip,sys.stdin))
+    srcfiles = chain(_ignored_, map(str.strip,sys.stdin))
 else:
-    flsfps = _ignored_
+    srcfiles = _ignored_
 
-fps  = list(flsfps)
-nfps = len(flsfps)
+srcfiles  = list(srcfiles)
+lenSrcfiles = len(srcfiles)
 
 def task(x):
     #property(x[1], x[0])
-    mkplot(meshfilepath, x[1], sinkfilepath, x[0], nfps)
+    mkplot(meshfilepath, x[1], sinkfilepath, x[0], lenSrcfiles, Nvisu)
 
-multiprocessing.Pool().map(task,enumerate(fps))
+multiprocessing.Pool().map(task,enumerate(srcfiles))

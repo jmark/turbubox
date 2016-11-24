@@ -207,26 +207,26 @@ def lagrange_3d_5th_order3():
     if isinstance(flashfile, pathlib.Path):
         fls = flash.File(str(flashfile))
     else:
-        fls = flash.FakeFile([[0,0,0],[1,1,1]],(flx.mesh.gridsize * (flx.npoly+1)), fillby=flashfile)
+        fls = flash.FakeFile([[0,0,0],[1,1,1]],flx.mesh.gridsize * flx.Nout, fillby=flashfile)
 
-    Xs  = gausslobatto.mk_nodes(flx.npoly, flx.nodetype) # target grid space
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
   
     if method == 0: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1)
+        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout)
         trafo   = lambda box: interpolate.box_to_flexi(xs, Xs, box, flx)
     elif method == 1: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=True)
+        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout, withBoundaryNodes=True)
         trafo   = lambda box: interpolate.box_to_flexi(xs, Xs, ulz.wrap_in_guard_cells(box), flx)
     elif method == 2:
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1)
+        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout)
         trafo_  = lambda box: interpolate.box_to_elements(box,flx, 0)
         trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
     elif method == 3: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1, withBoundaryNodes=True)
+        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout, withBoundaryNodes=True)
         trafo_  = lambda box: interpolate.box_to_elements(box,flx, 1)
         trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
     elif method == 4: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.npoly+1)
+        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout)
         xs[0]   = -1 
         xs[-1]  =  1
         trafo_  = lambda box: interpolate.box_to_elements_avg_boundaries(box,flx)

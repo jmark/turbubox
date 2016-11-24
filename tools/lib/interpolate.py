@@ -90,29 +90,42 @@ lib.box_to_elements.argtypes = [
 ]
 
 def box_to_elements(box, flx, neighbors=0):
-    # elemsdata = np.zeros(flx.mesh.nrelems,Xslen,Xslen,Xslen)
-    # for elemid,ll,tr in zip(range(0,flx.mesh.nrelems),*flx.mesh.get_cell_coords()):
-    # #for elemid,ll,tr in zip(range(0,3),*flx.mesh.get_cell_coords()):
-    #     i,j,k    = tuple(np.round((flx.npoly+1) * ll / flx.mesh.cellsize).astype(int).T)
-    #     io,jo,ko = tuple(np.round((flx.npoly+1) * tr / flx.mesh.cellsize).astype(int).T)
-
-    #     elemsdata[elemid,:,:,:] = box[i:io+2,j:jo+2,k:ko+2]
-
-    # return elemsdata
-
     lls, _   = flx.mesh.get_cell_coords()
-    offsets  = (flx.npoly+1) * lls / flx.mesh.cellsize
+    offsets  = flx.Nout * lls / flx.mesh.cellsize
 
-    N = flx.npoly+1 + 2*neighbors
+    N = flx.Nout + 2*neighbors
     elems    = np.zeros([flx.mesh.nrelems, N,N,N], dtype=np.double)
 
     boxptr   = np.require(box.ravel(), dtype=np.double, requirements=['C','A'])
-    elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A','W'])
+    elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A'])
     ofsptr   = np.require(offsets.ravel(), dtype=np.double, requirements=['C', 'A'])
 
     lib.box_to_elements(*box.shape, boxptr, flx.mesh.nrelems, ofsptr, *elems[0].shape, elemsptr, neighbors)
 
-    return elems
+    return elemsptr.reshape(elems.shape)
+
+# =========================================================================== #
+
+lib.elements_to_box.argtypes = [
+    t_int, t_int, t_int, t_ndouble,
+    t_int, t_ndouble, 
+    t_int, t_int, t_int, t_ndouble
+]
+
+def elements_to_box(elems, mesh):
+    # lower left corners normed to unit intervall
+    lls      = (mesh.domain[0] + mesh.elemcoords[0])/mesh.domainsize
+
+    box      = np.zeros(elems[0].shape * mesh.meshshape)
+    offsets  = np.array(box.shape) * lls
+
+    boxptr   = np.require(box.ravel(), dtype=np.double, requirements=['C','A'])
+    elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A'])
+    ofsptr   = np.require(offsets.ravel(), dtype=np.double, requirements=['C', 'A'])
+
+    lib.elements_to_box(*box.shape, boxptr, mesh.nrelems, ofsptr, *elems[0].shape, elemsptr)
+
+    return boxptr.reshape(box.shape)
 
 # =========================================================================== #
 
@@ -123,20 +136,10 @@ lib.box_to_elements_avg_boundaries.argtypes = [
 ]
 
 def box_to_elements_avg_boundaries(box, flx):
-    # elemsdata = np.zeros(flx.mesh.nrelems,Xslen,Xslen,Xslen)
-    # for elemid,ll,tr in zip(range(0,flx.mesh.nrelems),*flx.mesh.get_cell_coords()):
-    # #for elemid,ll,tr in zip(range(0,3),*flx.mesh.get_cell_coords()):
-    #     i,j,k    = tuple(np.round((flx.npoly+1) * ll / flx.mesh.cellsize).astype(int).T)
-    #     io,jo,ko = tuple(np.round((flx.npoly+1) * tr / flx.mesh.cellsize).astype(int).T)
-
-    #     elemsdata[elemid,:,:,:] = box[i:io+2,j:jo+2,k:ko+2]
-
-    # return elemsdata
-
     lls, _   = flx.mesh.get_cell_coords()
-    offsets  = (flx.npoly+1) * lls / flx.mesh.cellsize
+    offsets  = (flx.Nout) * lls / flx.mesh.cellsize
 
-    N = flx.npoly+1
+    N = flx.Nout
     elems    = np.zeros([flx.mesh.nrelems, N,N,N], dtype=np.double)
 
     boxptr   = np.require(box.ravel(), dtype=np.double, requirements=['C','A'])
@@ -146,7 +149,6 @@ def box_to_elements_avg_boundaries(box, flx):
     lib.box_to_elements_avg_boundaries(*box.shape, boxptr, flx.mesh.nrelems, ofsptr, *elems[0].shape, elemsptr)
 
     return elemsptr.reshape(elems.shape)
-
 
 # =========================================================================== #
 
@@ -208,7 +210,7 @@ def box_to_flexi(xs, Xs, box, flx):
     # ll ... lower left
     # tr ... top right
     lls, trs = flx.mesh.get_cell_coords()
-    Is,Js,Ks = tuple(np.round((flx.npoly+1) * lls / flx.mesh.cellsize).astype(int).T)
+    Is,Js,Ks = tuple(np.round((flx.Nout) * lls / flx.mesh.cellsize).astype(int).T)
     offsets  = ((Is * shape[1]) + Js) * shape[2] + Ks
     offsets  = np.require(offsets.ravel(), dtype=np.int32, requirements=['C', 'A'])
 
@@ -250,7 +252,7 @@ def box_to_flexi_with_averaged_boundaries(xs, Xs, box, flx):
     # ll ... lower left
     # tr ... top right
     lls, trs = flx.mesh.get_cell_coords()
-    Is,Js,Ks = tuple(np.round((flx.npoly+1) * lls / flx.mesh.cellsize).astype(int).T)
+    Is,Js,Ks = tuple(np.round((flx.Nout) * lls / flx.mesh.cellsize).astype(int).T)
     offsets  = ((Is * shape[1]) + Js) * shape[2] + Ks
     offsets  = np.require(offsets.ravel(), dtype=np.int32, requirements=['C', 'A'])
 
