@@ -183,7 +183,7 @@ class Manager:
         lnDeft = max([len(hdDeft)]+[len(str(proc[x]['default'])) for x in argn])
         lnDesc = max([len(hdDesc)]+[len(proc[x]['desc']) for x in argn])
 
-        primer = "usage: %s arg0 arg1 ... opt0=value0 opt1=value1 ... -- ... (ignored args)\n\n" % args['_progname_']
+        primer = "usage: %s arg0 arg1 ... ~opt0=value0 ~opt1=value1 ... -- ... (ignored args)\n\n" % args['_progname_']
         primer += "  * Either '%s' triggers this help message." % "', '".join(self.helpkws)
         primer += " For more\n    information try: 'pydoc dslopts'.\n"
         primer += "\n"
