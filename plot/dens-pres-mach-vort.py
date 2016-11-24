@@ -144,7 +144,4 @@ def task(x):
     #property(x[1], x[0])
     mkplot(x[1], sinkfilepath, x[0], len(srcfiles))
 
-print("Found %d CPUs." % multiprocessing.cpu_count())
-pool = multiprocessing.Pool()
-print("Using %d CPUs." % pool._processes)
-pool.map(task,enumerate(flsfps))
+multiprocessing.Pool().map(task,enumerate(flsfps))

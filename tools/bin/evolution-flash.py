@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 # stdlib
-import numpy as np
 import sys
+import pickle
+import numpy as np
+import multiprocessing
 
 # jmark
-import flash, ulz
+import flash, ulz, dslopts
 
-for count, fp in enumerate(sys.argv[1:]):
+def task(taskid, fp):
     fls = flash.File(fp)
 
     # ndarrays
@@ -33,12 +35,15 @@ for count, fp in enumerate(sys.argv[1:]):
     ekintot = np.sum(ekin)
     vorttot = np.mean(fls.cellsize)**5/12.0 * np.sum(dens * (vort[0]**2 + vort[1]**2 + vort[2]**2))
 
-    print("\t".join(map(str,[
-        count,
-        step,
-        time,
-        turn,
-        mach,
-        ekintot,
-        vorttot
-    ])), flush=True)
+    result = [count, step, time, turn, mach, ekintot, vorttot]
+    print("\t".join(map(str,result)), file=sys.stderr)
+    return result
+
+with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
+    mgr.add('sinkfilepath',  'path to store the pickle file')
+
+srcfiles = _ignored_
+result = multiprocessing.Pool().map(lambda x: task(*x),enumerate(srcfiles))
+
+with open(sinkfilepath, 'wb') as fd:
+    pickle.dump(result, fd)
