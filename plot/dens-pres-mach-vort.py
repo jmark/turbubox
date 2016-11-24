@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib
+import os
 import sys
 import numpy as np
 from itertools import chain
@@ -93,7 +94,7 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
 
     st = plt.suptitle(
         "Stirred turbulence in periodic box: mach %d | %s | t_d = % 2.4f (frame: %03d/%03d)" % \
-            (MACH, SOLVER, turntime, taskID, ntasks),
+            (MACH, SOLVER, turntime, taskID+1, ntasks),
         fontsize='x-large')
     st.set_y(1.01)
 
@@ -108,10 +109,10 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
         plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
 
-    plot(cdens, 'column density (log10)', (0,3.0))
-    plot(cpres, 'column pressure (log10)', (0,3.0))
-    plot(cmach, 'column sonic mach number (grid normalized)', (0,0.8))
-    plot(cvort, 'column vorticity (log10)', (-5,4))
+    plot(cdens, 'column density (log10)', (0,4))
+    plot(cpres, 'column pressure (log10)', (0,4))
+    plot(cmach, 'column sonic mach number (grid normalized)', (0,10))
+    plot(cvort, 'column vorticity (log10)', (-10,-4))
 
     outfile = sinkfp % taskID
     fig.tight_layout()
@@ -126,18 +127,20 @@ with dslopts.Manager(scope=globals(),appendix="flashfiles can be defined after '
     mgr.add('readfromstdin', 'yes/no', default='no')
 
 if readfromstdin == 'yes':
-    flsfps = chain(_ignored_, map(str.strip,sys.stdin))
+    flsfps = list(chain(_ignored_, map(str.strip,sys.stdin)))
 else:
-    flsfps = _ignored_
+    flsfps = list(_ignored_)
 
-flsfps  = list(flsfps)
-nflsfps = len(flsfps)
+srcfiles = list(filter(lambda i: os.path.isfile(sinkfilepath % i), range(len(flsfps))))
 
 SOLVER = solvername
 MACH   = machnumber
 
 def task(x):
     #property(x[1], x[0])
-    mkplot(x[1], sinkfilepath, x[0], nflsfps)
+    mkplot(x[1], sinkfilepath, x[0], len(srcfiles))
 
-multiprocessing.Pool().map(task,enumerate(flsfps))
+print("Found %d CPUs." % multiprocessing.cpu_count())
+pool = multiprocessing.Pool()
+print("Using %d CPUs." % pool._processes)
+pool.map(task,enumerate(flsfps))
