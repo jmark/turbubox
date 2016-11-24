@@ -78,8 +78,12 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
 
     dens = fls.data('dens')
     pres = fls.data('pres')
-    vels = [fls.data('vel'+dim) for dim in 'x y z'.split()]
-    mach = np.sqrt(ulz.norm(*vels)/3) / c_s
+    velx = fls.data('velx')
+    vely = fls.data('vely')
+    velz = fls.data('velz')
+
+    ekin = Vcell/2 * np.sum(dens * (velx**2+vely**2+velz**2)) 
+
     vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(vels[0],vels[1],vels[2],CS[0],CS[1],CS[2]))
 
     ax = 2
