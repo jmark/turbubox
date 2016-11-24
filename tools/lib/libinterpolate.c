@@ -141,6 +141,33 @@ box_to_elements(
 }
 
 void
+elements_to_box(
+    const int Nx, const int Ny, int Nz, double *box,
+    int nelems, double *indices, int nx, int ny, int nz, double *elems)
+{
+    const int stride = nx*ny*nz;
+    for (int elemid = 0; elemid < nelems; elemid++) {
+
+        const double *const index = indices + elemid * 3;
+        const int I = round(index[0]);
+        const int J = round(index[1]);
+        const int K = round(index[2]);
+
+        double *const elem = elems + elemid * stride;
+
+        for (int i = 0; i < nx; i++)
+        for (int j = 0; j < ny; j++)
+        for (int k = 0; k < nz; k++) {
+            const int _i = I + i;
+            const int _j = J + j;
+            const int _k = K + k;
+
+            box[((_i * Ny) + _j) * Nz + _k] = elem[((i * ny) + j) * nz + k];
+        }
+    }
+}
+
+void
 box_to_elements_avg_boundaries(
     const int Nx, const int Ny, int Nz, double *box, 
     int nelems, double *indices, int nx, int ny, int nz, double *elems)
@@ -266,6 +293,7 @@ flexi_to_box(
                 F += f * Ls[I*xslen + i]*Ls[J*xslen + j]*Ls[K*xslen + k];
                 //printf("%d %d %d -> %f\n", i,j,k, f);
             }
+            //printf("%d / %d -> %d\n", elemid, nelems, ((I * Ny) + J) * Nz + K);
             Fs[((I * Ny) + J) * Nz + K] = F;
             //printf("%d %d %d -> %f\n", I,J,K, F);
         }

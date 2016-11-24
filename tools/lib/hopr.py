@@ -2,7 +2,6 @@ from h5 import H5File
 import numpy as np
 
 class MeshFile:
-
     def __init__(self,fpath, mode='r'):
         self.h5file     = H5File(fpath,mode)
         self.elemInfo   = self.get('ElemInfo')
@@ -15,12 +14,13 @@ class MeshFile:
 
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
 
-    def get(self,dname):
+    def get(self,dname, copy=True):
         return self.h5file.get(dname)
-    
+
+    def close(self):
+        self.h5file.close()
 
 class CartesianMeshFile(MeshFile):
-
     def __init__(self,fpath, mode='r'):
         super().__init__(fpath, mode)
 
@@ -30,9 +30,15 @@ class CartesianMeshFile(MeshFile):
         if self.elemTypes[0] != 108:
             raise AssertionError("type of all elements must be '108 aka. cube'")
 
-        self.cellsize = np.abs(self.nodeCoords[7]-self.nodeCoords[0])
-        self.gridsize = self.domainsize // self.cellsize
+        self.cellsize = np.abs(self.nodeCoords[7]-self.nodeCoords[0]) # just take first element
+        self.gridsize = (self.domainsize // self.cellsize).astype(np.int)
         self.nrelems  = len(self.elemInfo)
+
+        # better alias
+        self.elemsize  = self.cellsize
+        self.meshshape = self.gridsize
+
+        self.elemcoords = (self.nodeCoords[:-7:8,:], self.nodeCoords[7::8,:])
  
     def get_cell_coords(self):
         return (self.nodeCoords[:-7:8,:], self.nodeCoords[7::8,:])

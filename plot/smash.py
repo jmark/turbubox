@@ -1,79 +1,132 @@
 #!/usr/bin/env python3
 
+# stdlib
 import sys
-from matplotlib import pylab as plt
-from mpl_toolkits.mplot3d import axes3d
 import numpy as np
-import imp
-import gausslobatto
-import flash, flexi, hopr
-import flash_to_flexi as flfl
-import scipy.misc
-import ulz
-import interpolate
-import glob
+from itertools import chain
+import multiprocessing
+import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': 20})
+from matplotlib import pyplot as plt
 
-#PROJPATH = "/home/jmark/projects/stirturb/flexi-sims/smashing-balls"
-#flshfilepath = "%s/flash_hdf5_chk_0080" % PROJPATH
-#flexfilepath = "%s/run/sim_ERROR_State_0000000.787411102.h5" % PROJPATH
+# jmark
+import flexi, hopr, ulz, dslopts
 
-sys.argv.reverse()
-progname = sys.argv.pop()
-hoprfilepath = sys.argv.pop()
-flexfilepath = sys.argv.pop()
-sinkpath = sys.argv.pop() 
+title = \
+'''Kelvin-Helmholtz Instability
 
-flx = flexi.File(flexfilepath, hopr.CartesianMeshFile(hoprfilepath))
-cons = [flx.flexi_to_box(i) for i in range(0,8)]
-prims = ulz.mhd_conservative_to_primitive(cons)
-flx.h5file.close()
+  - FLEXI: 3rd order -> 4 nodes (GAUSS-LOBATTO) per element
+  - periodic box: 64 x 64 x 1 elements
+  - Euler equation, ideal monoatomic gas, isothermal EOS
+  - subsonic: (relative) mach = 0.4 initial condition
 
-fig = plt.figure(figsize=(15, 12))
+frame: %03d/%03d | time: % 5.3f'''
 
-subplt = [2,2,0]
+def trafo(data):
+    axis = 2
+    return np.sum(data,axis=axis).T/data.shape[axis]
 
-subplt[2] += 1
-crange = {'vmin': -1, 'vmax': 1}
-ys = np.sum(prims[1],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column velx: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+def property(meshfile, flexfile, taskID):
+    flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
+    cons = [flx.flexi_to_box(i) for i in range(0,8)]
+    prim = ulz.mhd_conservative_to_primitive(cons)
 
-subplt[2] += 1
-crange = {'vmin': 0, 'vmax': 2}
-ys = np.sum(cons[4],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column energy: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+    #func = lambda x: np.max(trafo(x))
+    func = lambda x: np.min(trafo(x))
+    print(
+        func(prim[0]),
+        func(prim[1]),
+        func(prim[4]),
+        func(cons[4]), flush=True)
 
-subplt[2] += 1
-crange = {'vmin': 0, 'vmax': 2}
-ys = np.sum(prims[4],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column pressure: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks, Nvisu=None):
+    with flexi.File(flexfilepath, hopr.CartesianMeshFile(meshfilepath), mode='r') as flx:
+        #TODO: distinguish navier and mhd case
+        #cons = [flx.flexi_to_box(i) for i in range(0,8)]
+        #prim = ulz.mhd_conservative_to_primitive(cons)
+        if Nvisu is None or Nvisu <= 0:
+            Nvisu = flx.Nout
 
-subplt[2] += 1
-crange = {'vmin': 0, 'vmax': 2}
-ys = np.sum(prims[0],axis=2).T
-ax = fig.add_subplot(*subplt)
-ax.set_title('FLEXI: column density: %d^3' % len(ys))
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-#img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'),**crange)
-img = ax.imshow(ys, cmap=plt.get_cmap('cubehelix'))
-plt.colorbar(img,fraction=0.046, pad=0.04, format='%1.2f')
+        time = flx.time
+        Nout = flx.Nout
 
-plt.savefig(sinkpath,bbox_inches='tight')
+        cons = [flx.as_box(i,Nvisu) for i in range(0,5)]
+        dens, momx, momy, momz, ener = cons 
+
+        prim = ulz.navier_conservative_to_primitive(cons)
+        dens, velx, vely, velz, pres = prim
+
+    subplt = [2,3,0]
+    fig = plt.figure(figsize=(40, 22))
+
+    def plot(data, title, crange=None):
+        crange = None
+        subplt[2] += 1
+        ax = fig.add_subplot(*subplt)
+        ax.set_title(title); ax.set_xlabel('x'); ax.set_ylabel('y')
+        xs = np.arange(0,len(data)+4, 4)
+        #ax.set_xticks(xs); ax.set_yticks(xs); ax.grid()
+
+        x0 = y0 = 0 - 1/2/len(data); x1 = y1 = len(data) + 1/2/len(data)
+        args = {
+            'X': data,
+            'cmap': plt.get_cmap('cubehelix'),
+            'extent': (x0,x1,y0,y1),
+            'interpolation': 'none'
+        }
+        if crange is not None:
+            args.update({'vmin': crange[0], 'vmax': crange[1]})
+        img = ax.imshow(**args)
+
+        plt.colorbar(img,fraction=0.045, pad=0.04, format='%1.2f')
+
+
+    plot(trafo(dens) ,'column density'  ,( 50,90))
+    plot(trafo(ener) ,'column energy'   ,( 70,170))
+    plot(trafo(pres) ,'column pressure' ,( 45,100))
+    plot(trafo(velx) ,'column velx'     ,(-15,32))
+    plot(trafo(vely) ,'column vely'     ,( 45,100))
+
+    #mach = np.sqrt(dens*ulz.norm(velx,vely,velz) / pres)
+    # plot(trafo(mach) ,'mach'            ,( 45,100))
+    # plot(trafo(dens) ,'column density'  ,( 50,90))
+    # plot(trafo(ener) ,'column energy'   ,( 70,170))
+    # plot(trafo(momx) ,'column velx'     ,(-15,32))
+    # plot(trafo(momy) ,'column vely'     ,( 45,100))
+    # plot(trafo(momz) ,'column vely'     ,( 45,100))
+
+    subplt[2] += 1
+    ax = fig.add_subplot(*subplt)
+    ax.axis('off')
+
+    ax.text(0.0, 1.0,title % (taskID+1, ntasks, time),
+        #fontsize='large',
+        horizontalalignment='left',
+        verticalalignment='top',
+        transform = ax.transAxes)
+
+    outfile = sinkpath % taskID
+    plt.savefig(outfile,bbox_inches='tight')
+    plt.close()
+    print(outfile)
+
+with dslopts.Manager(scope=globals(),appendix="flexifiles can be defined after '--' or passed via stdin.") as mgr:
+    mgr.add('meshfilepath')
+    mgr.add('sinkfilepath',  'path to store: <dir>/%03d.png')
+    mgr.add('Nvisu', 'Nvisu = 0 -> Nvisu = Nout', int, default=0)
+    mgr.add('readfromstdin', 'yes/no', default='no')
+
+if readfromstdin == 'yes':
+    srcfiles = chain(_ignored_, map(str.strip,sys.stdin))
+else:
+    srcfiles = _ignored_
+
+srcfiles  = list(srcfiles)
+lenSrcfiles = len(srcfiles)
+
+def task(x):
+    #property(x[1], x[0])
+    mkplot(meshfilepath, x[1], sinkfilepath, x[0], lenSrcfiles, Nvisu)
+
+multiprocessing.Pool().map(task,enumerate(srcfiles))
