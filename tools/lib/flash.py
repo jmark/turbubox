@@ -147,7 +147,7 @@ class FakeFile:
         def exp3D(A,sigma,p,x,y,z):
             return A * np.exp(-((x-p[0])**2 + (y-p[1])**2 + (z-p[2])**2)/sigma/2.)
 
-        X,Y,Z = np.meshgrid(*tuple(ulz.mk_body_centered_linspace(*d, s) for d,s in zip(dom, grd)), indexing='ij')
+        X,Y,Z = np.meshgrid(*tuple(ulz.mk_body_centered_linspace(d[0],d[1],s) for d,s in zip(dom, grd)), indexing='ij')
 
         if dname == 'dens':
 
