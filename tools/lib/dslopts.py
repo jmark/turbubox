@@ -162,6 +162,7 @@ class Manager:
                 raise TypeError("Missing required positional argument: '%s' at %d." % (name, i))
 
         args['_ignored_'] = ignv
+        args['ARGVTAIL'] = ignv
         return args
 
     def install_into_scope(self, scope):
@@ -202,6 +203,14 @@ class Manager:
 
     def print_usage(self):
         print(self.usage(), file=sys.stderr)
+
+def bool(arg):
+    if isinstance(arg, str):
+        if arg.lower() in 'true yes on 1':
+            return True
+        elif arg.lower() in 'false no off 0':
+            return False
+    raise TypeError("Cannot convert '%s' to boolean" % str(arg))
 
 if __name__ == '__main__':
     import pathlib

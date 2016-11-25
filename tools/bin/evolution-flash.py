@@ -4,13 +4,12 @@
 import sys
 import pickle
 import numpy as np
-import multiprocessing
 
 # jmark
 import flash, ulz, dslopts
 
-def evol(taskid, fp):
-    fls = flash.File(fp)
+def evol(taskid, srcfp, snkfp=''):
+    fls = flash.File(srcfp)
 
     # ndarrays
     dens = fls.data('dens')
@@ -36,18 +35,26 @@ def evol(taskid, fp):
     vorttot = np.mean(fls.cellsize)**5/12.0 * np.sum(dens * (vort[0]**2 + vort[1]**2 + vort[2]**2))
 
     result = [taskid, step, time, turn, mach, ekintot, vorttot]
-    print("\t".join(map(str,result)), file=sys.stderr)
+    
+    if snkfp:
+        with open(snkfp % taskid, 'wb') as fd:
+            pickle.dump(result, fd)
+
     return result
 
 with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
-    mgr.add('sinkfilepath',  'path to store the pickle file')
+    mgr.add('sinkfp', 'path to store the pickle files: <dir>/03d%.pickle', str, '')
+    mgr.add('usemultiproc', 'enable multiprocessing', dslopts.bool, True)
+    mgr.add('skipfiles', 'skip already existing files', dslopts.bool, True)
 
-srcfiles = _ignored_
+srcfiles = ARGVTAIL
 
-def task(x):
-    return evol(*x)
-
-result = multiprocessing.Pool().map(task,enumerate(srcfiles))
-
-with open(sinkfilepath, 'wb') as fd:
-    pickle.dump(result, fd)
+if usemultiproc:
+    from multiprocessing import Pool
+    def task(x):
+        return evol(x[0],x[1], sinkfp)
+    Pool().map(task,enumerate(srcfiles))
+else:
+    for taskid, fp in enumerate(srcfiles):
+        result = evol(taskid, fp, sinkfp)
+        print(' '.join(map(str,result)), file=sys.stderr)
