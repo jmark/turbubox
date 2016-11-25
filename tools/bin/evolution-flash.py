@@ -9,7 +9,7 @@ import multiprocessing
 # jmark
 import flash, ulz, dslopts
 
-def task(taskid, fp):
+def evol(taskid, fp):
     fls = flash.File(fp)
 
     # ndarrays
@@ -35,7 +35,7 @@ def task(taskid, fp):
     ekintot = np.sum(ekin)
     vorttot = np.mean(fls.cellsize)**5/12.0 * np.sum(dens * (vort[0]**2 + vort[1]**2 + vort[2]**2))
 
-    result = [count, step, time, turn, mach, ekintot, vorttot]
+    result = [taskid, step, time, turn, mach, ekintot, vorttot]
     print("\t".join(map(str,result)), file=sys.stderr)
     return result
 
@@ -43,7 +43,11 @@ with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '
     mgr.add('sinkfilepath',  'path to store the pickle file')
 
 srcfiles = _ignored_
-result = multiprocessing.Pool().map(lambda x: task(*x),enumerate(srcfiles))
+
+def task(x):
+    return evol(*x)
+
+result = multiprocessing.Pool().map(task,enumerate(srcfiles))
 
 with open(sinkfilepath, 'wb') as fd:
     pickle.dump(result, fd)
