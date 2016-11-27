@@ -12,7 +12,7 @@ then
     module load intel
     module load intelmpi
 
-    srun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
+    eval srun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -29,5 +29,5 @@ then
 
     set +u ; source /etc/profile.d/intel* ; set -u
 
-    mpirun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
+    eval mpirun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
 fi

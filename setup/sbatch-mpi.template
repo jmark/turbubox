@@ -22,4 +22,4 @@
 #SBATCH --mem=22gb
 #SBATCH --time=24:00:00
 
-NTASK="$SLURM_NTASKS" "$@"
+NTASK="$SLURM_NTASKS" eval "$@"

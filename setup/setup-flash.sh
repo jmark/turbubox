@@ -30,7 +30,7 @@ then
     export PATH="/$TMPDIR:$PATH"
 fi
 
-./setup Girichidis-StirTurb \
+eval ./setup Girichidis-StirTurb \
     -3d -auto -portable -opt \
 	-nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -nzb=$BLOCKSIZE -maxblocks=$MAXBLOCKS \
 	-site="$SITEDIR" -objdir="$OBJDIR" ${SOLVERUNIT[$SOLVER]} \

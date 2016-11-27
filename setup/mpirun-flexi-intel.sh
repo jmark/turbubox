@@ -10,7 +10,7 @@ then
     module load intel
     module load intelmpi
 
-    srun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
+    eval srun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -27,5 +27,5 @@ then
 
     source /etc/profile.d/intel*
 
-    mpirun -n "$NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$@"
+    eval mpirun -n "$NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$@"
 fi
