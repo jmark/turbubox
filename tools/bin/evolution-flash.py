@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib
-import os
-import sys
-import pickle
+import os, sys, pickle
 import numpy as np
 
 # jmark

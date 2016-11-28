@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
 
+# stdlib
+import os, sys, pickle
 import numpy as np
 from numpy.fft import rfftn, fftshift
-import sys
-import pathlib
 
-import flash
+# jmark
+import flash, ulz, dslopts
 from shellavg import shell_avg_3d
-import ulz
-import dslopts
-
-def ExistingPath(arg):
-    pth = pathlib.Path(arg)
-    if not pth.exists():
-        raise OSError("'%s' does not exists!" % pth)
-    return pth
+from defer_signals import DeferSignals
 
 def PositiveInt(arg):
     x = int(arg)
@@ -22,10 +16,29 @@ def PositiveInt(arg):
         return x
     raise ValueError("'%d' must be positive!" % x)
 
-def evol(taskid, srcfp, snkfptmpl=''):
+def log(msg):
+    print(msg, file=sys.stderr)
 
-    snkfp = snkfptmpl % taskid
-    fls   = flash.File(srcfp)
+with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
+    mgr.add('sinkfptmpl', 'path template to store the pickle files: <dir>/03d%.pickle', str, '')
+    mgr.add('nsamples' ,'no. of samples'  ,PositiveInt, 0)
+    mgr.add('usemultiproc', 'enable multiprocessing', dslopts.bool, True)
+    mgr.add('skipfiles', 'skip already existing files', dslopts.bool, False)
+
+def task(taskid, srcfp):
+    # prepare sink file path
+    try:
+        snkfp = sinkfptmpl % taskid
+    except TypeError:
+        snkfp = sinkfptmpl
+
+    # skip already done files
+    if skipfiles and os.path.isfile(snkfp):
+        log('%s skipped.' % snkfp)
+        return
+
+    # open flash file
+    fls = flash.File(srcfp, 'r')
 
     # ndarrays
     dens = fls.data('dens')
@@ -64,24 +77,20 @@ def evol(taskid, srcfp, snkfptmpl=''):
     res['ekin'] = shell_avg_3d(fekin**2, nsamples)
     res['rhovels'] = shell_avg_3d(frhovels**2, nsamples)
     
-    if snkfptmpl:
-        with open(snkfp, 'wb') as fd:
-            pickle.dump(res, fd)
+    if snkfp:
+        with DeferSignals(): # make sure write is atomic
+            with open(snkfp, 'wb') as fd:
+                pickle.dump(res, fd)
 
-with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
-    mgr.add('sinkfp', 'path to store the pickle files: <dir>/03d%.pickle', str, '')
-    mgr.add('nsamples' ,'no. of samples'  ,PositiveInt, 0)
-    mgr.add('usemultiproc', 'enable multiprocessing', dslopts.bool, True)
-    mgr.add('skipfiles', 'skip already existing files', dslopts.bool, True)
+    log(snkfp)
 
-srcfiles = ARGVTAIL
+srcfiles = map(str.rstrip, ARGV_TAIL)
 
 if usemultiproc:
     from multiprocessing import Pool
-    def task(x):
-        return evol(x[0],x[1], sinkfp)
-    Pool().map(task,enumerate(srcfiles))
+    def _task(x):
+        return task(x[0],x[1])
+    Pool().map(_task,enumerate(srcfiles))
 else:
     for taskid, fp in enumerate(srcfiles):
-        result = evol(taskid, fp, sinkfp)
-        print(' '.join(map(str,result)), file=sys.stderr)
+        task(taskid, fp)
