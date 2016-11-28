@@ -11,8 +11,12 @@ matplotlib.rcParams.update({'font.size': 20})
 def moving_sum(xs, n=2):
     return np.array([np.sum(x) for x in xs[:xs.shape[0]//n * n].reshape(-1,n)])
 
+def mymean(xs):
+    avg = np.mean(xs)
+    return np.mean([x for x in xs if np.abs((avg-x)/avg) <= 0.5])
+
 def moving_avg(xs, n=2):
-    return np.array([np.mean(x) for x in xs[:xs.shape[0]//n * n].reshape(-1,n)])
+    return np.array([mymean(x) for x in xs[:xs.shape[0]//n * n].reshape(-1,n)])
 
 import cycler
 ccycle = cycler.cycler('color', ['#377eb8', '#ff7f00', '#4daf4a',
@@ -32,9 +36,9 @@ plt.rc('axes', prop_cycle=ccycle)
 # [23]dErad         [24]dErad/dt        [25]E_bulk_BF   [26]dE_bulk_corr    [27] ([23]/dt)
 # [28]E_bulk_AF     [29]dE_bulk_AF      [30] ([24]/dt)
 
-mach = 10
+MACH = 10
 clen = 1
-ttc = clen / mach
+ttc = clen / MACH
 
 fps = sys.argv[1::2] # files paths
 lgs = sys.argv[2::2] # legends labels
@@ -42,30 +46,27 @@ lgs = sys.argv[2::2] # legends labels
 # dissipation rate
 for fp,lg in zip(fps,lgs):
     data = np.load(fp)
+    data = data.T
 
-    t    = data[:,0] # time
-    dK   = data[:,5] # dEkin(diss)
-    dKdt = data[:,6] # dEkin(diss)
+    mach  = data[12]
+    dKdt  = -data[6]
 
-    i0 = (np.abs(t - 1*ttc)).argmin()
+    temp = np.array([[m,d] for m,d in zip(mach,dKdt) if m <= 10]).T
+    temp = np.array(sorted(temp.T, key=lambda x: x[0])).T
 
-    xs = t[i0:]
-    ys = -dK[i0:]
-
-    xs = xs / ttc
-    ys = np.cumsum(ys)
+    xs = moving_avg(temp[0], 5)
+    ys = moving_avg(temp[1], 5)
 
     plt.plot(xs, ys, '-', lw=3, label=lg)
 
-plt.title("Turbulent Box (mach = %d): Evolution of Cummulated Kinetic Dissipation" % mach)
-plt.xlabel('characteristic time scale: t/t_c')
-plt.ylabel('cummulative kinetic energy dissipation rate: Σ(t0,t)|ΔK|')
+plt.title("Turbulent Box (Mach = %d): Dissipation Rate over Mach" % MACH)
+plt.xlabel('sonic mach number')
+plt.ylabel('dissipation rate: -|ΔK/Δt|')
 
-plt.xlim(0.8,3)
-plt.ylim(0,230)
+plt.xlim(2,10)
+plt.ylim(0,1550)
 plt.grid()
 plt.legend(loc='upper left')
-#plt.legend(loc='upper right')
 
 plt.show()
 

@@ -7,6 +7,13 @@ from matplotlib import pylab as plt
 import matplotlib
 matplotlib.rcParams.update({'font.size': 20})
 
+import cycler
+colors = ['#377eb8', '#ff7f00', '#4daf4a',
+                  '#f781bf', '#a65628', '#984ea3',
+                  '#999999', '#e41a1c', '#dede00']
+ccycle = cycler.cycler('color', colors)
+plt.rc('axes', prop_cycle=ccycle)
+
 # [01]time           [02]dt  [03]EkinLastStp   [04]EkinBefFor   [05]EkinAftFor
 # [06]dEkin(diss)   [07] ([06]/dt)  [08]dEkin(forc)   [09] ([08]/dt)
 # [10]Vrms_vw_BF   [11]Vrms_vw_AF   [12]Vrms_mw_BF   [13]Vrms_mw_AF
@@ -53,7 +60,7 @@ dk   = data[:,7] # dEkinForce
 xs = time / ttc
 ys = 10 * dt / ttc
 
-plt.plot(xs, ys, '-', lw=4, label=lg)
+plt.plot(xs, ys, '--', color=colors[2], lw=4, label=lg)
 
 plt.title("Turbulent Box (mach = %d): Evolution of Time Step 'dt'" % mach)
 
@@ -65,9 +72,10 @@ plt.ylim(0,0.011)
 plt.grid()
 #plt.legend(loc='upper left')
 plt.legend(loc='upper right')
-#plt.show()
 
-fig = matplotlib.pyplot.gcf()
-fig.set_size_inches(18.5, 10.5)
-plt.tight_layout()
-plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')
+plt.show()
+
+# fig = matplotlib.pyplot.gcf()
+# fig.set_size_inches(18.5, 10.5)
+# plt.tight_layout()
+# plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')

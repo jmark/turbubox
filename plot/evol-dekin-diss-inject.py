@@ -8,7 +8,6 @@ import matplotlib
 matplotlib.rc('font', family='DejaVu Sans')
 matplotlib.rcParams.update({'font.size': 20})
 
-import cycler
 
 def moving_sum(xs, n=2):
     return np.array([np.sum(x) for x in xs[:xs.shape[0]//n * n].reshape(-1,n)])
@@ -16,10 +15,10 @@ def moving_sum(xs, n=2):
 def moving_avg(xs, n=2):
     return np.array([np.mean(x) for x in xs[:xs.shape[0]//n * n].reshape(-1,n)])
 
+import cycler
 ccycle = cycler.cycler('color', ['#377eb8', '#ff7f00', '#4daf4a',
                   '#f781bf', '#a65628', '#984ea3',
                   '#999999', '#e41a1c', '#dede00'])
-
 plt.rc('axes', prop_cycle=ccycle)
 
 # [01]time          
