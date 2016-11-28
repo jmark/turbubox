@@ -22,8 +22,7 @@
 import os
 import signal
 
-
-class defer_signals(object):
+class DeferSignals(object):
     """
     Context manager to defer signal handling until context exits.
 
@@ -40,7 +39,7 @@ class defer_signals(object):
             signal_list = [signal.SIGHUP, signal.SIGINT, signal.SIGTERM]
         # Accept either signal numbers or string identifiers
         self.signal_list = [
-            getattr(signal, sig_id) if isinstance(sig_id, basestring) else sig_id
+            getattr(signal, sig_id) if isinstance(sig_id, str) else sig_id
             for sig_id in signal_list
         ]
         self.deferred = []

@@ -141,17 +141,15 @@ class Manager:
                 sys.exit(1)
 
             # parse given argument
-            if arg[0] == '~':
-                kv = arg[1:].split('=',1)
-            else:
-                kv = [arg]                
-            if len(kv) == 1:
-                name, value = argn[i], arg
+            if arg[0] == '~': # keyword argument
+                name, value = arg[1:].split('=',1)
+                func.kword = True
+            else: # positional argument
                 if func.kword:
                     raise SyntaxError("Positional argument %d follows keyword argument." % (i+1))
-            elif len(kv) == 2:
-                name, value = kv
-                func.kword = True
+                if i >= len(argn):
+                    raise IndexError("More positional arguments given than defined at %d." % (i+1))
+                name, value = argn[i], arg
 
             # type checking
             args[name] = proc[name]['type'](value)
@@ -162,7 +160,7 @@ class Manager:
                 raise TypeError("Missing required positional argument: '%s' at %d." % (name, i))
 
         args['_ignored_'] = ignv
-        args['ARGVTAIL'] = ignv
+        args['ARGV_TAIL'] = ignv
         return args
 
     def install_into_scope(self, scope):
