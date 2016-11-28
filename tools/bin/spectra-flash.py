@@ -69,6 +69,7 @@ def task(taskid, srcfp):
     frhovels = fftshift(np.abs(rfftn(rhovels)))
 
     res = {}
+    res['taskid'] = taskid
     res['time'] = time
     res['step'] = step
     res['dens'] = shell_avg_3d(fdens**2, nsamples)
