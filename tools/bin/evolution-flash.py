@@ -1,15 +1,33 @@
 #!/usr/bin/env python3
 
 # stdlib
+import os
 import sys
 import pickle
 import numpy as np
 
 # jmark
 import flash, ulz, dslopts
+from defer_signals import DeferSignals
 
-def evol(taskid, srcfp, snkfp=''):
-    fls = flash.File(srcfp)
+with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
+    mgr.add('sinkfptmpl', 'path template to store the pickle files: <dir>/03d%.pickle', str, '')
+    mgr.add('usemultiproc', 'enable multiprocessing', dslopts.bool, True)
+    mgr.add('skipfiles', 'skip already existing files', dslopts.bool, False)
+
+def evol(taskid, srcfp):
+    # prepare sink file path
+    try:
+        snkfp = sinkfptmpl % taskid
+    except TypeError:
+        snkfp = sinkfptmpl
+
+    # skip already done files
+    if skipfiles and os.path.isfile(snkfp):
+        return ['%s skipped.' % snkfp]
+
+    # open flash file
+    fls = flash.File(srcfp, 'r')
 
     # ndarrays
     dens = fls.data('dens')
@@ -37,24 +55,20 @@ def evol(taskid, srcfp, snkfp=''):
     result = [taskid, step, time, turn, mach, ekintot, vorttot]
     
     if snkfp:
-        with open(snkfp % taskid, 'wb') as fd:
-            pickle.dump(result, fd)
+        with DeferSignals(): # make sure write is atomic
+            with open(snkfp, 'wb') as fd:
+                pickle.dump(result, fd)
 
     return result
 
-with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
-    mgr.add('sinkfp', 'path to store the pickle files: <dir>/03d%.pickle', str, '')
-    mgr.add('usemultiproc', 'enable multiprocessing', dslopts.bool, True)
-    mgr.add('skipfiles', 'skip already existing files', dslopts.bool, True)
-
-srcfiles = ARGVTAIL
+srcfiles = map(str.rstrip, ARGV_TAIL)
 
 if usemultiproc:
     from multiprocessing import Pool
     def task(x):
-        return evol(x[0],x[1], sinkfp)
+        return evol(x[0],x[1])
     Pool().map(task,enumerate(srcfiles))
 else:
     for taskid, fp in enumerate(srcfiles):
-        result = evol(taskid, fp, sinkfp)
+        result = evol(taskid, fp)
         print(' '.join(map(str,result)), file=sys.stderr)
