@@ -18,18 +18,20 @@ class File:
         self.integerruntime = H5File.dataset_to_dict(self.get('integer runtime parameters'))
         self.realruntime    = H5File.dataset_to_dict(self.get('real runtime parameters'))
 
+        self.is_multilevel  = any(filter(lambda x: x > 1, self.refine_levels))
+
         # figure out global grid size
         self.gridsize = np.array([
             self.integerruntime[N] * self.integerscalars[n]*2**(self.maxrefinelevel-1) 
                 for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())]).astype(np.int)
 
         # handle uniform grid case
-        if str(self.siminfo['setup call'][0]).find('+ug') >= 0:
+        if not self.is_multilevel:
             self.gridsize *= np.array([self.integerscalars[key] for key in 'iprocs jprocs kprocs'.split()])
 
         self.grid = np.array([[0,0,0], self.gridsize-1])
 
-       	self.domain  = np.array([
+        self.domain  = np.array([
             [self.realruntime[x] for x in 'xmin ymin zmin'.split()],
             [self.realruntime[x] for x in 'xmax ymax zmax'.split()]
         ])
@@ -43,6 +45,14 @@ class File:
 
     def __delete__(self):
         self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+        if isinstance(value, Exception):
+            raise
 
     def get(self,dname):
         return self.h5file.get(dname).value
@@ -75,7 +85,16 @@ class File:
 
         return box 
 
-    def set_data(self, dname, fun):
+    def get_prims(self):
+        return [self.get_data(dname) for dname in 'dens velx vely velz pres'.split()]
+
+    def set_data(self, dname, box):
+        if self.is_multilevel:
+            raise NotImplementedError('Setting data for multilevel grids (AMR) is not supported yet!')
+
+        if box.shape != tuple(self.gridsize):
+            raise ValueError('Given box shape does not match gridsize!')
+
         # auxiliary variables for code clarity: shape: (3,)
         gridsize  = self.gridsize
         domsize   = self.domainsize
@@ -86,11 +105,16 @@ class File:
         X,Y,Z     = np.meshgrid(*tuple(linspace(-1, 1, nb) for nb in blksize))
 
         coords = self.get('coordinates')    # shape: (#bids,3)
-        blocks = self.get(dname)            # shape: (#bids,nxb*nyb*nzb)
+        blocks = self.h5file.get(dname)     # shape: (#bids,nxb*nyb*nzb)
 
-        for bid, coord in enumerate(coords):
-            mg = np.meshgrid(*tuple(linspace(cs[0], cs[1], nb) for cs,nb in zip(coord,blksize)), indexing='ij')
-            blocks[bid] = fun(*mg).transpose((2,1,0))
+        # note: using numpy broadcasting kung-fu: shape: coords.shape
+        positions = np.round((coords+offset)/domsize * gridsize).astype(np.int)
+
+        for bid, pos in enumerate(positions):
+            I = np.array((pos-blksize//2,pos+blksize//2)).transpose()
+            blocks[bid] = box[[slice(*i) for i in I]].transpose((2,1,0))
+
+        #blocks.file.flush()
 
     def list_datasets(self):
         return self.h5file.keys()

@@ -82,10 +82,10 @@ for fp,lg in zip(fps,lgs):
     ysT = (ys + sigma)
     ysD = (ys - sigma)
 
-    n = 20
-    xsB = moving_avg( xs, 5)[:-n]
-    ysT = moving_avg(ysT, 5)[:-n]
-    ysD = moving_avg(ysD, 5)[:-n]
+    n = -1
+    xsB = moving_avg( xs, 5)
+    ysT = moving_avg(ysT, 5)
+    ysD = moving_avg(ysD, 5)
 
     plt.fill_between(xsB, ysD, ysT, color='gray', alpha=0.3)
     #plt.semilogy(xs,ys, '-', lw=3, label=lg)
@@ -120,12 +120,14 @@ for fp,lg in zip(fps,lgs):
 # 
 #     plt.semilogy(xs,ysF, '--', lw=3, label=lg + ' gaussian fit: A=%4.2f, mu=%4.2f, sigma^2=%4.2f' % tuple(popt))
 
-plt.title("Turbulent Box (Mach = %d): Velocity PDF" % mach)
-plt.xlabel('velocity')
-plt.ylabel('velocity pdf')
 
+plt.title("Turbulent Box (Mach = %d): Vorticity PDF" % mach)
+plt.xlabel('vorticity')
+plt.ylabel('vorticity pdf')
+
+plt.xlim(-1000,1000)
 plt.grid()
-plt.legend(loc='lower center')
+plt.legend(loc='upper right')
 
 plt.show()
 

@@ -13,6 +13,7 @@ import ulz
 import interpolate
 import dslopts
 import pathlib
+import scipy.ndimage
                
 # =========================================================================== #
 
@@ -171,6 +172,73 @@ def lagrange_3d_5th_order():
     print("Writing nvar '%s': (orig/itpl) min %f/%f max %f/%f" % \
             ('dens', dens.min(), idat.min(), dens.max(), idat.max()), file=sys.stderr)
 
+methods = []
+
+def method(box, flx):
+    "Without neighboring cells: n-th order interpolation (old version)"
+    xs  = ulz.mk_body_centered_linspace(-1,1, flx.Nout)
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
+
+    return interpolate.box_to_flexi(xs, Xs, box, flx)
+
+methods.append(method)
+
+def method(box, flx):
+    "With neighboring cells: (n+2)-th order interpolation (old version)"
+    xs  = ulz.mk_body_centered_linspace(-1,1,flx.Nout, withBoundaryNodes=True)
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
+
+    return interpolate.box_to_flexi(xs, Xs, ulz.wrap_in_guard_cells(box), flx)
+
+methods.append(method)
+
+def method(box, flx):
+    "Like '0' (new version)"
+    els = interpolate.box_to_elements(box,flx)
+
+    xs  = ulz.mk_body_centered_linspace(-1,1, els.shape[1])
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
+
+    return interpolate.change_grid_space(els, xs, Xs)
+
+methods.append(method)
+
+def method(box, flx):
+    "Like '1' (new version)"
+    els = interpolate.box_to_elements(box, flx, neighbors = 1)
+
+    xs  = ulz.mk_body_centered_linspace(-1,1, els.shape[1] - 2, withBoundaryNodes=True)
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
+
+    return interpolate.change_grid_space(els, xs, Xs)
+
+methods.append(method)
+
+def method(box, flx):
+    "like previous one + gaussian blur and filters"
+    #box = scipy.ndimage.interpolation.zoom(src, 0.5,order=1, mode='wrap')
+    box = scipy.ndimage.filters.gaussian_filter(box, 2)
+    els = interpolate.box_to_elements(box, flx, neighbors = 1)
+
+    xs  = ulz.mk_body_centered_linspace(-1,1, els.shape[1] - 2, withBoundaryNodes=True)
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
+
+    return interpolate.change_grid_space(els, xs, Xs)
+
+methods.append(method)
+
+def method(box, fls):
+    "With neighboring cells which get averaged with boundary cells: n-th order interpolation."
+    els = interpolate.box_to_elements_avg_boundaries(box, flx)
+
+    xs  = ulz.mk_body_centered_linspace(-1,1, els.shape[1])
+    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype)
+    xs[0] = -1; xs[-1]  =  1
+
+    return interpolate.change_grid_space(els, xs, Xs)
+        
+methods.append(method)
+
 def lagrange_3d_5th_order3():
     def ExistingPath(arg):
         if '--generate=' in arg:
@@ -188,13 +256,7 @@ def lagrange_3d_5th_order3():
             return nr
         raise ValueError("Method number must be within 0 and 4: '%d' given!")
 
-    appendix = """  Methods are:
-
-    0 -> without neighboring cells: n-th order interpolation (old version)
-    1 -> with neighboring cells: (n+2)-th order interpolation (old version)   
-    2 -> like '0' (new version)
-    3 -> like '1' (new version)
-    4 -> with neighboring cells which get averaged with boundary cells: n-th order interpolation"""
+    appendix = "  Methods are:\n\n" + "\n".join("    " + str(i) + " -> " + x.__doc__ for i,x in enumerate(methods))
 
     with dslopts.Manager(scope=globals(),appendix=appendix) as mgr:
         mgr.add(name='flashfile' ,desc='flash file path' ,type=ExistingPath)
@@ -202,37 +264,12 @@ def lagrange_3d_5th_order3():
         mgr.add(name='flexifile' ,desc='flexi file path' ,type=ExistingPath)
         mgr.add(name='method'    ,desc='method nr: 0-4'  ,type=ConstrainedInt, default=3)
 
-    flx = flexi.File(str(flexifile), hopr.CartesianMeshFile(str(meshfile)))
+    flx = flexi.File(str(flexifile), hopr.CartesianMeshFile(str(meshfile)), mode='r+')
 
     if isinstance(flashfile, pathlib.Path):
         fls = flash.File(str(flashfile))
     else:
         fls = flash.FakeFile([[0,0,0],[1,1,1]],flx.mesh.gridsize * flx.Nout, fillby=flashfile)
-
-    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
-  
-    if method == 0: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout)
-        trafo   = lambda box: interpolate.box_to_flexi(xs, Xs, box, flx)
-    elif method == 1: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout, withBoundaryNodes=True)
-        trafo   = lambda box: interpolate.box_to_flexi(xs, Xs, ulz.wrap_in_guard_cells(box), flx)
-    elif method == 2:
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout)
-        trafo_  = lambda box: interpolate.box_to_elements(box,flx, 0)
-        trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
-    elif method == 3: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout, withBoundaryNodes=True)
-        trafo_  = lambda box: interpolate.box_to_elements(box,flx, 1)
-        trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
-    elif method == 4: 
-        xs      = ulz.mk_body_centered_linspace(-1,1,flx.Nout)
-        xs[0]   = -1 
-        xs[-1]  =  1
-        trafo_  = lambda box: interpolate.box_to_elements_avg_boundaries(box,flx)
-        trafo   = lambda box: interpolate.change_grid_space(trafo_(src), xs, Xs)
-    else:
-        raise NotImplementedError('unknow method: %d' % method)
 
     # interpolate
     prims = []
@@ -240,18 +277,19 @@ def lagrange_3d_5th_order3():
     print("  ------|----------------------------|----------------------------")
     #for dbname in 'dens velx vely velz pres magx magy magz'.split():
     for dbname in 'dens velx vely velz pres'.split():
-        src = fls.data(dbname)
-        snk = trafo(src)
+        box = fls.data(dbname)
+        els = methods[method](box, flx)
+
+        if dbname in 'dens pres eint':
+            els[els <= 1e-4] = 1e-4 
 
         print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % \
-                (dbname, src.min(), snk.min(), src.max(), snk.max()), file=sys.stderr)
+                (dbname, box.min(), els.min(), box.max(), els.max()), file=sys.stderr)
 
-        prims.append(snk)
-
-    cons = ulz.navier_primitive_to_conservative(prims)
+        prims.append(els)
 
     # write to file
-    for i,con in enumerate(cons):
+    for i,con in enumerate(ulz.navier_primitive_to_conservative(prims)):
         flx.data[:,:,:,:,i] = con.transpose(0,3,2,1)
 
 if __name__ == '__main__':

@@ -45,39 +45,22 @@ for fp,lg in zip(fps,lgs):
     data = np.load(fp)
 
     t       = data[:,0] # time
-    dt      = data[:,1] # time step
-    dKdiss  = data[:,5] # dEkin(diss)
+    Eint    = data[:,13]
 
     xs = t / ttc
-    ys = -dKdiss/dt
-    plt.plot(xs, ys, '-', lw=3, label=lg + ' diss')
+    ys = Eint 
+    plt.plot(xs, ys, '-', lw=3, label=lg + ' internal')
 
-# injection rate
-plt.gca().set_prop_cycle(plt.matplotlib.rcParams['axes.prop_cycle'])
-for fp,lg in zip(fps,lgs):
-    data = np.load(fp)
-    data = data.T
+    #print(Eint)
+    #sys.exit()
 
-    t  = data[0] # time
-    dt = data[1] # time step
-    dK = data[7] # dEkin(force)
-    dKdt = data[8]
-
-    n = len(t) // 100 # average over n points
-    t    = moving_avg( t,n)
-    dKdt = moving_avg(dKdt,n)
-
-    xs = t/ttc
-    ys = dKdt
-
-    plt.plot(xs, ys, '--', lw=3, label=lg + ' inject')
-
-plt.title("Turbulent Box (mach = %d): Evolution of Dissipated and Injected Kinetic Energy" % mach)
+plt.title("Turbulent Box (mach = %d): Evolution of Total Internal Energy" % mach)
 plt.xlabel('characteristic time scale: t/t_c')
-plt.ylabel('kinetic energy dissipation/injection rate: |ΔK/Δt|')
+plt.ylabel('Internal Energy E_int')
 
-plt.xlim(0,3)
-plt.ylim(0.0,2500)
+#plt.xlim(0,3)
+plt.yticks(np.linspace(1.5,1.503,10))
+plt.ylim(1.5,1.503)
 plt.grid()
 #plt.legend(loc='upper left')
 plt.legend(loc='upper right')

@@ -90,10 +90,12 @@ lib.box_to_elements.argtypes = [
 ]
 
 def box_to_elements(box, flx, neighbors=0):
-    lls, _   = flx.mesh.get_cell_coords()
-    offsets  = flx.Nout * lls / flx.mesh.cellsize
+    Nnodes   = (np.array(box.shape)//flx.mesh.meshshape)[0]
 
-    N = flx.Nout + 2*neighbors
+    lls, _   = flx.mesh.get_cell_coords()
+    offsets  = Nnodes * lls / flx.mesh.elemsize
+
+    N = Nnodes + 2*neighbors
     elems    = np.zeros([flx.mesh.nrelems, N,N,N], dtype=np.double)
 
     boxptr   = np.require(box.ravel(), dtype=np.double, requirements=['C','A'])

@@ -20,7 +20,8 @@ reg Bz 0.0
 # derived quantities
 reg polytropeConst      [expr {$boltzmannConstant * $ambientTemp / $massComp}] 
 reg ambientPres         [expr {$polytropeConst * $ambientDens}] 
-reg soundSpeed          [expr {sqrt($polytropeConst)}]
+reg soundSpeed          [expr {sqrt($ambientPres/$ambientDens)}]
+reg initialVel          [expr {$soundSpeed * $machNumber}]
 
 reg maxVelocity         [expr {$machNumber * $soundSpeed}]
 reg turnTime            [expr {$domainSize / $maxVelocity}]

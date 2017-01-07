@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if echo "$1" | grep -qE 'help|usage'
+then
+	echo "usage: $(basename $0) (no parameters)"
+	exit 1
+fi
+
 set -eu
 
 if expr "$(hostname)" : '^cheops' > /dev/null
@@ -8,8 +14,6 @@ then
     module load hdf5
     module load intel
     module load intelmpi
-
-    make -j "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -36,5 +40,6 @@ then
     ln -sf $(which python2) $TMPDIR/python 
     export PATH="/$TMPDIR:$PATH"
 
-    make -j "$@"
 fi
+
+eval "$@"

@@ -1,13 +1,14 @@
 #!/bin/sh
 
-set -eu
-
-if expr "$1" : 'help' > /dev/null
+if echo "$1" | grep -qE 'help|usage'
 then
-	echo "usage: setup.sh <block size> <max blocks> <solver> <objdir> <site dir> <additional options>"
+	echo "usage: $0 <simulation> <block size> <max blocks> <solver> <objdir> <site dir> <additional options>"
 	exit 1
 fi
 
+set -eu
+
+SIMULATIO="${1:?No simulation setup given!}"          && shift
 BLOCKSIZE="${1:?No block size given!}"          && shift
 MAXBLOCKS="${1:?No maxblocks given}"            && shift
    SOLVER="${1:?No solver given!}"              && shift
@@ -30,8 +31,10 @@ then
     export PATH="/$TMPDIR:$PATH"
 fi
 
-eval ./setup Girichidis-StirTurb \
-    -3d -auto -portable -opt \
+#-portable 
+
+eval ./setup "$SIMULATIO"\
+    -3d -auto -opt \
 	-nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -nzb=$BLOCKSIZE -maxblocks=$MAXBLOCKS \
 	-site="$SITEDIR" -objdir="$OBJDIR" ${SOLVERUNIT[$SOLVER]} \
     "$@"

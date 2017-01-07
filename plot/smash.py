@@ -25,7 +25,11 @@ frame: %03d/%03d | time: % 5.3f'''
 
 def trafo(data):
     axis = 2
-    return np.sum(data,axis=axis).T/data.shape[axis]
+    #retval = np.sum(data,axis=axis).T/
+    retval = np.sum(data,axis=axis).T
+    retval /= data.shape[axis]
+    return retval
+    #return np.log10(retval)
 
 def property(meshfile, flexfile, taskID):
     flx = flexi.File(flexfile, hopr.CartesianMeshFile(meshfile))
@@ -82,11 +86,11 @@ def mkplot(meshfilepath, flexfilepath, sinkpath, taskID, ntasks, Nvisu=None):
         plt.colorbar(img,fraction=0.045, pad=0.04, format='%1.2f')
 
 
-    plot(trafo(dens) ,'column density'  ,( 50,90))
-    plot(trafo(ener) ,'column energy'   ,( 70,170))
-    plot(trafo(pres) ,'column pressure' ,( 45,100))
-    plot(trafo(velx) ,'column velx'     ,(-15,32))
-    plot(trafo(vely) ,'column vely'     ,( 45,100))
+    plot(trafo(dens), 'column density'  ,( 50,90))
+    plot(trafo(ener), 'column energy'   ,( 70,170))
+    plot(trafo(pres), 'column pressure' ,( 45,100))
+    plot(trafo(velx), 'column velx'     ,(-15,32))
+    plot(trafo(vely), 'column vely'     ,( 45,100))
 
     #mach = np.sqrt(dens*ulz.norm(velx,vely,velz) / pres)
     # plot(trafo(mach) ,'mach'            ,( 45,100))
