@@ -35,6 +35,7 @@ for fp,lg in zip(fps,lgs):
 
     lg += ' (forcing.dat)'
     plt.plot(xs, ys, '-', lw=3, label=lg)
+    #plt.semilogy(xs,ys, '-', lw=3, label=lg)
 
 # snapshots
 plt.gca().set_prop_cycle(plt.matplotlib.rcParams['axes.prop_cycle'])
@@ -56,14 +57,15 @@ for fp,lg in zip(fps,lgs):
 
     xs = (t + dt/2) / ttc
     ys = -dK/dt
+
     lg += ' (snapshots)'
     plt.plot(xs,ys, '--', lw=3, label=lg)
 
-plt.title("Turbulent Box (mach = %d): Evolution of Total Kinetic Dissipation Rate" % mach)
+plt.title("Turbulent Box (mach = %d): Evolution of Total Kinetic Energy Dissipation Rate" % mach)
 plt.xlabel('characteristic time scale: t/t_c')
 plt.ylabel('flipped total kinetic energy time derivative: -ΔK/Δt')
 
-plt.xlim(1.9,3)
+plt.xlim(2.0,3)
 plt.ylim(0,1550)
 
 plt.grid()

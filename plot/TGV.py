@@ -37,7 +37,7 @@ def property(flashfp, taskID):
     dens = fls.data('dens')
     pres = fls.data('pres')
     vels = [fls.data('vel'+dim) for dim in 'x y z'.split()]
-    mach = np.sqrt(ulz.norm(*vels)/3 / (pres/dens))
+    mach = np.sqrt(ulz.norm(*vels)/3) / c_s
     vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(vels[0],vels[1],vels[2],CS[0],CS[1],CS[2]))
 
     ax = 2
@@ -63,8 +63,8 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
 
     time = fls.realscalars['time']
     step = fls.integerscalars['nstep']
-    c_s  = fls.realruntime['sona0']
-    #rho0 = fls.realruntime['rho_ambient']
+    c_s  = fls.realruntime['c_ambient']
+    rho0 = fls.realruntime['rho_ambient']
     LEN  = fls.domainsize[0]
 
     turntime = time / (LEN / c_s / 10)
@@ -89,21 +89,18 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
     vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(velx,vely,velz,CS[0],CS[1],CS[2]))
 
     ax = 2
-    #cdens = np.log10(np.sum(dens,axis=ax))
-    #cpres = np.log10(np.sum(pres,axis=ax))
-    #cmach = np.sum(mach,axis=ax)/mach.shape[ax]
-    #cvort = np.log10(np.sum(vort,axis=ax))
-
-    cdens = np.log10(dens[:,:,7])
-    cpres = np.log10(pres[:,:,7])
-    cvort = np.log10(vort[:,:,7])
-    cmach =          mach[:,:,7]
+    cdens = np.log10(np.sum(dens,axis=ax))
+    cpres = np.log10(np.sum(pres,axis=ax))
+    cvelx = np.sum(velx,axis=ax)
+    cvely = np.sum(vely,axis=ax)
+    cmach = np.sum(mach,axis=ax)/mach.shape[ax]
+    cvort = np.log10(np.sum(vort,axis=ax))
 
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
 
     st = plt.suptitle(
-        "TGV in periodic box: mach %d | %s | t_d = % 2.4f (frame: %03d/%03d)" % \
+        "Stirred turbulence in periodic box: mach %d | %s | t_d = % 2.4f (frame: %03d/%03d)" % \
             (MACH, SOLVER, turntime, taskID+1, ntasks),
         fontsize='x-large')
     st.set_y(1.01)
@@ -119,10 +116,12 @@ def mkplot(flashfp, sinkfp, taskID, ntasks):
             img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'))
         plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
 
-    plot(cdens, 'column density (log10)', (-1,1))
-    plot(cpres, 'column pressure (log10)', (-1,2))
-    plot(cmach, 'column sonic mach number (grid normalized)',(0,5))
-    plot(cvort, 'column vorticity (log10)',(-10,10))
+    plot(cdens, 'column density (log10)', (0,4))
+    plot(cpres, 'column pressure (log10)', (0,4))
+    plot(cvelx, 'column velocity x', (-2,2))
+    plot(cvely, 'column velocity y', (-2,2))
+    #plot(cmach, 'column sonic mach number (grid normalized)', (0,10))
+    #plot(cvort, 'column vorticity (log10)', (-10,-4))
 
     outfile = sinkfp % taskID
     fig.tight_layout()

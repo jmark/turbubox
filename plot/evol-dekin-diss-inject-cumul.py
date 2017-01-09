@@ -45,7 +45,6 @@ for fp,lg in zip(fps,lgs):
 
     t    = data[:,0] # time
     dK   = data[:,5] # dEkin(diss)
-    dKdt = data[:,6] # dEkin(diss)
 
     i0 = (np.abs(t - 1*ttc)).argmin()
 
@@ -55,9 +54,29 @@ for fp,lg in zip(fps,lgs):
     xs = xs / ttc
     ys = np.cumsum(ys)
 
+    lg += ' diss'
     plt.plot(xs, ys, '-', lw=3, label=lg)
 
-plt.title("Turbulent Box (mach = %d): Evolution of Cummulated Kinetic Dissipation" % mach)
+# injection rate
+plt.gca().set_prop_cycle(plt.matplotlib.rcParams['axes.prop_cycle'])
+for fp,lg in zip(fps,lgs):
+    data = np.load(fp)
+
+    t  = data[:,0] # time
+    dK = data[:,7] # dEkin(force)
+
+    i0 = (np.abs(t - 1*ttc)).argmin()
+
+    xs = t[i0:]
+    ys = dK[i0:]
+
+    xs = xs / ttc
+    ys = np.cumsum(ys)
+
+    lg += ' inject'
+    plt.plot(xs, ys, '--', lw=3, label=lg)
+
+plt.title("Turbulent Box (mach = %d): Evolution of Cummulated Kinetic Energy Dissipation" % mach)
 plt.xlabel('characteristic time scale: t/t_c')
 plt.ylabel('cummulative kinetic energy dissipation rate: Σ(t0,t)|ΔK|')
 
@@ -69,7 +88,7 @@ plt.legend(loc='upper left')
 
 plt.show()
 
-#fig = matplotlib.pyplot.gcf()
-#fig.set_size_inches(18.5, 10.5)
-#plt.tight_layout()
-#plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')
+# fig = matplotlib.pyplot.gcf()
+# fig.set_size_inches(18.5, 10.5)
+# plt.tight_layout()
+# plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')

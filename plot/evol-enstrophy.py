@@ -48,7 +48,7 @@ plt.legend()
 
 plt.show()
 
-# fig = matplotlib.pyplot.gcf()
-# fig.set_size_inches(18.5, 10.5)
-# plt.tight_layout()
-# plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')
+#fig = matplotlib.pyplot.gcf()
+#fig.set_size_inches(18.5, 10.5)
+#plt.tight_layout()
+#plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')

@@ -61,7 +61,7 @@ for fp,lg in zip(fps,lgs):
 
 plt.title("Turbulent Box (Mach = %d): Dissipation Rate over Mach" % MACH)
 plt.xlabel('sonic mach number')
-plt.ylabel('dissipation rate: -|ΔK/Δt|')
+plt.ylabel('dissipation rate: -ΔK/Δt')
 
 plt.xlim(2,10)
 plt.ylim(0,1550)
@@ -70,7 +70,7 @@ plt.legend(loc='upper left')
 
 plt.show()
 
-#fig = matplotlib.pyplot.gcf()
-#fig.set_size_inches(18.5, 10.5)
-#plt.tight_layout()
-#plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')
+# fig = matplotlib.pyplot.gcf()
+# fig.set_size_inches(18.5, 10.5)
+# plt.tight_layout()
+# plt.savefig(sys.stdout.buffer,format='png', bbox_inches='tight')

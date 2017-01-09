@@ -143,6 +143,10 @@ def wrap_in_guard_cells(stone):
 def transform_to_ref_space(left, right, nodes):
     return left + (right-left) * (nodes+1)/2
 
+def diff(xs,ys,step=1):
+    xsnw = xs + (np.roll(xs,-step) - xs)/(step+1)
+    dydx = (np.roll(ys,-step) - ys) / (np.roll(xs,-step) - xs)
+    return (xsnw[:-step], dydx[:-step])
 
 def diff_x(f,Delta=1):
     return (np.roll(f,-1,axis=0) - np.roll(f,1,axis=0))/2./Delta
@@ -159,6 +163,40 @@ def curl(X,Y,Z,Dx,Dy,Dz):
     dZ = (diff_x(Y,Dx) - diff_y(X,Dy))
     
     return (dX,dY,dZ)
+
+def S(velx, vely, velz, Delta=1):
+    vels = [velx,vely,velz]
+    difs = [diff_x, diff_y, diff_z]
+
+    acc = 0
+    for i in range(len(vels)):
+        for j in range(len(difs)):
+            acc += difs[j](vels[i]) + difs[i](vels[j])
+
+    return 1/2 * acc
+
+def Q(velx, vely, velz, Delta=1):
+    vels = [velx,vely,velz]
+    difs = [diff_x, diff_y, diff_z]
+
+    acc = 0
+    for i in range(len(vels)):
+        for j in range(len(difs)):
+            acc += difs[j](vels[i]) * difs[i](vels[j])
+
+    return -1/2 * acc
+
+def R(velx, vely, velz, Delta=1):
+    vels = [velx,vely,velz]
+    difs = [diff_x, diff_y, diff_z]
+
+    acc = 0
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                acc += difs[j](vels[i]) * difs[k](vels[j]) * difs[i](vels[k])
+
+    return -1/3 * acc
 
 def norm(X,Y,Z):
     return X**2 + Y**2 + Z**2
@@ -217,3 +255,6 @@ def mhd_conservative_to_primitive(cons, kappa=5/3, mu0=1.0):
     prims[7] = cons[7]           # mag z
 
     return prims
+
+def bins2xs(edges):
+    return edges[:-1] + (edges[1]-edges[0])/2

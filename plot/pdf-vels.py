@@ -34,7 +34,7 @@ mach = 10
 clen = 1
 ttc = clen / mach
 
-dname = 'vort'
+dname = 'vels'
 start = 30
 end = 80
 
@@ -88,37 +88,36 @@ for fp,lg in zip(fps,lgs):
     ysD = moving_avg(ysD, 5)[:-n]
 
     plt.fill_between(xsB, ysD, ysT, color='gray', alpha=0.3)
-    #plt.semilogy(xs,ys, '-', lw=3, label=lg)
-    plt.plot(xs,ys, '-', lw=3, label=lg)
+    plt.semilogy(xs,ys, '-', lw=3, label=lg)
 
-# plt.gca().set_prop_cycle(plt.matplotlib.rcParams['axes.prop_cycle'])
-# 
-# for fp,lg in zip(fps,lgs):
-#     with open(fp, 'rb') as fd:
-#         data = pickle.load(fd)
-# 
-#     rs, ps = data[start][dname]
-#     ps /= np.sum(ps)
-# 
-#     rsg, psg = np.zeros_like(rs), np.zeros_like(ps)
-# 
-#     cnt = 1
-#     for x in data[start+11:end]:
-#         cnt += 1
-#         r,p = x[dname]
-#         rs += r
-#         ps += p
-# 
-#     rs /= cnt
-#     ps /= cnt
-# 
-#     xs = ps[:-1] + (ps[1]-ps[0])/2
-#     ys = rs
-# 
-#     popt, pcov = curve_fit(gaussian, xs, ys)
-#     ysF = gaussian(xs, *popt)
-# 
-#     plt.semilogy(xs,ysF, '--', lw=3, label=lg + ' gaussian fit: A=%4.2f, mu=%4.2f, sigma^2=%4.2f' % tuple(popt))
+plt.gca().set_prop_cycle(plt.matplotlib.rcParams['axes.prop_cycle'])
+
+for fp,lg in zip(fps,lgs):
+    with open(fp, 'rb') as fd:
+        data = pickle.load(fd)
+
+    rs, ps = data[start][dname]
+    ps /= np.sum(ps)
+
+    rsg, psg = np.zeros_like(rs), np.zeros_like(ps)
+
+    cnt = 1
+    for x in data[start+11:end]:
+        cnt += 1
+        r,p = x[dname]
+        rs += r
+        ps += p
+
+    rs /= cnt
+    ps /= cnt
+
+    xs = ps[:-1] + (ps[1]-ps[0])/2
+    ys = rs
+
+    popt, pcov = curve_fit(gaussian, xs, ys)
+    ysF = gaussian(xs, *popt)
+
+    plt.semilogy(xs,ysF, '--', lw=3, label=lg + ' gaussian fit: A=%4.2f, mu=%4.2f, sigma^2=%4.2f' % tuple(popt))
 
 plt.title("Turbulent Box (Mach = %d): Velocity PDF" % mach)
 plt.xlabel('velocity')

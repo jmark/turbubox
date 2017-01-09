@@ -1,0 +1,154 @@
+\# Mach $mach: Taylor-Green Vortex
+
+## physics switches
+
+# forcing params
+
+useStir = .true.
+
+# (1) GENERAL PARAMETERS
+#----------------------------------
+st_tmax                  = [scinot $maxStirTime]
+st_Lbox                  = -1.0
+st_verbose               = .true.   
+st_correct_bulk_motion   = .true.
+
+# dEkin scaling modes:
+#  0: fixed scaling
+#  1: fixed energy input rate
+#  2: fixed rms velocity
+st_forcing_scaling_mode = 2
+
+# mode 0 parameter
+st_dVel_fixed_factor    = 0
+
+# mode 1 parameter
+st_dEkin_input_rate     = 0
+
+# mode 2 parameter
+st_rms_velocity         = [scinot $velmax]
+st_dVel_max_ampli       = 100.0
+st_dVel_fraction        = 0.05
+
+# (2) Forcing from predefined file
+#     used if forcing_use_external_sequence = .true.
+#-----------------------------------------------
+st_use_external_sequence = .false.
+#ste_forcing_file        = "forcing.dat"
+
+# (3) Forcing using live OU computation
+#     used if st_use_external_sequence = .false.
+#------------------------------------------------
+
+# these must be changed according to used dimensions
+stl_Tac  = [scinot $dyntime]
+stl_F0   = [scinot $baseforcing]
+
+stl_g0   = 1.0
+stl_kmin = 1.0
+stl_kmax = 3.0
+stl_seed = 173
+stl_zeta = 0.5
+
+## box parameters
+
+xmin = [scinot $xmin] 
+ymin = [scinot $xmin] 
+zmin = [scinot $xmin] 
+
+xmax = [scinot $xmax] 
+ymax = [scinot $xmax] 
+zmax = [scinot $xmax] 
+
+## numerical params
+
+cfl         = 0.5
+nend        = 9999999
+tmax        = [scinot $maxSimTime] 
+
+# a rarely used switch which ensures that internal energy calculations
+# maintain sufficient precision.
+eintSwitch  = 0.0
+
+dtinit      = [scinot $dtinit] 
+dtmin       = [scinot $dtmin] 
+dtmax       = [scinot $dtmax] 
+
+smallt      = 1.e-40    # min. temperature
+smalle      = 1.e-40    # min. internal energy
+smlrho      = 1.e-40    # min. density
+
+## snapshots / logging
+
+basenm              = "flash_"
+log_file            = "LOG.TXT"
+output_directory    = "checkpoints"
+
+plot_var_1  = "dens"
+plot_var_2  = "velx"
+plot_var_3  = "vely"
+plot_var_4  = "velz"
+plot_var_5  = "accx"
+plot_var_6  = "accy"
+plot_var_7  = "accz"
+plot_var_8  = "magx"
+plot_var_9  = "magy"
+plot_var_10 = "magz"
+
+restart     = .false.
+#restart     = .true.
+
+checkpointFileNumber    =  0
+plotFileNumber          =  0
+
+checkpointFileIntervalTime  = [scinot $chkPtInterval]
+checkpointFileIntervalStep  = 0
+
+plotFileIntervalTime	    = 1e200 
+plotFileIntervalStep	    = 0
+
+wall_clock_time_limit       = 9999999
+wall_clock_checkpoint       = 9999999
+
+## mh-dynamics 
+
+eosMode = "dens_pres"
+
+mu0     = [scinot $mu0]
+mach    = [scinot $mach]
+gamma   = [scinot $gamma] 
+
+sona0   = [scinot $sona0] 
+dens0   = [scinot $dens0] 
+pres0   = [scinot $pres0] 
+temp0   = [scinot $temp0]
+
+velx0   = [scinot $velx0]
+vely0   = [scinot $vely0]
+velz0   = [scinot $velz0]
+
+accx0   = [scinot $accx0]
+accy0   = [scinot $accy0]
+accz0   = [scinot $accz0]
+
+magx0   = [scinot $magx0]
+magy0   = [scinot $magy0]
+magz0   = [scinot $magz0]
+
+## boundaries
+
+xl_boundary_type      = "periodic"
+xr_boundary_type      = "periodic"
+yl_boundary_type      = "periodic"
+yr_boundary_type      = "periodic"
+zl_boundary_type      = "periodic"
+zr_boundary_type      = "periodic"
+
+## uniform grid
+
+FIXME: Set appropiates Xprocs
+
+# uniform grid
+iprocs = 
+jprocs = 
+kprocs = 

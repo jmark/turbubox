@@ -7,7 +7,7 @@ class MeshFile:
         self.elemInfo   = self.get('ElemInfo')
         self.nodeCoords = self.get('NodeCoords')
 
-       	self.domain  = np.array([
+        self.domain  = np.array([
             [self.nodeCoords[:,i].min() for i in range(0,3)],
             [self.nodeCoords[:,i].max() for i in range(0,3)]
         ])

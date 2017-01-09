@@ -5,7 +5,7 @@ import interpolate
 import gausslobatto
 
 class File:
-    def __init__(self, fpath, mesh, mode='r+'):
+    def __init__(self, fpath, mesh, mode='r'):
         self.h5file = H5File(fpath, mode)
         self.data = self.h5file.get('DG_Solution')
         self.mesh = mesh
@@ -15,6 +15,8 @@ class File:
         self.Npoly      = self.attr['N'][0]
         self.Nout       = len(self.data[0,:,0,0,0])
         self.time       = self.attr['Time'][0]
+
+        self.varnames   = 'dens momx momy momz eint'.split()
         
         #self.params = dict((k,ulz.coerce(v)) for k,v in 
         #    [x.decode('utf8').split('=') for x in self.attr['Parameters']])
@@ -28,6 +30,10 @@ class File:
 
     #     return interpolate.flexi_to_box(xs,Xs,self.data[:,:,:,:,iVar],self)
 
+    #def data(self, varname, Nvisu=None):
+    #    iVar = self.varnames.index(varname)
+    #    return self.as_box(iVar, Nvisu)
+
     def as_box(self, iVar, Nvisu=None):
         if Nvisu is None:
             Nvisu = self.Nout
@@ -38,18 +44,15 @@ class File:
         elems = interpolate.change_grid_space(self.data[:,:,:,:,iVar].transpose(0,3,2,1),xs,Xs)
         return interpolate.elements_to_box(elems, self.mesh)
 
-    def flexi_bo_box(self, iVar, Nvisu=None):
+    def flexi_to_box(self, iVar, Nvisu=None):
         return self.as_box(iVar, Nvisu)
 
-    # def box_to_flexi(self, box, withBoundaryNodes=False):
-    #     # init grid spaces
-    #     xs  = ulz.mk_body_centered_linspace(-1,1,self.Nout, withBoundaryNodes)
-    #     Xs  = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
+    def get_cons(self, Nvisu=None):
+        return [self.flexi_to_box(i, Nvisu) for i in range(0,len(self.varnames))]
 
-    #     if withBoundaryNodes:
-    #         box = ulz.wrap_in_guard_cells(box)        
-
-    #     return interpolate.box_to_flexi(xs, Xs, box, self)
+    def get_prims(self, Nvisu=None):
+        cons = [self.flexi_to_box(i, Nvisu) for i in range(0,len(self.varnames))]
+        return ulz.navier_conservative_to_primitive(cons)
 
     def close(self):
         self.h5file.close()

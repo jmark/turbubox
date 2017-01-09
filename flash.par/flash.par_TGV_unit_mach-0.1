@@ -1,0 +1,140 @@
+# _BEGIN_
+# creation time = 2016-12-10-15-48-31
+# cstamp = 1481381311
+# xmin = 0.0
+# xmax = 1.0
+# mu0 = 1.0
+# mach = 0.1
+# gamma = 1.4
+# dens0 = 1.0
+# pres0 = 1.0
+# temp0 = 1.0
+# sona0 = 1.0
+# velmax = 0.1
+# velx0 = 0.1
+# vely0 = -0.1
+# velz0 = 0.0
+# accx0 = 0.0
+# accy0 = 0.0
+# accz0 = 0.0
+# magx0 = 0.0
+# magy0 = 0.0
+# magz0 = 0.0
+# dyntime = 10.0
+# maxSimTime = 120.0
+# dtinit = 1e-5
+# dtmin = 1e-9
+# dtmax = 0.1
+# chkPtInterval = 1.2
+# _END_
+
+## ======================================================================== #
+
+# Mach 0.1: Taylor-Green Vortex
+
+## physics switches
+
+useStir = .false.
+
+## box parameters
+
+xmin = 0.0000000000e+00 
+ymin = 0.0000000000e+00 
+zmin = 0.0000000000e+00 
+
+xmax = 1.0000000000e+00 
+ymax = 1.0000000000e+00 
+zmax = 1.0000000000e+00 
+
+## numerical params
+
+cfl         = 0.5
+nend        = 9999999
+tmax        = 1.2000000000e+02 
+
+# a rarely used switch which ensures that internal energy calculations
+# maintain sufficient precision.
+eintSwitch  = 0.0
+
+dtinit      = 1.0000000000e-05 
+dtmin       = 1.0000000000e-09 
+dtmax       = 1.0000000000e-01 
+
+smallt      = 1.e-40    # min. temperature
+smalle      = 1.e-40    # min. internal energy
+smlrho      = 1.e-40    # min. density
+
+## snapshots / logging
+
+basenm              = "flash_"
+log_file            = "LOG.TXT"
+output_directory    = "checkpoints"
+
+plot_var_1  = "dens"
+plot_var_2  = "velx"
+plot_var_3  = "vely"
+plot_var_4  = "velz"
+plot_var_5  = "accx"
+plot_var_6  = "accy"
+plot_var_7  = "accz"
+plot_var_8  = "magx"
+plot_var_9  = "magy"
+plot_var_10 = "magz"
+
+restart     = .false.
+#restart     = .true.
+
+checkpointFileNumber    =  0
+plotFileNumber          =  0
+
+checkpointFileIntervalTime  = 1.2000000000e+00
+checkpointFileIntervalStep  = 0
+
+plotFileIntervalTime	    = 1e200 
+plotFileIntervalStep	    = 0
+
+wall_clock_time_limit       = 9999999
+wall_clock_checkpoint       = 9999999
+
+## mh-dynamics 
+
+eosMode = "dens_pres"
+
+mu0     = 1.0000000000e+00
+mach    = 1.0000000000e-01
+gamma   = 1.4000000000e+00 
+
+sona0   = 1.0000000000e+00 
+dens0   = 1.0000000000e+00 
+pres0   = 1.0000000000e+00 
+temp0   = 1.0000000000e+00
+
+velx0   = 1.0000000000e-01
+vely0   = -1.0000000000e-01
+velz0   = 0.0000000000e+00
+
+accx0   = 0.0000000000e+00
+accy0   = 0.0000000000e+00
+accz0   = 0.0000000000e+00
+
+magx0   = 0.0000000000e+00
+magy0   = 0.0000000000e+00
+magz0   = 0.0000000000e+00
+
+## boundaries
+
+xl_boundary_type      = "periodic"
+xr_boundary_type      = "periodic"
+yl_boundary_type      = "periodic"
+yr_boundary_type      = "periodic"
+zl_boundary_type      = "periodic"
+zr_boundary_type      = "periodic"
+
+## uniform grid
+
+FIXME: Set appropiates Xprocs
+
+# uniform grid
+iprocs = 
+jprocs = 
+kprocs = 
