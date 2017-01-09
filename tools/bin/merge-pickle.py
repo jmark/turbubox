@@ -17,8 +17,9 @@ for fp in ARGV_TAIL:
     with open(fp, 'rb') as fd:
         row = pickle.load(fd)
         rows.append(row)
+    print(fp)
 
-result = np.array(rows)
+result = rows
 
 with open(sinkfp, 'wb') as fd:
     pickle.dump(result, fd)

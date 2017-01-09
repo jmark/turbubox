@@ -16,7 +16,7 @@ with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '
 def log(msg):
     print(msg, file=sys.stderr)
 
-def pdf(data, nbins=10000):
+def pdf(data, nbins=1000):
     return np.histogram(data, bins=nbins, density=True)
 
 def task(taskid, srcfp):
@@ -59,7 +59,7 @@ def task(taskid, srcfp):
     res['taskid'] = taskid
     res['time'] = time
     res['step'] = step
-    res['dens'] = pdf(dens) 
+    res['dens'] = pdf(dens, nbins='auto') 
     res['velx'] = pdf(velx)
     res['vely'] = pdf(vely)
     res['velz'] = pdf(velz)
