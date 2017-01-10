@@ -1,8 +1,5 @@
 #!/bin/sh
 
-FLEXI_EXE="${1:?No FLASH executable given!}"; shift
-FLEXI_INI="${1:?No parameter file given!}"; shift
-
 set -eu
 
 if expr "$(hostname)" : '^cheops' > /dev/null
@@ -12,7 +9,7 @@ then
     module load intel
     module load intelmpi
 
-    eval srun -n "$NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$@"
+    eval srun -n "$NTASK" "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then
@@ -27,7 +24,7 @@ then
     export I_MPI_F77=ifort
     export I_MPI_F90=ifort
 
-    source /etc/profile.d/intel*
+    set +u ; source /etc/profile.d/intel* ; set -u
 
-    eval mpirun -n "$NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$@"
+    eval mpirun -n "$NTASK" "$@"
 fi
