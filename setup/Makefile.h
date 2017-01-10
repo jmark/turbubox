@@ -1,4 +1,4 @@
-# Makefile for FLASH Code 4.3
+# Universal Makefile for FLASH Code 4.3
 
 FCOMP   = mpiifort
 CCOMP   = mpiicc
