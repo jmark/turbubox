@@ -73,6 +73,7 @@ Example:
 '''
 
 import sys
+import pathlib
 
 class Manager:
     def __init__(self, argsdict=None, scope=None, appendix=''):
@@ -202,32 +203,35 @@ class Manager:
     def print_usage(self):
         print(self.usage(), file=sys.stderr)
 
-def bool(arg):
-    if isinstance(arg, str):
-        if arg.lower() in 'true yes on 1':
-            return True
-        elif arg.lower() in 'false no off 0':
-            return False
-    raise TypeError("Cannot convert '%s' to boolean" % str(arg))
+class types:
+    @staticmethod
+    def bool(arg):
+        if isinstance(arg, str):
+            if arg.lower() in 'true yes on 1':
+                return True
+            elif arg.lower() in 'false no off 0':
+                return False
+        raise TypeError("Cannot convert '%s' to boolean" % str(arg))
 
-if __name__ == '__main__':
-    import pathlib
-
+    @staticmethod
     def ExistingPath(arg):
         pth = pathlib.Path(arg)
         if not pth.exists():
             raise OSError("'%s' does not exists!" % pth)
-        return pth
+        return arg
 
+    @staticmethod
     def PositiveInt(arg):
         x = int(arg)
         if x > 0:
             return x
         raise ValueError("'%d' must be positive!" % x)
 
+if __name__ == '__main__':
+
     with Manager(scope=locals()) as mgr:
-        mgr.add(name='arg0', desc='argument 0', type=ExistingPath)
-        mgr.add(name='arg1', desc='argument 1', type=PositiveInt)
+        mgr.add(name='arg0', desc='argument 0', type=types.ExistingPath)
+        mgr.add(name='arg1', desc='argument 1', type=types.PositiveInt)
         mgr.add(name='arg2', desc='argument 2', default='some default value')
 
     print(arg0)

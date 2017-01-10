@@ -1,7 +1,9 @@
 #!/bin/sh
 
-FLEXI_EXE="${1:?No FLASH executable given!}" && shift
-FLEXI_INI="${1:?No parameter file given!}" && shift
+FLEXI_EXE="${1:?No FLASH executable given!}"; shift
+FLEXI_INI="${1:?No parameter file given!}"; shift
+
+set -eu
 
 if expr "$(hostname)" : '^cheops' > /dev/null
 then
@@ -10,7 +12,7 @@ then
     module load intel
     module load intelmpi
 
-    eval srun -n "$NTASK" "$FLASH_EXE" -par_file "$FLASH_PAR" "$@"
+    eval srun -n "$NTASK" "$FLEXI_EXE" "$FLEXI_INI" "$@"
 
 elif expr "$(hostname)" : '^jmark' > /dev/null
 then

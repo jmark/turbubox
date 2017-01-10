@@ -1,5 +1,11 @@
 #!/bin/sh
 
+##
+# SIMULATIONS:
+#   - Girichids-StirTurb
+#   - Markert-TGV
+#   - Markert-Shockwave
+
 if echo "$1" | grep -qE 'help|usage'
 then
 	echo "usage: $0 <simulation> <block size> <max blocks> <solver> <objdir> <site dir> <additional options>"
