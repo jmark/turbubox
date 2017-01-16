@@ -102,7 +102,7 @@ def box_to_elements(box, flx, neighbors=0):
     elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A'])
     ofsptr   = np.require(offsets.ravel(), dtype=np.double, requirements=['C', 'A'])
 
-    lib.box_to_elements(*box.shape, boxptr, flx.mesh.nrelems, ofsptr, *elems[0].shape, elemsptr, neighbors)
+    lib.box_to_elements(box.shape[0], box.shape[1], box.shape[2], boxptr, flx.mesh.nrelems, ofsptr, elems[0].shape[0], elems[0].shape[1], elems[0].shape[2], elemsptr, neighbors)
 
     return elemsptr.reshape(elems.shape)
 
@@ -125,7 +125,7 @@ def elements_to_box(elems, mesh):
     elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A'])
     ofsptr   = np.require(offsets.ravel(), dtype=np.double, requirements=['C', 'A'])
 
-    lib.elements_to_box(*box.shape, boxptr, mesh.nrelems, ofsptr, *elems[0].shape, elemsptr)
+    lib.elements_to_box(box.shape[0], box.shape[1], box.shape[2], boxptr, mesh.nrelems, ofsptr, elems[0].shape[0], elems[0].shape[1], elems[0].shape[2], elemsptr)
 
     return boxptr.reshape(box.shape)
 
@@ -148,7 +148,7 @@ def box_to_elements_avg_boundaries(box, flx):
     ofsptr   = np.require(offsets.ravel(), dtype=np.double, requirements=['C', 'A'])
     elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A','W'])
 
-    lib.box_to_elements_avg_boundaries(*box.shape, boxptr, flx.mesh.nrelems, ofsptr, *elems[0].shape, elemsptr)
+    lib.box_to_elements_avg_boundaries(box.shape[0], box.shape[1], box.shape[2], boxptr, flx.mesh.nrelems, ofsptr, elems[0].shape[0], elems[0].shape[1], elems[0].shape[2], elemsptr)
 
     return elemsptr.reshape(elems.shape)
 
@@ -225,7 +225,7 @@ def box_to_flexi(xs, Xs, box, flx):
 
     lib.box_to_flexi(
         len(xs), xs,
-        *shape, box,
+        shape[0], shape[1], shape[2],  box,
         len(Xs), Xs, flxdata,
         len(offsets), offsets)
 
@@ -267,7 +267,7 @@ def box_to_flexi_with_averaged_boundaries(xs, Xs, box, flx):
 
     lib.box_to_flexi_with_averaged_boundaries(
         len(xs), xs,
-        *shape, box,
+        shape[0], shape[1], shape[2], box,
         len(Xs), Xs, flxdata,
         len(offsets), offsets)
 
@@ -313,6 +313,6 @@ def flexi_to_box(xs, Xs, flxdata, flx):
         len(xs), xs,
         len(Xs), Xs,
         len(offsets), offsets, flxdata,
-        *shape, box)
+        shape[0], shape[1], shape[2], box)
 
     return box.reshape(shape)

@@ -4,7 +4,7 @@
 export PROJECT_DIR="$HOME/turbubox/tools"
 
 # load CHEOPS modules only if we're on it.
-if expr "$(hostname)" : '^cheops' > /dev/null
+if hostname | grep -qE '^cheops'
 then
     module purge
     module load hdf5/1.8.13     2> /dev/null
@@ -13,5 +13,4 @@ then
 fi
 
 export PYTHONPATH="$PYTHONPATH:$PROJECT_DIR/lib:$PROJECT_DIR/bin"
-
 eval "$@"

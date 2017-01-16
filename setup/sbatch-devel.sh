@@ -22,5 +22,5 @@
 #SBATCH --mem=22gb
 #SBATCH --time=01:00:00
 
-source /home/jmarker2/turbubox/tools/setenv.sh /home/jmarker2/turbubox/tools/
+#source /home/jmarker2/turbubox/tools/setenv.sh /home/jmarker2/turbubox/tools/
 NTASK="$SLURM_NTASKS" eval "$@"
