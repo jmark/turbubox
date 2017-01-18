@@ -1,15 +1,17 @@
 # Universal Makefile for FLASH Code 4.3
 
-FCOMP   = mpiifort
-CCOMP   = mpiicc
-CPPCOMP = mpiicpc
-LINK    = mpiifort
+CCOMP   = /opt/mpich2/bin/mpicc
+CPPCOMP = /opt/mpich2/bin/mpicxx
+FCOMP   = /opt/mpich2/bin/mpif90 -c
+LINK    = /opt/mpich2/bin/mpif90 -o
 
 PP      = -D
 
-FFLAGS_OPT   = -c -r8 -i4 -O3 -real_size 64
-FFLAGS_TEST  = -c -r8 -i4 -O2 -real_size 64
-FFLAGS_DEBUG = -c -r8 -i4 -O1 -real_size 64 \
+FFLAGS = -ffree-line-length-none -fdefault-real-8 -fdefault-double-8
+
+FFLAGS_OPT   = $(FFLAGS) -O3
+FFLAGS_TEST  = $(FFLAGS) -O2
+FFLAGS_DEBUG = $(FFLAGS) -O1 \
 				-g -check bounds -check format \
 				-warn all -check uninit -traceback \
 				-fp-stack-check -check output_conversion
@@ -22,9 +24,9 @@ CFLAGS_HDF5  = $(ENV_CFLAGS_HDF5) -DH5_USE_16_API
 CFLAGS_NCMPI =
 CFLAGS_MPI   =
 
-LFLAGS_OPT   = -r8 -i4 -o
-LFLAGS_TEST  = -r8 -i4 -o
-LFLAGS_DEBUG = -r8 -i4 -o -g
+LFLAGS_OPT   =
+LFLAGS_TEST  =
+LFLAGS_DEBUG = -g
 
 LIB_OPT   = 
 LIB_DEBUG = 

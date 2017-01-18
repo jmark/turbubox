@@ -39,6 +39,14 @@ class File:
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
         self.blocksize  = np.array([self.integerscalars[x] for x in 'nxb nyb nzb'.split()])
         self.cellsize   = self.domainsize / self.gridsize
+        self.cellvolume = np.prod(self.cellsize)
+
+        # shortcut to general parameters useful in analysis
+        self.params = dict()
+        self.params['time']  = self.realscalars['time']
+        self.params['dt']    = self.realscalars['dt']
+        self.params['gamma'] = self.realruntime['gamma']
+        self.params['kappa'] = self.realruntime['gamma'] # synonym
 
     def close(self):
         self.h5file.close()

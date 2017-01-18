@@ -13,14 +13,14 @@ import scipy.ndimage
 # =========================================================================== #
 
 def zoom(src):
-    zoom = 2
-    return scipy.ndimage.interpolation.zoom(src, zoom, order=1, mode='wrap')
+    zoomfactor = 1/2
+    return scipy.ndimage.interpolation.zoom(src, zoomfactor, order=1, mode='wrap')
 
 def scale(src):
-    scalefactor = 1.0
+    scalefactor = 1
     return scalefactor * src
 
-def blur(src)
+def blur(src):
     blurfactor = 2
     return scipy.ndimage.filters.gaussian_filter(src, blurfactor)
 
@@ -33,24 +33,23 @@ with dslopts.Manager(scope=globals()) as mgr:
 print("  var   |       min    ->    min     |       max    ->    max     ")
 print("  ------|----------------------------|----------------------------")
 
-zoom = 2
-blurfactor = 2
-scalefactor = 1.0
-
 with flash.File(srcfp,mode='r') as srcfls:
     with flash.File(snkfp,mode='r+') as snkfls:
-        for dbname in 'dens velx vely velz pres'.split():
-            src = srcfls.get_data(dbname)
+        srcdens, srcvelx, srcvely, srcvelz, srcpres = srcfls.get_prims()
+        srcener = srcfls.get_data('ener')
 
-            tmp = src
-            tmp = zoom(tmp)
+        gamma = srcfls.params['gamma']
 
-            # if dbname in "dens pres":
-            #     tmp = np.ones_like(tmp)
-            #     
-            # if dbname in "velx vely velz":
-            #     tmp = scale(tmp)
+        snkdens = zoom(srcdens)
+        snkvelx = zoom(srcvelx)
+        snkvely = zoom(srcvely)
+        snkvelz = zoom(srcvelz)
+        snkpres = zoom(srcpres)
+        snkener = snkpres/(gamma-1)/snkdens + snkdens/2 * (snkvelx**2 + snkvely**2 + snkvelz**2)
 
-            snk = tmp
+        srcs = [srcdens, srcvelx, srcvely, srcvelz, srcpres, srcener]
+        snks = [snkdens, snkvelx, snkvely, snkvelz, snkpres, snkener]
+
+        for dbname, src, snk in zip('dens velx vely velz pres ener'.split(), srcs, snks):
             print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % (dbname, src.min(), snk.min(), src.max(), snk.max()))
             snkfls.set_data(dbname, snk)
