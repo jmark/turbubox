@@ -3,9 +3,7 @@
 import numpy as np
 import sys
 
-import flash as fl
 import ulz
-
 import flexi
 import hopr
 
@@ -17,18 +15,13 @@ for count,flxfp in enumerate(sys.stdin):
     time = flx.time
 
     # TODO
-    rho0 = 1.0 
-    kappa = flx.params['kappa']
+    rho0  = 1.0 
+    kappa = 5/3
     mu0   = 1.0
 
-    cons  = [flx.flexi_to_box(i) for i in range(0,8)]
-    prims = ulz.mhd_conservative_to_primitive(cons, kappa, mu0)
-
-    dens  = prims[0] 
-    vels  = prims[1:4] 
-    pres  = prims[4]
+    dens, velx, vely, velz, pres = flx.get_prims()
     
-    c_s   = np.sqrt(np.mean(pres)/np.mean(dens))
+    c_s = np.sqrt(np.mean(pres)/np.mean(dens))
 
     GS = np.array(dens.shape)
     DS = flx.hopr.domainsize
@@ -38,19 +31,17 @@ for count,flxfp in enumerate(sys.stdin):
     Vcell   = np.prod(CS) 
     Vdomain = np.prod(DS) 
 
-    vorts = ulz.curl(*vels,*tuple(CS))
+    vortx,vorty,vortz = ulz.curl(velx,vely,velz, CS[0], CS[1], CS[2])
 
     masstotal = np.sum(dens) * Vdomain
-    ekintotal = Vcell/2.0 * np.sum(dens * ulz.norm(*vels))
+    ekintotal = Vcell/2.0 * np.sum(dens * (velx**2+vely**2+velz**2))
+    einttotal = np.mean(pres)/(kappa-1) 
+    etotal    = ekintotal + einttotal
 
-    mach      = np.sqrt(np.sum(dens * ulz.norm(*vels))/np.sum(dens)) / c_s
-    etotal    = np.sum(cons[4])
+    machglob  = np.sqrt(np.sum(dens * (velx**2+vely**2+velz**2))/np.sum(dens)) / c_s
 
-    evortotal = CS[0]**5/12.0 * np.sum(dens * ulz.norm(*vorts))
+    evortotal = CS[0]**5/12.0 * np.sum(dens * (vortx**2+vorty**2+vortz**2))
 
     print("\t".join(map(str,[
-
-        count,time, mach, etotal, ekintotal, evortotal, 
-        np.mean(prims[4]), np.min(prims[4]), np.max(prims[4])
-
+        count, time, mach etotal, einttotal, ekintotal, evortotal
     ])), flush=True)
