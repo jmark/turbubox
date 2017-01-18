@@ -2,7 +2,7 @@
 
 set -eu
 
-if expr "$(hostname)" : '^cheops' > /dev/null
+if hostname | grep -qi 'cheops'
 then
     module purge
     module load hdf5
@@ -11,7 +11,7 @@ then
 
     eval srun -n "$NTASK" "$@"
 
-elif expr "$(hostname)" : '^jmark' > /dev/null
+elif hostname | grep -qi 'jmark'
 then
     # export CC=icc
     # export CXX=icc

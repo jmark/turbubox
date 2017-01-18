@@ -36,7 +36,7 @@ def linear_3d():
 
     nodes = mk_nodes_cuboid((N,N,N), 'gauss-lobatto')
     cells = flexi.mesh.get_cell_coords().transpose(1,0,2)
-    rgrid = np.array([mk_cell_points(cell, nodes) for cell in cells]).reshape(-1, *(N+1,)*3, 3)
+    rgrid = np.array([mk_cell_points(cell, nodes) for cell in cells]).reshape(-1, N+1, N+1, N+1, 3)
     cgrid = mk_body_centered_grid(flexi.mesh.domain, flash.gridsize, boundary=True)
 
     kappa = 5/3
@@ -101,7 +101,7 @@ def lagrange_3d_3rd_order():
 
     xs   = ulz.mk_body_centered_linspace(-1,1,npoly+1)
     Xs   = ulz.mk_cartesian_product_3d(*[gausslobatto.mk_nodes(npoly, ntype)]*3)
-    ipl  = gausslobatto.mk_lagrange_interpolator_3d(*[xs]*3,Xs)
+    ipl  = gausslobatto.mk_lagrange_interpolator_3d(xs,xs,xs,Xs)
     dens = fls.data('dens')
     pres = fls.data('pres')
 
@@ -148,7 +148,7 @@ def lagrange_3d_5th_order():
 
     xs_  = ulz.mk_body_centered_linspace(-1,1,npoly+1)
     Xs   = ulz.mk_cartesian_product_3d(*[xs_]*3)
-    ipl  = gausslobatto.mk_lagrange_interpolator_3d(*[xs]*3,Xs)
+    ipl  = gausslobatto.mk_lagrange_interpolator_3d(xs,xs,xs,Xs)
 
     dens    = fls.data('dens')
     burrito = ulz.wrap_in_guard_cells(dens)        

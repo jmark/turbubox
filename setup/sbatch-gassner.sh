@@ -3,11 +3,12 @@
 ## ---------------------------
 ## partition gassner-exclusive
 ##
-##                 min max
-## Number of nodes 1   2
-## Number of cores 1   16
-## Memory per node --  22gb
-## Total wall time --  1 h
+##                   min max
+## Number of nodes   1    4
+## Number of sockets 1    2 
+## Number of cores   1   12
+## Memory per node --  64gb (61 usable)
+## Total wall time --  - h
 ## ---------------------------
 
 #SBATCH --partition=gassner-exclusive
@@ -16,10 +17,10 @@
 #SBATCH --mail-type=all
 
 #SBATCH --cpus-per-task=1
-#SBATCH --nodes=3
-#SBATCh --ntasks-per-node=24
-#SBATCH --ntasks=72
-#SBATCH --mem=56gb
+#SBATCH --nodes=2
+#SBATCh --ntasks-per-node=12
+#SBATCH --ntasks=24
+#SBATCH --mem=40gb
 #SBATCH --time=05:00:00
 
 NTASK="$SLURM_NTASKS" eval "$@"
