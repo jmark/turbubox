@@ -4,8 +4,7 @@
 import os
 import sys
 import numpy as np
-#import multiprocessing
-#from itertools import chain
+import multiprocessing
 
 # import matplotlib
 # matplotlib.use('Agg')
@@ -125,16 +124,14 @@ with dslopts.Manager(scope=globals(), appendix="flashfiles can be defined after 
     mgr.add('sinkfp',  'path to store: <dir>/%03d.png')
     #mgr.add('meshfp',  'path to mesh', str, '')
 
-flsfps = list(_ignored_)
-srcfiles = list(filter(lambda i: os.path.isfile(sinkfp % i), range(len(flsfps))))
+srcfiles = list(_ignored_)
 
 def task(x):
     return min_max(x[1], x[0])
     #return mkplot(x[1], sinkfp, x[0], len(srcfiles))
 
-#pool   = multiprocessing.Pool()
-#result = pool.map(task,enumerate(srcfiles))
+pool    = multiprocessing.Pool()
+results = pool.map(task,enumerate(srcfiles))
 
-for fp in srcfiles:
-    res = min_max(fp, 0) 
+for res in results:
     print(*res)

@@ -10,14 +10,11 @@ def PeriodicBox(srcfp, meshfp=None, mode='r'):
     if meshfp is None:
         h5file = H5File(srcfp, 'r')
         meshfp = h5file.attrs['MeshFile'][0].decode('utf-8')
-        print(meshfp)
         h5file.close()
         oldcwd = os.path.realpath(os.curdir)
         os.chdir(os.path.dirname(srcfp))
         meshfp = os.path.realpath(meshfp)
         os.chdir(oldcwd)
-
-    print(meshfp)
 
     return File(srcfp, hopr.CartesianMeshFile(meshfp), mode)
 
