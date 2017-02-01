@@ -2,11 +2,8 @@
 
 
 # load CHEOPS modules only if we're on it.
-<<<<<<< HEAD
+
 if hostname | grep -q '^cheops'
-=======
-if hostname | grep -qE '^cheops'
->>>>>>> 41bfc6d777e409b93deb5fd8727c227541b17906
 then
     # Hardcode project directory.
     export PROJECT_DIR="$HOME/turbubox/tools"

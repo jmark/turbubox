@@ -3,6 +3,23 @@ import numpy as np
 import ulz
 import interpolate
 import gausslobatto
+import hopr
+import os
+
+def PeriodicBox(srcfp, meshfp=None, mode='r'):
+    if meshfp is None:
+        h5file = H5File(srcfp, 'r')
+        meshfp = h5file.attrs['MeshFile'][0].decode('utf-8')
+        print(meshfp)
+        h5file.close()
+        oldcwd = os.path.realpath(os.curdir)
+        os.chdir(os.path.dirname(srcfp))
+        meshfp = os.path.realpath(meshfp)
+        os.chdir(oldcwd)
+
+    print(meshfp)
+
+    return File(srcfp, hopr.CartesianMeshFile(meshfp), mode)
 
 class File:
     def __init__(self, fpath, mesh, mode='r'):
@@ -17,6 +34,11 @@ class File:
         self.time       = self.attr['Time'][0]
 
         self.varnames   = 'dens momx momy momz eint'.split()
+
+        self.domain     = self.mesh.domain
+        self.domainsize = self.mesh.domainsize 
+        self.cellsize   = self.mesh.cellsize
+        self.cellvolume = np.prod(self.cellsize)
         
         #self.params = dict((k,ulz.coerce(v)) for k,v in 
         #    [x.decode('utf8').split('=') for x in self.attr['Parameters']])
