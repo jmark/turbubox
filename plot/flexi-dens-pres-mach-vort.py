@@ -4,7 +4,7 @@
 import os
 import sys
 import numpy as np
-import multiprocessing
+import multiprocessing as mpr
 
 # import matplotlib
 # matplotlib.use('Agg')
@@ -18,7 +18,7 @@ import flexi, ulz, dslopts
 SOLVER = 'DG'
 MACH = 2
 
-def min_max(srcfp, taskID):
+def min_max(taskID, srcfp):
     box = flexi.PeriodicBox(srcfp)
 
     time = box.time
@@ -34,17 +34,20 @@ def min_max(srcfp, taskID):
     #ekin = fv**3/2 * np.sum(dens * (velx**2+vely**2+velz**2)) 
 
     ax = 2
-    cdens = np.log10(np.sum(dens,axis=ax))
-    cpres = np.log10(np.sum(pres,axis=ax))
-    cvort = np.log10(np.sum(vort,axis=ax))
-    cmach = np.mean(mach,axis=ax)
+    cdens = np.log10(np.mean(dens,axis=ax))
+    cpres = np.log10(np.mean(pres,axis=ax))
+    cvort = np.log10(np.mean(vort,axis=ax))
+    cmach = np.log10(np.mean(mach,axis=ax))
 
     min = np.min
     max = np.max
 
-    return [
+    print( 
         time, taskID,
 
+        min(cmach),
+        max(cmach),
+ 
         min(cdens),
         max(cdens),
 
@@ -54,14 +57,13 @@ def min_max(srcfp, taskID):
         min(cvort),
         max(cvort),
 
-        min(cmach),
-        max(cmach)
-    ]
+        flush=True
+    )
 
-def mkplot(srcfp, meshfp, sinkfp, taskID, ntasks):
+def mkplot(taskID, ntasks, srcfp, sinkfp):
 
     outfile = sinkfp % taskID
-    box = flexi.PeriodicBox(srcfp, meshfp)
+    box = flexi.PeriodicBox(srcfp)
 
     time = box.time
     LEN  = box.hopr.domainsize[0]
@@ -76,10 +78,10 @@ def mkplot(srcfp, meshfp, sinkfp, taskID, ntasks):
     vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(velx,vely,velz,CS[0],CS[1],CS[2]))
 
     ax = 2
-    cdens = np.log10(np.sum(dens,axis=ax))
-    cpres = np.log10(np.sum(pres,axis=ax))
-    cvort = np.log10(np.sum(vort,axis=ax))
-    cmach = np.mean(mach,axis=ax)
+    cmach = np.log10(np.mean(mach,axis=ax))
+    cdens = np.log10(np.mean(dens,axis=ax))
+    cpres = np.log10(np.mean(pres,axis=ax))
+    cvort = np.log10(np.mean(vort,axis=ax))
 
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
@@ -103,35 +105,32 @@ def mkplot(srcfp, meshfp, sinkfp, taskID, ntasks):
 
     crange = None
 
-    crange = (2.0,3.0)
+    crange = (-0.7,0.1) 
+    plot(cmach, 'column mach number (log10)', crange)
+
+    crange = (-0.2,0.15)
     plot(cdens, 'column density (log10)', crange)
 
-    crange = (2.0,3.0) 
+    crange = (-0.3,0.3) 
     plot(cpres, 'column pressure (log10)', crange)
 
-    crange = (-8.5,-6) 
+    crange = (-11.8,-10) 
     plot(cvort, 'column vorticity (log10)', crange)
-
-    crange = (0.5,3) 
-    plot(cmach, 'column sonic mach number (grid normalized)', crange)
 
     fig.tight_layout()
     plt.savefig(outfile,bbox_inches='tight')
     plt.close()
-    print(outfile)
+
+    print(outfile, flush=True)
 
 with dslopts.Manager(scope=globals(), appendix="flashfiles can be defined after '--' or passed via stdin.") as mgr:
     mgr.add('sinkfp',  'path to store: <dir>/%03d.png')
-    #mgr.add('meshfp',  'path to mesh', str, '')
 
 srcfiles = list(_ignored_)
 
 def task(x):
-    return min_max(x[1], x[0])
-    #return mkplot(x[1], sinkfp, x[0], len(srcfiles))
+    taskID, srcfp = x
+    #return min_max(taskID, srcfp)
+    return mkplot(taskID, len(srcfiles), srcfp, sinkfp)
 
-pool    = multiprocessing.Pool()
-results = pool.map(task,enumerate(srcfiles))
-
-for res in results:
-    print(*res)
+mpr.Pool().map(task,enumerate(srcfiles))
