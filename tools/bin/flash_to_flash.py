@@ -13,7 +13,7 @@ import scipy.ndimage
 # =========================================================================== #
 
 def zoom(src):
-    zoomfactor = 2
+    zoomfactor = 0.5
     return scipy.ndimage.interpolation.zoom(src, zoomfactor, order=1, mode='wrap')
 
 def scale(src):

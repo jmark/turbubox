@@ -271,6 +271,17 @@ def lagrange_3d_5th_order3():
     else:
         fls = flash.FakeFile([[0,0,0],[1,1,1]],flx.mesh.gridsize * flx.Nout, fillby=flashfile)
 
+    import scipy.interpolate
+    import scipy.ndimage
+
+    def zoom(src):
+        factor = 0.5
+        return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
+
+    def scale(src):
+        factor = 0.2
+        return factor * src
+
     # interpolate
     prims = []
     print("  var   |       min    ->    min     |       max    ->    max     ")
@@ -278,10 +289,14 @@ def lagrange_3d_5th_order3():
     #for dbname in 'dens velx vely velz pres magx magy magz'.split():
     for dbname in 'dens velx vely velz pres'.split():
         box = fls.data(dbname)
+        box = zoom(box)
         els = methods[method](box, flx)
 
         if dbname in 'dens pres eint':
             els[els <= 1e-4] = 1e-4 
+
+        if dbname in 'velx vely velz':
+            els = scale(els)
 
         print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % \
                 (dbname, box.min(), els.min(), box.max(), els.max()), file=sys.stderr)

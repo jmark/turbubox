@@ -12,7 +12,8 @@ def PeriodicBox(srcfp, meshfp=None, mode='r'):
         meshfp = h5file.attrs['MeshFile'][0].decode('utf-8')
         h5file.close()
         oldcwd = os.path.realpath(os.curdir)
-        os.chdir(os.path.dirname(srcfp))
+        #print(os.path.dirname(os.path.realpath(srcfp)))
+        os.chdir(os.path.dirname(os.path.realpath(srcfp)))
         meshfp = os.path.realpath(meshfp)
         os.chdir(oldcwd)
 

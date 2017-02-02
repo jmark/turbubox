@@ -6,11 +6,11 @@ import sys
 import numpy as np
 import multiprocessing as mpr
 
-# import matplotlib
-# matplotlib.use('Agg')
-# from matplotlib import pyplot as plt
-# 
-# matplotlib.rcParams.update({'font.size': 20})
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+
+matplotlib.rcParams.update({'font.size': 20})
 
 # jmark
 import flexi, ulz, dslopts
@@ -70,7 +70,7 @@ def mkplot(taskID, ntasks, srcfp, sinkfp):
     c_s  = 1
     turntime = time / (LEN / c_s / MACH)
 
-    dens, velx, vely, velz, pres = box.get_prims()
+    dens, velx, vely, velz, pres = box.get_cons()
     mach = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens)
     #ekin = box.cellvolume/2 * np.sum(dens * (velx**2+vely**2+velz**2)) 
 
@@ -78,10 +78,16 @@ def mkplot(taskID, ntasks, srcfp, sinkfp):
     vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(velx,vely,velz,CS[0],CS[1],CS[2]))
 
     ax = 2
-    cmach = np.log10(np.mean(mach,axis=ax))
-    cdens = np.log10(np.mean(dens,axis=ax))
-    cpres = np.log10(np.mean(pres,axis=ax))
-    cvort = np.log10(np.mean(vort,axis=ax))
+    # cmach = np.log10(np.sum(mach,axis=ax))
+    # cdens = np.log10(np.sum(dens,axis=ax))
+    # cpres = np.log10(np.sum(pres,axis=ax))
+    # cvort = np.log10(np.sum(vort,axis=ax))
+
+    cmach = np.sum(mach,axis=ax)
+    cdens = np.sum(dens,axis=ax)
+    cpres = np.sum(pres,axis=ax)
+    cvort = np.sum(vort,axis=ax)
+
 
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
@@ -105,16 +111,16 @@ def mkplot(taskID, ntasks, srcfp, sinkfp):
 
     crange = None
 
-    crange = (-0.7,0.1) 
+    #crange = (-0.7,0.1) 
     plot(cmach, 'column mach number (log10)', crange)
 
-    crange = (-0.2,0.15)
+    #crange = (-0.2,0.15)
     plot(cdens, 'column density (log10)', crange)
 
-    crange = (-0.3,0.3) 
+    #crange = (-0.3,0.3) 
     plot(cpres, 'column pressure (log10)', crange)
 
-    crange = (-11.8,-10) 
+    #crange = (-11.8,-10) 
     plot(cvort, 'column vorticity (log10)', crange)
 
     fig.tight_layout()
