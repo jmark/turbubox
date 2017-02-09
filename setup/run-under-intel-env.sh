@@ -12,17 +12,17 @@ if hostname | grep -q '^cheops'
 then
     module purge
 
-    # export CC=icc
-    # export CXX=icc
-    # export FC=ifort
-    # export F9X=ifort
-    # export MPI_C_COMPILER=mpicc
-    # export MPI_CXX_COMPILER=mpicxx
-    # export MPI_Fortran_COMPILER=mpiifort
-    # export I_MPI_CC=icc
-    # export I_MPI_CXX=icpc
-    # export I_MPI_F77=ifort
-    # export I_MPI_F90=ifort
+    export CC=icc
+    export CXX=icc
+    export FC=ifort
+    export F9X=ifort
+    export MPI_C_COMPILER=mpicc
+    export MPI_CXX_COMPILER=mpicxx
+    export MPI_Fortran_COMPILER=mpiifort
+    export I_MPI_CC=icc
+    export I_MPI_CXX=icpc
+    export I_MPI_F77=ifort
+    export I_MPI_F90=ifort
 
     module load hdf5
     module load intel
@@ -32,20 +32,20 @@ then
 
 elif hostname | grep -q 'jmark'
 then
-    # export CC=icc
-    # export CXX=icc
+    export CC=icc
+    export CXX=icc
 
-    # export FC=ifort
-    # export F9X=ifort
+    export FC=ifort
+    export F9X=ifort
 
-    # export MPICC=mpicc
-    # export MPICXX=mpiicpc
+    export MPICC=mpicc
+    export MPICXX=mpiicpc
 
-    # export MPIFC=mpiifort
-    # export MPIF9X=mpiifort
+    export MPIFC=mpiifort
+    export MPIF9X=mpiifort
 
-    # export PCC=mpiicc
-    # export PFC=mpiifort
+    export PCC=mpiicc
+    export PFC=mpiifort
 
     # export MPI_C_COMPILER=mpiicc
     # export MPI_CXX_COMPILER=mpiicxx

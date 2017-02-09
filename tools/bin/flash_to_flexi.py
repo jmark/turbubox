@@ -227,7 +227,7 @@ def method(box, flx):
 
 methods.append(method)
 
-def method(box, fls):
+def method(box, flx):
     "With neighboring cells which get averaged with boundary cells: n-th order interpolation."
     els = interpolate.box_to_elements_avg_boundaries(box, flx)
 
@@ -238,6 +238,13 @@ def method(box, fls):
     return interpolate.change_grid_space(els, xs, Xs)
         
 methods.append(method)
+
+def method(box, flx):
+    "Just copy over data. No interpolation!"
+    return interpolate.box_to_elements(box, flx, neighbors = 0)
+       
+methods.append(method)
+
 
 def lagrange_3d_5th_order3():
     def ExistingPath(arg):
@@ -252,7 +259,7 @@ def lagrange_3d_5th_order3():
 
     def ConstrainedInt(arg):
         nr = int(arg)
-        if 0 <= nr <= 4:
+        if 0 <= nr <= len(methods)-1:
             return nr
         raise ValueError("Method number must be within 0 and 4: '%d' given!")
 
@@ -260,11 +267,11 @@ def lagrange_3d_5th_order3():
 
     with dslopts.Manager(scope=globals(),appendix=appendix) as mgr:
         mgr.add(name='flashfile' ,desc='flash file path' ,type=ExistingPath)
-        mgr.add(name='meshfile'  ,desc=' mesh file path' ,type=ExistingPath)
+        #mgr.add(name='meshfile'  ,desc=' mesh file path' ,type=ExistingPath)
         mgr.add(name='flexifile' ,desc='flexi file path' ,type=ExistingPath)
         mgr.add(name='method'    ,desc='method nr: 0-4'  ,type=ConstrainedInt, default=3)
 
-    flx = flexi.File(str(flexifile), hopr.CartesianMeshFile(str(meshfile)), mode='r+')
+    flx = flexi.PeriodicBox(str(flexifile), mode='r+')
 
     if isinstance(flashfile, pathlib.Path):
         fls = flash.File(str(flashfile))
@@ -279,17 +286,19 @@ def lagrange_3d_5th_order3():
         return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
 
     def scale(src):
-        factor = 0.2
+        factor = 3.0
         return factor * src
 
     # interpolate
     prims = []
+    print(" Primitive vars:")
+    print("")
     print("  var   |       min    ->    min     |       max    ->    max     ")
     print("  ------|----------------------------|----------------------------")
     #for dbname in 'dens velx vely velz pres magx magy magz'.split():
     for dbname in 'dens velx vely velz pres'.split():
         box = fls.data(dbname)
-        box = zoom(box)
+        #box = zoom(box)
         els = methods[method](box, flx)
 
         if dbname in 'dens pres eint':
@@ -303,9 +312,15 @@ def lagrange_3d_5th_order3():
 
         prims.append(els)
 
+    print("")
+    print(" Conservative vars:")
+    print("")
+    print("  var   |       min     |     max     ")
+    print("  ------|---------------|-------------")
     # write to file
     for i,con in enumerate(ulz.navier_primitive_to_conservative(prims)):
         flx.data[:,:,:,:,i] = con.transpose(0,3,2,1)
+        print("   % 2d   | % 12.5f  | % 12.5f" % (i, flx.data[:,:,:,:,i].min(), flx.data[:,:,:,:,i].max()), file=sys.stderr)
 
 if __name__ == '__main__':
     #linear_3d()

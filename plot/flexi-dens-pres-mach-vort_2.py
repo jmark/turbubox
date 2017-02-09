@@ -25,8 +25,7 @@ def min_max(taskID, srcfp):
     c_s  = 1
     turntime = time / (np.mean(box.domainsize) / c_s / MACH)
 
-    #dens, velx, vely, velz, pres = box.get_prims()
-    dens, velx, vely, velz, pres = box.get_prims_fv()
+    dens, velx, vely, velz, pres = box.get_prims()
 
     fv = box.domainsize / np.array(dens.shape) # finite volume dimensions
 
@@ -71,8 +70,7 @@ def mkplot(taskID, ntasks, srcfp, sinkfp):
     c_s  = 1
     turntime = time / (LEN / c_s / MACH)
 
-    #dens, velx, vely, velz, pres = box.get_cons()
-    dens, velx, vely, velz, pres = box.get_prims_fv()
+    dens, velx, vely, velz, pres = box.get_cons()
     mach = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens)
     #ekin = box.cellvolume/2 * np.sum(dens * (velx**2+vely**2+velz**2)) 
 
