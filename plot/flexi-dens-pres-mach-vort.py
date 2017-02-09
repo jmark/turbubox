@@ -18,7 +18,7 @@ import flexi, ulz, dslopts
 SOLVER = 'DG'
 MACH = 2
 
-def min_max(taskID, srcfp):
+def calc_data(srcfp):
     box = flexi.PeriodicBox(srcfp)
 
     time = box.time
@@ -32,70 +32,62 @@ def min_max(taskID, srcfp):
 
     mach = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens)
     vort = np.mean(fv)**5/12.0 * dens * ulz.norm(*ulz.curl(velx,vely,velz,fv[0],fv[1],fv[2]))
-    #ekin = fv**3/2 * np.sum(dens * (velx**2+vely**2+velz**2)) 
+
+    mach[np.isinf(mach)] = np.nan
+    dens[np.isinf(dens)] = np.nan
+    pres[np.isinf(pres)] = np.nan
+    vort[np.isinf(vort)] = np.nan
 
     ax = 2
-    cdens = np.log10(np.mean(dens,axis=ax))
-    cpres = np.log10(np.mean(pres,axis=ax))
-    cvort = np.log10(np.mean(vort,axis=ax))
-    cmach = np.log10(np.mean(mach,axis=ax))
+    cmach = np.log10(np.nanmean(mach,axis=ax))
+    cdens = np.log10(np.nanmean(dens,axis=ax))
+    cpres = np.log10(np.nanmean(pres,axis=ax))
+    cvort = np.log10(np.nanmean(vort,axis=ax))
 
-    min = np.min
-    max = np.max
+    return {
+        'time':     time,
+        'turntime': turntime,
+        'cmach':    cmach,
+        'cdens':    cdens,
+        'cpres':    cpres,
+        'cvort':    cvort
+    }
 
-    print( 
-        time, taskID,
+def min_max(taskID, srcfp):
+    data = calc_data(srcfp)
 
-        min(cmach),
-        max(cmach),
+    result = [ 
+        data['time'], taskID,
+
+        np.min(data['cmach']),
+        np.max(data['cmach']),
  
-        min(cdens),
-        max(cdens),
+        np.min(data['cdens']),
+        np.max(data['cdens']),
 
-        min(cpres),
-        max(cpres),
+        np.min(data['cpres']),
+        np.max(data['cpres']),
 
-        min(cvort),
-        max(cvort),
+        np.min(data['cvort']),
+        np.max(data['cvort']),
+    ]
 
-        flush=True
-    )
+    print(*result, flush=True)
+    
+    return result
 
-def mkplot(taskID, ntasks, srcfp, sinkfp):
+def mkplot(taskID, ntasks, srcfp, sinkfp, crange=None):
 
-    outfile = sinkfp % taskID
-    box = flexi.PeriodicBox(srcfp)
+    data = calc_data(srcfp)
 
-    time = box.time
-    LEN  = box.hopr.domainsize[0]
-    c_s  = 1
-    turntime = time / (LEN / c_s / MACH)
-
-    #dens, velx, vely, velz, pres = box.get_cons()
-    dens, velx, vely, velz, pres = box.get_prims_fv()
-    mach = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens)
-    #ekin = box.cellvolume/2 * np.sum(dens * (velx**2+vely**2+velz**2)) 
-
-    CS = box.hopr.domainsize / np.array(dens.shape)
-    vort = CS[0]**5/12.0 * dens * ulz.norm(*ulz.curl(velx,vely,velz,CS[0],CS[1],CS[2]))
-
-    ax = 2
-    # cmach = np.log10(np.sum(mach,axis=ax))
-    # cdens = np.log10(np.sum(dens,axis=ax))
-    # cpres = np.log10(np.sum(pres,axis=ax))
-    # cvort = np.log10(np.sum(vort,axis=ax))
-
-    cmach = np.sum(mach,axis=ax)
-    cdens = np.sum(dens,axis=ax)
-    cpres = np.sum(pres,axis=ax)
-    cvort = np.sum(vort,axis=ax)
+    time = data['time']
+    turntime = data['turntime']
 
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
 
     st = plt.suptitle(
-        "decayturb in periodic box: mach %d | %s | t_d = % 2.4f (frame: %03d/%03d)" % \
-            (MACH, SOLVER, 1/MACH, taskID+1, ntasks),
+        "decayturb periodic box: DG | t_d = % 2.4f (frame: %03d/%03d)" % (turntime, taskID+1, ntasks),
         fontsize='x-large')
     st.set_y(1.01)
 
@@ -104,27 +96,22 @@ def mkplot(taskID, ntasks, srcfp, sinkfp):
         ax = fig.add_subplot(*subplt)
         ax.set_title(title)
         ax.set_xlabel('x index'); ax.set_ylabel('y index')
-        if crange is not None:
-            img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), interpolation='none', vmin=crange[0], vmax=crange[1])
+
+        p = {'cmap': plt.get_cmap('cubehelix'), 'interpolation': 'none'}
+        if crange is None:
+            img = ax.imshow(data, **p)
         else:
-            img = ax.imshow(data, cmap=plt.get_cmap('cubehelix'), interpolation='none')
+            img = ax.imshow(data, vmin=crange[0], vmax=crange[1], **p)
         plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
 
-    crange = None
-
-    #crange = (-0.7,0.1) 
-    plot(cmach, 'column mach number (log10)', crange)
-
-    #crange = (-0.2,0.15)
-    plot(cdens, 'column density (log10)', crange)
-
-    #crange = (-0.3,0.3) 
-    plot(cpres, 'column pressure (log10)', crange)
-
-    #crange = (-11.8,-10) 
-    plot(cvort, 'column vorticity (log10)', crange)
+    plot(data['cmach'], 'column mach number (log10)', crange['cmach'])
+    plot(data['cdens'], 'column density (log10)', crange['cdens'])
+    plot(data['cpres'], 'column pressure (log10)', crange['cpres'])
+    plot(data['cvort'], 'column vorticity (log10)', crange['cvort'])
 
     fig.tight_layout()
+
+    outfile = sinkfp % taskID
     plt.savefig(outfile,bbox_inches='tight')
     plt.close()
 
@@ -135,9 +122,23 @@ with dslopts.Manager(scope=globals(), appendix="flashfiles can be defined after 
 
 srcfiles = list(_ignored_)
 
-def task(x):
+def task_minmax(x):
     taskID, srcfp = x
-    #return min_max(taskID, srcfp)
-    return mkplot(taskID, len(srcfiles), srcfp, sinkfp)
+    return min_max(taskID, srcfp)
 
-mpr.Pool().map(task,enumerate(srcfiles))
+tmp = np.array(mpr.Pool().map(task_minmax,enumerate(srcfiles)))
+
+i = ulz.mkincr(start=2)
+
+crange = {
+    'cmach': (np.min(tmp[:,next(i)]), np.max(tmp[:,next(i)])),
+    'cdens': (np.min(tmp[:,next(i)]), np.max(tmp[:,next(i)])),
+    'cpres': (np.min(tmp[:,next(i)]), np.max(tmp[:,next(i)])),
+    'cvort': (np.min(tmp[:,next(i)]), np.max(tmp[:,next(i)]))
+}
+
+def task_plot(x): 
+    taskID, srcfp = x
+    return mkplot(taskID, len(srcfiles), srcfp, sinkfp, crange)
+
+mpr.Pool().map(task_plot,enumerate(srcfiles))

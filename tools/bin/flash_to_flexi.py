@@ -304,8 +304,8 @@ def lagrange_3d_5th_order3():
         if dbname in 'dens pres eint':
             els[els <= 1e-4] = 1e-4 
 
-        if dbname in 'velx vely velz':
-            els = scale(els)
+        #if dbname in 'velx vely velz':
+        #    els = scale(els)
 
         print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % \
                 (dbname, box.min(), els.min(), box.max(), els.max()), file=sys.stderr)

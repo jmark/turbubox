@@ -7,10 +7,10 @@ import ulz
 import flexi
 import hopr
 
-hoprfp = sys.argv[1]
-
-for count,flxfp in enumerate(sys.stdin):
-    flx = flexi.File(flxfp.rstrip(), hopr.CartesianMeshFile(hoprfp))
+#for count,flxfp in enumerate(sys.stdin):
+for count,flxfp in enumerate(sys.argv[1:]):
+    #flx = flexi.File(flxfp.rstrip(), hopr.CartesianMeshFile(hoprfp))
+    flx = flexi.PeriodicBox(flxfp.rstrip())
 
     time = flx.time
 
@@ -39,9 +39,10 @@ for count,flxfp in enumerate(sys.stdin):
     etotal    = ekintotal + einttotal
 
     machglob  = np.sqrt(np.sum(dens * (velx**2+vely**2+velz**2))/np.sum(dens)) / c_s
+    machmax   = np.max(np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens))
 
     evortotal = CS[0]**5/12.0 * np.sum(dens * (vortx**2+vorty**2+vortz**2))
 
     print("\t".join(map(str,[
-        count, time, mach etotal, einttotal, ekintotal, evortotal
+        count, time, machglob, machmax, etotal, einttotal, ekintotal, evortotal
     ])), flush=True)

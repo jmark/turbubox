@@ -258,3 +258,9 @@ def mhd_conservative_to_primitive(cons, kappa=5/3, mu0=1.0):
 
 def bins2xs(edges):
     return edges[:-1] + (edges[1]-edges[0])/2
+
+def mkincr(start=0,step=1):
+    pos = start
+    while True:
+        yield pos
+        pos += step
