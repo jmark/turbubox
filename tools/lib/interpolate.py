@@ -76,6 +76,7 @@ def lagrange_interpolate_3d_RG(xs, Xs, fs):
 # =========================================================================== #
 
 t_ndouble = ndpointer(ct.c_double, flags="C_CONTIGUOUS")
+t_nint    = ndpointer(ct.c_int, flags="C_CONTIGUOUS")
 t_int = ct.c_int
 
 # void
@@ -131,6 +132,35 @@ def elements_to_box(elems, mesh):
 
 # =========================================================================== #
 
+lib.elements_to_box_fv.argtypes = [
+    t_int, t_int, t_int, t_ndouble,
+    t_int, t_ndouble, 
+    t_int, t_int, t_int, t_ndouble,
+    t_nint
+]
+
+def elements_to_box_fv(elems, mesh, box, fvs):
+    # lower left corners normed to unit intervall
+    lls      = (mesh.domain[0] + mesh.elemcoords[0])/mesh.domainsize
+
+    #box      = np.zeros(elems[0].shape * mesh.meshshape)
+    offsets  = np.array(box.shape) * lls
+
+    boxptr   = np.require(box.ravel(), dtype=np.double, requirements=['C','A'])
+    elemsptr = np.require(elems.ravel(), dtype=np.double, requirements=['C','A'])
+    ofsptr   = np.require(offsets.ravel(), dtype=np.double, requirements=['C', 'A'])
+    fvsptr   = np.require(fvs.ravel(), dtype=np.int, requirements=['C','A'])
+
+    lib.elements_to_box_fv(
+        box.shape[0], box.shape[1], box.shape[2], boxptr,
+        mesh.nrelems, ofsptr,
+        elems[0].shape[0], elems[0].shape[1], elems[0].shape[2], elemsptr,
+        fvs)
+
+    return boxptr.reshape(box.shape)
+
+# =========================================================================== #
+
 lib.box_to_elements_avg_boundaries.argtypes = [
     t_int, t_int, t_int, t_ndouble,
     t_int, t_ndouble, 
@@ -181,6 +211,32 @@ def change_grid_space(fs,xs,Xs):
     )
 
     return Fsptr.reshape(Fs.shape)
+
+lib.change_grid_space_fv.argtypes = [
+    t_int,
+    t_int, t_int, t_int, t_ndouble, t_ndouble,
+    t_int, t_int, t_int, t_ndouble, t_ndouble,
+    t_nint
+]
+
+def change_grid_space_fv(fs,xs,Xs,FV):
+    Fs = np.empty([len(fs), len(Xs), len(Xs), len(Xs)])
+
+    xsptr = np.require(xs, dtype=np.double, requirements=['C','A'])
+    Xsptr = np.require(Xs, dtype=np.double, requirements=['C','A'])
+    fsptr = np.require(fs, dtype=np.double, requirements=['C','A'])
+    Fsptr = np.require(Fs, dtype=np.double, requirements=['C','A','W'])
+    FVptr = np.require(FV, dtype=np.int32,  requirements=['C','A'])
+
+    lib.change_grid_space_fv(
+        len(fs),
+        len(xs), len(xs), len(xs), xsptr, fsptr,
+        len(Xs), len(Xs), len(Xs), Xsptr, Fsptr,
+        FVptr
+    )
+
+    return Fsptr.reshape(Fs.shape)
+
 
 # =========================================================================== #
 

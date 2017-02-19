@@ -286,7 +286,7 @@ def lagrange_3d_5th_order3():
         return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
 
     def scale(src):
-        factor = 3.0
+        factor = 10.0
         return factor * src
 
     # interpolate
@@ -304,8 +304,8 @@ def lagrange_3d_5th_order3():
         if dbname in 'dens pres eint':
             els[els <= 1e-4] = 1e-4 
 
-        #if dbname in 'velx vely velz':
-        #    els = scale(els)
+        if dbname in 'velx vely velz':
+            els = scale(els)
 
         print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % \
                 (dbname, box.min(), els.min(), box.max(), els.max()), file=sys.stderr)
@@ -317,10 +317,21 @@ def lagrange_3d_5th_order3():
     print("")
     print("  var   |       min     |     max     ")
     print("  ------|---------------|-------------")
+
+    cons = ulz.navier_primitive_to_conservative(prims)
     # write to file
-    for i,con in enumerate(ulz.navier_primitive_to_conservative(prims)):
+    for i,con in enumerate(cons):
         flx.data[:,:,:,:,i] = con.transpose(0,3,2,1)
         print("   % 2d   | % 12.5f  | % 12.5f" % (i, flx.data[:,:,:,:,i].min(), flx.data[:,:,:,:,i].max()), file=sys.stderr)
+
+    print("")
+    print(" Primitive vars:")
+    print("")
+    print("  var   |       min     |     max     ")
+    print("  ------|---------------|-------------")
+
+    for i,prim in enumerate(ulz.navier_conservative_to_primitive(cons)):
+        print("   % 2d   | % 12.5f  | % 12.5f" % (i, prim.min(), prim.max()), file=sys.stderr)
 
 if __name__ == '__main__':
     #linear_3d()

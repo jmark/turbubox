@@ -68,11 +68,19 @@ class File:
         if Nvisu is None:
             Nvisu = self.Nout
 
+        elemData = self.h5file.get('ElemData')
+        FVs = elemData[:,2]
+    
         xs = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
         Xs = ulz.mk_body_centered_linspace(-1,1, Nvisu)
 
-        elems = self.data[:,:,:,:,iVar].transpose(0,3,2,1)
+        elems = interpolate.change_grid_space_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1),xs,Xs,FVs)
         return interpolate.elements_to_box(elems, self.mesh)
+
+        # return interpolate.elements_to_box_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1), self.mesh, box, fvs)
+
+        # elems = self.data[:,:,:,:,iVar].transpose(0,3,2,1)
+        # return interpolate.elements_to_box(elems, self.mesh)
 
     def flexi_to_box(self, iVar, Nvisu=None):
         return self.as_box(iVar, Nvisu)
@@ -84,13 +92,28 @@ class File:
         cons = [self.as_box(i, Nvisu) for i in range(0,len(self.varnames))]
         return ulz.navier_conservative_to_primitive(cons)
 
-
     def get_cons_fv(self, Nvisu=None):
         return [self.as_box_fv(i, Nvisu) for i in range(0,len(self.varnames))]
 
     def get_prims_fv(self, Nvisu=None):
-        cons = [self.as_box_fv(i, Nvisu) for i in range(0,len(self.varnames))]
-        return ulz.navier_conservative_to_primitive(cons)
+        if Nvisu is None:
+            Nvisu = self.Nout
+
+        elemData = self.h5file.get('ElemData')
+        FVs = elemData[:,2]
+    
+        xs = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
+        Xs = ulz.mk_body_centered_linspace(-1,1, Nvisu)
+
+        cons  = [self.data[:,:,:,:,i] for i in range(0,len(self.varnames))] 
+        prims = ulz.navier_conservative_to_primitive(cons)
+
+        retval = []
+        for iVar in range(0,len(self.varnames)):
+            elems = interpolate.change_grid_space_fv(prims[iVar].transpose(0,3,2,1),xs,Xs,FVs)
+            retval.append(interpolate.elements_to_box(elems, self.mesh))
+
+        return retval
 
     def close(self):
         self.h5file.close()

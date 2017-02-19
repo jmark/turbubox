@@ -18,6 +18,9 @@ import flexi, ulz, dslopts
 SOLVER = 'DG'
 MACH = 2
 
+def purge_negative(x):
+    x[x < 0] = 1e-5
+
 def calc_data(srcfp):
     box = flexi.PeriodicBox(srcfp)
 
@@ -28,10 +31,13 @@ def calc_data(srcfp):
     #dens, velx, vely, velz, pres = box.get_prims()
     dens, velx, vely, velz, pres = box.get_prims_fv()
 
+    purge_negative(dens)
+    purge_negative(pres)
+
     fv = box.domainsize / np.array(dens.shape) # finite volume dimensions
 
     mach = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens)
-    vort = np.mean(fv)**5/12.0 * dens * ulz.norm(*ulz.curl(velx,vely,velz,fv[0],fv[1],fv[2]))
+    vort = np.mean(fv)**5/12.0 * np.abs(dens) * ulz.norm(*ulz.curl(velx,vely,velz,fv[0],fv[1],fv[2]))
 
     mach[np.isinf(mach)] = np.nan
     dens[np.isinf(dens)] = np.nan

@@ -168,6 +168,37 @@ elements_to_box(
 }
 
 void
+elements_to_box_fv(
+    const int Nx, const int Ny, int Nz, double *box,
+    int nelems, double *indices, int nx, int ny, int nz, double *elems,
+    int *fvs)
+{
+    const int stride = nx*ny*nz;
+    for (int elemid = 0; elemid < nelems; elemid++) {
+
+        if (fvs[elemid] == 0)
+            continue;
+
+        const double *const index = indices + elemid * 3;
+        const int I = round(index[0]);
+        const int J = round(index[1]);
+        const int K = round(index[2]);
+
+        double *const elem = elems + elemid * stride;
+
+        for (int i = 0; i < nx; i++)
+        for (int j = 0; j < ny; j++)
+        for (int k = 0; k < nz; k++) {
+            const int _i = I + i;
+            const int _j = J + j;
+            const int _k = K + k;
+
+            box[((_i * Ny) + _j) * Nz + _k] = elem[((i * ny) + j) * nz + k];
+        }
+    }
+}
+
+void
 box_to_elements_avg_boundaries(
     const int Nx, const int Ny, int Nz, double *box, 
     int nelems, double *indices, int nx, int ny, int nz, double *elems)
@@ -256,6 +287,47 @@ change_grid_space(
         }
     }
 }
+
+void
+change_grid_space_fv(
+    const int nelems,
+    const int nx, const int ny, const int nz ,const double *xs, double *fss, 
+    const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss,
+    const int *fvs)
+{
+    double *Ls = malloc(sizeof(double) * Nx * nx);
+    for (int I = 0; I < Nx; I++)
+    for (int i = 0; i < nx; i++)
+        Ls[I*nx + i] = LagrangePolynomial(xs, nx, i, Xs[I]);
+
+    const int stride = nx*ny*nz;
+    const int Stride = Nx*Ny*Nz;
+
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * stride;
+              double *const Fs = Fss + elemid * Stride;
+
+        //printf("elemid,fv: %d, %d\n", elemid, fvs[elemid]);
+        for (int I = 0; I < Nx; I++)
+        for (int J = 0; J < Ny; J++)
+        for (int K = 0; K < Nz; K++) {
+            double F = 0;
+
+            if (fvs[elemid] > 0) {
+                F = fs[((I * Ny) + J) * Nz + K];
+            } else {
+                for (int i = 0; i < nx; i++)
+                for (int j = 0; j < ny; j++)
+                for (int k = 0; k < nz; k++)
+                    F += fs[((i * ny) + j) * nz + k] * Ls[I*nx + i]*Ls[J*ny + j]*Ls[K*nz + k];
+            }
+
+            Fs[((I * Ny) + J) * Nz + K] = F;
+        }
+    }
+}
+
+
 
 void
 flexi_to_box(
