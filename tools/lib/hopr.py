@@ -1,9 +1,9 @@
-from h5 import H5File
+import h5
 import numpy as np
 
 class MeshFile:
     def __init__(self,fpath, mode='r'):
-        self.h5file     = H5File(fpath,mode)
+        self.h5file     = h5.File(fpath,mode)
         self.elemInfo   = self.get('ElemInfo')
         self.nodeCoords = self.get('NodeCoords')
 

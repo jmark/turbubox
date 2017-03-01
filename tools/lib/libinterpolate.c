@@ -256,9 +256,88 @@ box_to_elements_avg_boundaries(
 }
 
 void
+change_basis_3d(
+    const int nelems, const int nn,
+    const double *Vdm, const double *fss, double *Fss)
+{
+    const int stride = nn*nn*nn;
+
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * stride;
+              double *const Fs = Fss + elemid * stride;
+
+        for (int I = 0; I < nn; I++)
+        for (int J = 0; J < nn; J++)
+        for (int K = 0; K < nn; K++) {
+            double F = 0.0;
+
+            for (int i = 0; i < nn; i++)
+            for (int j = 0; j < nn; j++)
+            for (int k = 0; k < nn; k++)
+                F += fs[(i*nn + j) * nn + k] * Vdm[I*nn + i]*Vdm[J*nn + j]*Vdm[K*nn + k];
+                
+            Fs[((I * nn) + J) * nn + K] = F;
+        }
+    }
+}
+
+void
+change_basis_3d_2(
+    const int nelems, const int nn,
+    const double *Vdm, const double *fss, double *Fss)
+{
+    const int stride = nn*nn*nn;
+
+    double  *xi = malloc(sizeof(double) * stride);
+    double *eta = malloc(sizeof(double) * stride);
+    double *psi = malloc(sizeof(double) * stride);
+
+    // loop over elements
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * stride;
+              double *const Fs = Fss + elemid * stride;
+
+        // nullify temporary arrays
+        for (int i = 0; i < nn; i++)
+        for (int j = 0; j < nn; j++)
+        for (int k = 0; k < nn; k++)
+            xi[(i*nn + j) * nn + k] = eta[(i*nn + j) * nn + k] = psi[(i*nn + j) * nn + k] = 0.0;
+
+        // xi direction
+        for (int i = 0; i < nn; i++)
+        for (int j = 0; j < nn; j++)
+        for (int k = 0; k < nn; k++)
+        for (int l = 0; l < nn; l++)
+             xi[(i*nn + j) * nn + k] +=  fs[(l*nn + j) * nn + k] * Vdm[i*nn + l];
+
+        // eta direction
+        for (int i = 0; i < nn; i++)
+        for (int j = 0; j < nn; j++)
+        for (int k = 0; k < nn; k++)
+        for (int l = 0; l < nn; l++)
+            eta[(i*nn + j) * nn + k] +=  xi[(i*nn + l) * nn + k] * Vdm[j*nn + l];
+
+        // psi direction
+        for (int i = 0; i < nn; i++)
+        for (int j = 0; j < nn; j++)
+        for (int k = 0; k < nn; k++)
+        for (int l = 0; l < nn; l++)
+            psi[(i*nn + j) * nn + k] += eta[(i*nn + j) * nn + l] * Vdm[k*nn + l];
+
+        // copy to result array
+        for (int i = 0; i < nn; i++)
+        for (int j = 0; j < nn; j++)
+        for (int k = 0; k < nn; k++)
+            Fs[((i * nn) + j) * nn + k] = psi[(i*nn + j) * nn + k];
+    }
+
+    free(xi); free(eta); free(psi);
+}
+
+void
 change_grid_space(
     const int nelems,
-    const int nx, const int ny, const int nz ,const double *xs, double *fss, 
+    const int nx, const int ny, const int nz ,const double *xs, const double *fss, 
     const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss)
 {
     double *Ls = malloc(sizeof(double) * Nx * nx);
@@ -281,15 +360,16 @@ change_grid_space(
             for (int i = 0; i < nx; i++)
             for (int j = 0; j < ny; j++)
             for (int k = 0; k < nz; k++)
-                F += fs[((i * ny) + j) * nz + k] * Ls[I*nx + i]*Ls[J*ny + j]*Ls[K*nz + k];
+                F += fs[(i*ny + j) * nz + k] * Ls[I*nx + i]*Ls[J*ny + j]*Ls[K*nz + k];
 
             Fs[((I * Ny) + J) * Nz + K] = F;
         }
     }
+    free(Ls);
 }
 
 void
-change_grid_space_fv(
+change_grid_space_dg_fv(
     const int nelems,
     const int nx, const int ny, const int nz ,const double *xs, double *fss, 
     const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss,
@@ -313,7 +393,7 @@ change_grid_space_fv(
         for (int K = 0; K < Nz; K++) {
             double F = 0;
 
-            if (fvs[elemid] > 0) {
+            if (fvs[elemid] > 0) { // fv element
                 F = fs[((I * Ny) + J) * Nz + K];
             } else {
                 for (int i = 0; i < nx; i++)
@@ -325,9 +405,48 @@ change_grid_space_fv(
             Fs[((I * Ny) + J) * Nz + K] = F;
         }
     }
+    free(Ls);
 }
 
+void
+change_grid_space_fv_dg(
+    const int nelems,
+    const int nx, const int ny, const int nz ,const double *xs, double *fss, 
+    const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss,
+    const int *fvs)
+{
+    double *Ls = malloc(sizeof(double) * Nx * nx);
+    for (int I = 0; I < Nx; I++)
+    for (int i = 0; i < nx; i++)
+        Ls[I*nx + i] = LagrangePolynomial(xs, nx, i, Xs[I]);
 
+    const int stride = nx*ny*nz;
+    const int Stride = Nx*Ny*Nz;
+
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * stride;
+              double *const Fs = Fss + elemid * Stride;
+
+        //printf("elemid,fv: %d, %d\n", elemid, fvs[elemid]);
+        for (int I = 0; I < Nx; I++)
+        for (int J = 0; J < Ny; J++)
+        for (int K = 0; K < Nz; K++) {
+            double F = 0;
+
+            if (fvs[elemid] == 0) { // dg element
+                F = fs[((I * Ny) + J) * Nz + K];
+            } else {
+                for (int i = 0; i < nx; i++)
+                for (int j = 0; j < ny; j++)
+                for (int k = 0; k < nz; k++)
+                    F += fs[((i * ny) + j) * nz + k] * Ls[I*nx + i]*Ls[J*ny + j]*Ls[K*nz + k];
+            }
+
+            Fs[((I * Ny) + J) * Nz + K] = F;
+        }
+    }
+    free(Ls);
+}
 
 void
 flexi_to_box(

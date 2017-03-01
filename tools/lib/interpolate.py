@@ -183,7 +183,54 @@ def box_to_elements_avg_boundaries(box, flx):
     return elemsptr.reshape(elems.shape)
 
 # =========================================================================== #
+# void
+# change_basis_3d(
+#     const int nelems, const int nn,
+#     const double *Vdm, const double *fss, double *Fss);
 
+lib.change_basis_3d.argtypes = [
+   t_int, t_int, t_ndouble, t_ndouble, t_ndouble
+]
+
+def change_basis(Vd,fs):
+    nn,NN = Vd.shape
+    Fs = np.empty([len(fs)]+3*[NN])
+
+    Vdptr = np.require(Vd, dtype=np.double, requirements=['C','A'])
+    fsptr = np.require(fs, dtype=np.double, requirements=['C','A'])
+    Fsptr = np.require(Fs, dtype=np.double, requirements=['C','A','W'])
+
+    lib.change_basis_3d(
+        len(fs), NN, Vdptr, fsptr, Fsptr
+    )
+
+    return Fsptr.reshape(Fs.shape)
+
+# =========================================================================== #
+# void
+# change_basis_3d_2(
+#     const int nelems, const int nn,
+#     const double *Vdm, const double *fss, double *Fss);
+
+lib.change_basis_3d_2.argtypes = [
+   t_int, t_int, t_ndouble, t_ndouble, t_ndouble
+]
+
+def change_basis_2(Vd,fs):
+    nn,NN = Vd.shape
+    Fs = np.empty([len(fs)]+3*[NN])
+
+    Vdptr = np.require(Vd, dtype=np.double, requirements=['C','A'])
+    fsptr = np.require(fs, dtype=np.double, requirements=['C','A'])
+    Fsptr = np.require(Fs, dtype=np.double, requirements=['C','A','W'])
+
+    lib.change_basis_3d_2(
+        len(fs), NN, Vdptr, fsptr, Fsptr
+    )
+
+    return Fsptr.reshape(Fs.shape)
+
+# =========================================================================== #
 # void
 # change_grid_space(
 #     const int nelems,
@@ -212,14 +259,22 @@ def change_grid_space(fs,xs,Xs):
 
     return Fsptr.reshape(Fs.shape)
 
-lib.change_grid_space_fv.argtypes = [
+# =========================================================================== #
+# void
+# change_grid_space_dg_fv(
+#     const int nelems,
+#     const int nx, const int ny, const int nz ,const double *xs, double *fss, 
+#     const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss,
+#     const int *fvs);
+
+lib.change_grid_space_dg_fv.argtypes = [
     t_int,
     t_int, t_int, t_int, t_ndouble, t_ndouble,
     t_int, t_int, t_int, t_ndouble, t_ndouble,
     t_nint
 ]
 
-def change_grid_space_fv(fs,xs,Xs,FV):
+def change_grid_space_dg_fv(fs,xs,Xs,FV):
     Fs = np.empty([len(fs), len(Xs), len(Xs), len(Xs)])
 
     xsptr = np.require(xs, dtype=np.double, requirements=['C','A'])
@@ -228,7 +283,7 @@ def change_grid_space_fv(fs,xs,Xs,FV):
     Fsptr = np.require(Fs, dtype=np.double, requirements=['C','A','W'])
     FVptr = np.require(FV, dtype=np.int32,  requirements=['C','A'])
 
-    lib.change_grid_space_fv(
+    lib.change_grid_space_dg_fv(
         len(fs),
         len(xs), len(xs), len(xs), xsptr, fsptr,
         len(Xs), len(Xs), len(Xs), Xsptr, Fsptr,
@@ -237,6 +292,38 @@ def change_grid_space_fv(fs,xs,Xs,FV):
 
     return Fsptr.reshape(Fs.shape)
 
+# =========================================================================== #
+# void
+# change_grid_space_fv_dg(
+#     const int nelems,
+#     const int nx, const int ny, const int nz ,const double *xs, double *fss, 
+#     const int Nx, const int Ny, const int Nz ,const double *Xs, double *Fss,
+#     const int *fvs);
+
+lib.change_grid_space_fv_dg.argtypes = [
+    t_int,
+    t_int, t_int, t_int, t_ndouble, t_ndouble,
+    t_int, t_int, t_int, t_ndouble, t_ndouble,
+    t_nint
+]
+
+def change_grid_space_fv_dg(fs,xs,Xs,FV):
+    Fs = np.empty([len(fs), len(Xs), len(Xs), len(Xs)])
+
+    xsptr = np.require(xs, dtype=np.double, requirements=['C','A'])
+    Xsptr = np.require(Xs, dtype=np.double, requirements=['C','A'])
+    fsptr = np.require(fs, dtype=np.double, requirements=['C','A'])
+    Fsptr = np.require(Fs, dtype=np.double, requirements=['C','A','W'])
+    FVptr = np.require(FV, dtype=np.int32,  requirements=['C','A'])
+
+    lib.change_grid_space_fv_dg(
+        len(fs),
+        len(xs), len(xs), len(xs), xsptr, fsptr,
+        len(Xs), len(Xs), len(Xs), Xsptr, Fsptr,
+        FVptr
+    )
+
+    return Fsptr.reshape(Fs.shape)
 
 # =========================================================================== #
 

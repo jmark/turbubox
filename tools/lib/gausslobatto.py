@@ -55,18 +55,24 @@ def MassMatrix(ws):
 
 # =========================================================================== #
 
-def LegendrePolynomialAndDerivative(N,x):
-    if N == 0: return (1,0)
-    if N == 1: return (x,1)
+def LegendrePolynomialAndDerivative(N,x,doNormalize=False):
+    if N == 0:
+        LN, LND = 1, 0
+    elif N == 1:
+        LN, LND = x, 1
+    else:
+        LN_2,  LN_1  = 1, x
+        LND_2, LND_1 = 0, 1
 
-    LN_2,LN_1,LN    = 1,x,None
-    LND_2,LND_1,LND = 0,1,None
+        for k in range(2,N+1):
+            LN           = (2*k-1)/k * x * LN_1 - (k-1)/k * LN_2
+            LND          = LND_2 + (2*k-1) * LN_1
+            LN_2,  LN_1  = LN_1,  LN
+            LND_2, LND_1 = LND_1, LND
 
-    for k in range(2,N+1):
-        LN    = (2*k-1)/k * x * LN_1 - (k-1)/k * LN_2
-        LND   = LND_2 + (2*k-1) * LN_1
-        LN_2,LN_1   = LN_1,LN
-        LND_2,LND_1 = LND_1,LND
+    if doNormalize:
+        LN  *= np.sqrt(N + 0.5)
+        LND *= np.sqrt(N + 0.5)
 
     return (LN,LND)
 
@@ -233,6 +239,14 @@ def mk_polynomial_interpolator(xs,Xs,npoly):
 
 # =========================================================================== #
 
+def mk_lagrange_vector(xs,x):
+    return np.array([LagrangePolynomial(xs,j,x) for j in range(len(xs))])
+
+def mk_vandermonde_matrix(xs,ys):
+    return np.array([mk_lagrange_vector(xs,x) for x in ys])
+
+# =========================================================================== #
+
 def mk_lagrange_interpolator_2d(xs,ys, Xs):
     def polyv(nodes,x):
         return np.array([LagrangePolynomial(nodes,j,x) for j in range(len(nodes))])
@@ -271,3 +285,13 @@ def mk_nodes(npoly, ntype='gauss'):
 
     nodes, _ = fun(npoly)
     return nodes
+
+def mk_nodes_from_to(x0,x1,npoly,ntype='gauss'):
+    return x0 + (x1-x0) * (mk_nodes(npoly,ntype)+1)/2
+
+def mk_LegendreVandermondeMatrix(xs,doNormalize=False):
+    return np.array([[
+                LegendrePolynomialAndDerivative(j,xs[i],doNormalize=doNormalize)[0]
+            for j in range(0,len(xs))
+        ] for i in range(0,len(xs))
+    ])

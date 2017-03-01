@@ -23,8 +23,7 @@ class File:
     def __init__(self, fpath, mesh, mode='r'):
         self.h5file = H5File(fpath, mode)
         self.data = self.h5file.get('DG_Solution')
-        self.mesh = mesh
-        self.hopr = mesh
+        self.mesh = self.hopr = mesh
         self.attr = self.h5file.get("/").attrs
         self.nodetype   = self.attr['NodeType'][0].decode('utf-8').lower()
         self.Npoly      = self.attr['N'][0]
@@ -69,12 +68,12 @@ class File:
             Nvisu = self.Nout
 
         elemData = self.h5file.get('ElemData')
-        FVs = elemData[:,2]
+        FVs = elemData[:,2].astype(np.int32)
     
         xs = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
         Xs = ulz.mk_body_centered_linspace(-1,1, Nvisu)
 
-        elems = interpolate.change_grid_space_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1),xs,Xs,FVs)
+        elems = interpolate.change_grid_space_dg_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1),xs,Xs,FVs)
         return interpolate.elements_to_box(elems, self.mesh)
 
         # return interpolate.elements_to_box_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1), self.mesh, box, fvs)
@@ -110,8 +109,29 @@ class File:
 
         retval = []
         for iVar in range(0,len(self.varnames)):
-            elems = interpolate.change_grid_space_fv(prims[iVar].transpose(0,3,2,1),xs,Xs,FVs)
+            elems = interpolate.change_grid_space_dg_fv(prims[iVar].transpose(0,3,2,1),xs,Xs,FVs)
             retval.append(interpolate.elements_to_box(elems, self.mesh))
+
+        return retval
+
+    def get_cons_dg(self, Nvisu=None):
+        if Nvisu is None:
+            Nvisu = self.Nout
+
+        elemData = self.h5file.get('ElemData')
+        FVs = elemData[:,2]
+    
+        xs = ulz.mk_body_centered_linspace(-1,1, Nvisu)
+        Xs = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
+
+        cons  = [self.data[:,:,:,:,i] for i in range(0,len(self.varnames))] 
+        #prims = ulz.navier_conservative_to_primitive(cons)
+
+        retval = []
+        for iVar in range(0,len(self.varnames)):
+            elems = interpolate.change_grid_space_fv_dg(cons[iVar].transpose(0,3,2,1),xs,Xs,FVs)
+            #retval.append(interpolate.elements_to_box(elems, self.mesh))
+            retval.append(elems)
 
         return retval
 

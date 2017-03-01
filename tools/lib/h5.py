@@ -1,7 +1,7 @@
-import h5py as h5
+import h5py
 import sys
 
-class H5File(h5.File):
+class H5File(h5py.File):
     def __init__(self,fpath,mode):
         try:
             super().__init__(fpath,mode)
@@ -31,3 +31,5 @@ class H5File(h5.File):
         dictionary
         """
         return dict([(k.strip().decode(),v) for (k,v) in dataset])
+
+File = H5File
