@@ -264,3 +264,8 @@ def mkincr(start=0,step=1):
     while True:
         yield pos
         pos += step
+
+def moving_avg_1d(data, n=3):
+    m = len(data)
+    tmp = data[:m - (m % n)].reshape(m//n,n)
+    return np.mean(tmp, axis=1)

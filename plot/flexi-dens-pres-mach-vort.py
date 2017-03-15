@@ -1,38 +1,51 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pyturbubox
 
-# stdlib
 import os
 import sys
 import numpy as np
-import multiprocessing as mpr
+import flexi, ulz # jmark
 
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import pyplot as plt
+## ========================================================================= ##
+## process commandline arguments
 
-matplotlib.rcParams.update({'font.size': 20})
+import argparse
 
-# jmark
-import flexi, ulz, dslopts
+pp = argparse.ArgumentParser(description = 'FLEXI Batch Plotter')
 
-SOLVER = 'DG'
-MACH = 2
+pp.add_argument(
+    '--dest',
+    help='path to store: <dir>/%%03d.png',
+    type=str, required=True,
+)
 
-def purge_negative(x):
-    x[x < 0] = 1e-5
+pp.add_argument('--title',type=str,)
+
+pp.add_argument(
+    'snapshots',
+    help='list of snapshot files',
+    type=str,nargs='*',
+)
+
+pp.add_argument('--parallel', help='parallel processing', action='store_true')
+
+args = pp.parse_args()
+
+## ========================================================================= ##
+## define tasks 
 
 def calc_data(srcfp):
     box = flexi.PeriodicBox(srcfp)
 
     time = box.time
-    c_s  = 1
+    c_s  = 1.
+    MACH = 8.
     turntime = time / (np.mean(box.domainsize) / c_s / MACH)
 
     #dens, velx, vely, velz, pres = box.get_prims()
     dens, velx, vely, velz, pres = box.get_prims_fv()
 
-    purge_negative(dens)
-    purge_negative(pres)
+    dens[dens < 0] = 1e-5
+    pres[pres < 0] = 1e-5
 
     fv = box.domainsize / np.array(dens.shape) # finite volume dimensions
 
@@ -63,7 +76,7 @@ def min_max(taskID, srcfp):
     data = calc_data(srcfp)
 
     result = [ 
-        data['time'], taskID,
+        taskID,data['time'], 
 
         np.min(data['cmach']),
         np.max(data['cmach']),
@@ -82,7 +95,11 @@ def min_max(taskID, srcfp):
     
     return result
 
-def mkplot(taskID, ntasks, srcfp, sinkfp, crange=None):
+def mkplot(taskID, srcfp):
+    import matplotlib
+    matplotlib.use('Agg')
+    matplotlib.rcParams.update({'font.size': 20})
+    from matplotlib import pyplot as plt
 
     data = calc_data(srcfp)
 
@@ -92,10 +109,12 @@ def mkplot(taskID, ntasks, srcfp, sinkfp, crange=None):
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
 
-    st = plt.suptitle(
-        "decayturb periodic box: DG | t_d = % 2.4f (frame: %03d/%03d)" % (turntime, taskID+1, ntasks),
-        fontsize='x-large')
-    st.set_y(1.01)
+    if args.title is None:
+        title = "dyntime: % 2.4f | frame: %03d/%03d" % (args.title, turntime, taskID+1, len(args.snapshots))
+    else:
+        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (args.title, turntime, taskID+1, len(args.snapshots))
+
+    plt.suptitle(title, fontsize='x-large').set_y(1.01)
 
     def plot(data, title, crange=None):
         subplt[2] += 1
@@ -117,22 +136,24 @@ def mkplot(taskID, ntasks, srcfp, sinkfp, crange=None):
 
     fig.tight_layout()
 
-    outfile = sinkfp % taskID
+    outfile = args.dest % taskID
     plt.savefig(outfile,bbox_inches='tight')
     plt.close()
 
     print(outfile, flush=True)
 
-with dslopts.Manager(scope=globals(), appendix="flashfiles can be defined after '--' or passed via stdin.") as mgr:
-    mgr.add('sinkfp',  'path to store: <dir>/%03d.png')
+## ========================================================================= ##
+## gather minimun and maximum values
 
-srcfiles = list(_ignored_)
-
-def task_minmax(x):
+def task(x):
     taskID, srcfp = x
     return min_max(taskID, srcfp)
 
-tmp = np.array(mpr.Pool().map(task_minmax,enumerate(srcfiles)))
+if args.parallel:
+    import multiprocessing as mp
+    tmp = np.array(mp.Pool().map(task,enumerate(args.snapshots)))
+else:
+    tmp = np.array([task(x) for x in enumerate(args.snapshots)])
 
 i = ulz.mkincr(start=2)
 
@@ -143,8 +164,15 @@ crange = {
     'cvort': (np.min(tmp[:,next(i)]), np.max(tmp[:,next(i)]))
 }
 
-def task_plot(x): 
-    taskID, srcfp = x
-    return mkplot(taskID, len(srcfiles), srcfp, sinkfp, crange)
+## ========================================================================= ##
+## do plotting
 
-mpr.Pool().map(task_plot,enumerate(srcfiles))
+def task(x): 
+    taskID, srcfp = x
+    return mkplot(taskID, srcfp)
+
+if args.parallel:
+    import multiprocessing as mpr
+    mpr.Pool().map(task,enumerate(args.snapshots))
+else:
+    [task(x) for x in enumerate(args.snapshots)]

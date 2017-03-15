@@ -1,8 +1,5 @@
 #!/bin/sh
 
-LIB_PATH="${1:?No path to the modules given!}" && shift
-
-# load CHEOPS modules only if we're on it.
 if hostname | grep -qE '^cheops'
 then
     module purge
@@ -11,5 +8,7 @@ then
     module load python/3.4.3    2> /dev/null
 fi
 
-export PYTHONPATH="$PYTHONPATH:$LIB_PATH"
-eval "$@"
+export TURBUBOX_ROOT="$HOME/turbubox"
+export PYTHONPATH="$PYTHONPATH:$TURBUBOX_ROOT/tools/bin:$TURBUBOX_ROOT/tools/lib"
+
+/usr/bin/env python3 "$@"
