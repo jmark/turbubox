@@ -4,6 +4,7 @@ import os
 import sys
 import numpy as np
 import flexi, ulz # jmark
+import pickle
 
 ## ========================================================================= ##
 ## process commandline arguments
@@ -21,6 +22,12 @@ pp.add_argument(
 pp.add_argument('--title',type=str,)
 
 pp.add_argument(
+    '--cachedir',
+    help='path to cache min max calculations',
+    type=str,
+)
+
+pp.add_argument(
     'snapshots',
     help='list of snapshot files',
     type=str,nargs='*',
@@ -28,12 +35,13 @@ pp.add_argument(
 
 pp.add_argument('--parallel', help='parallel processing', action='store_true')
 
-args = pp.parse_args()
+cmdargs = pp.parse_args()
 
 ## ========================================================================= ##
 ## define tasks 
 
 def calc_data(srcfp):
+
     box = flexi.PeriodicBox(srcfp)
 
     time = box.time
@@ -73,6 +81,7 @@ def calc_data(srcfp):
     }
 
 def min_max(taskID, srcfp):
+
     data = calc_data(srcfp)
 
     result = [ 
@@ -109,10 +118,10 @@ def mkplot(taskID, srcfp):
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
 
-    if args.title is None:
-        title = "dyntime: % 2.4f | frame: %03d/%03d" % (args.title, turntime, taskID+1, len(args.snapshots))
+    if cmdargs.title is None:
+        title = "dyntime: % 2.4f | frame: %03d/%03d" % (cmdargs.title, turntime, taskID+1, len(cmdargs.snapshots))
     else:
-        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (args.title, turntime, taskID+1, len(args.snapshots))
+        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (cmdargs.title, turntime, taskID+1, len(cmdargs.snapshots))
 
     plt.suptitle(title, fontsize='x-large').set_y(1.01)
 
@@ -136,25 +145,48 @@ def mkplot(taskID, srcfp):
 
     fig.tight_layout()
 
-    outfile = args.dest % taskID
-    plt.savefig(outfile,bbox_inches='tight')
+    plotfp = cmdargs.dest % taskID
+    plt.savefig(plotfp,bbox_inches='tight')
+    print(plotfp, flush=True)
+
     plt.close()
 
-    print(outfile, flush=True)
+## ========================================================================= ##
+## activate caching
+
+if cmdargs.cachedir:
+    class mask: pass
+
+    mask.calc_data = calc_data
+    def calc_data(srcfp):
+        cachefp = cmdargs.cachedir + '/' + srcfp + '.cdata.cache.pickle'
+        return ulz.cache(srcfp, cachefp, mask.calc_data, srcfp)
+
+    mask.min_max = min_max
+    def min_max(taskID, srcfp):
+        cachefp = cmdargs.cachedir + '/' + srcfp + '.minmax.cache.pickle'
+        return ulz.cache(srcfp, cachefp, mask.min_max, taskID, srcfp)
+
+    mask.mkplot = mkplot
+    def mkplot(taskID, srcfp):
+        plotfp = cmdargs.dest % taskID
+        if os.path.exists(plotfp) and os.path.getmtime(plotfp) > os.path.getmtime(srcfp):
+            return
+        return mask.mkplot(taskID, srcfp)
 
 ## ========================================================================= ##
 ## gather minimun and maximum values
 
-def task(x):
-    taskID, srcfp = x
-    return min_max(taskID, srcfp)
+def task(args):
+    return min_max(*args)
 
-if args.parallel:
+if cmdargs.parallel:
     import multiprocessing as mp
-    tmp = np.array(mp.Pool().map(task,enumerate(args.snapshots)))
+    tmp = mp.Pool().map(task,enumerate(cmdargs.snapshots))
 else:
-    tmp = np.array([task(x) for x in enumerate(args.snapshots)])
+    tmp = [task(x) for x in enumerate(cmdargs.snapshots)]
 
+tmp = np.array(tmp)
 i = ulz.mkincr(start=2)
 
 crange = {
@@ -167,12 +199,11 @@ crange = {
 ## ========================================================================= ##
 ## do plotting
 
-def task(x): 
-    taskID, srcfp = x
-    return mkplot(taskID, srcfp)
+def task(args):
+    return mkplot(*args)
 
-if args.parallel:
+if cmdargs.parallel:
     import multiprocessing as mpr
-    mpr.Pool().map(task,enumerate(args.snapshots))
+    mpr.Pool().map(task,enumerate(cmdargs.snapshots))
 else:
-    [task(x) for x in enumerate(args.snapshots)]
+    [task(x) for x in enumerate(cmdargs.snapshots)]

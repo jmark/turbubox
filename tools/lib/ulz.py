@@ -269,3 +269,20 @@ def moving_avg_1d(data, n=3):
     m = len(data)
     tmp = data[:m - (m % n)].reshape(m//n,n)
     return np.mean(tmp, axis=1)
+
+
+## ========================================================================= ##
+## caching and testing routines 
+
+def cache(srcfp, cachefp, task, *args):
+    import pickle
+    if os.path.exists(cachefp) \
+        and os.path.getmtime(cachefp) > os.path.getmtime(srcfp):
+        with open(cachefp, "rb") as fh:
+            result = pickle.load(fh)
+    else:
+        result = task(*args)
+        with open(cachefp, "wb") as fh:
+            pickle.dump(result, fh)
+
+    return result
