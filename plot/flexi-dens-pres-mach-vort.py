@@ -14,7 +14,7 @@ import argparse
 pp = argparse.ArgumentParser(description = 'FLEXI Batch Plotter')
 
 pp.add_argument(
-    '--dest',
+    '--destdir',
     help='path to store: <dir>/%%03d.png',
     type=str, required=True,
 )
@@ -145,7 +145,7 @@ def mkplot(taskID, srcfp):
 
     fig.tight_layout()
 
-    plotfp = cmdargs.dest % taskID
+    plotfp = cmdargs.destdir + '/' + srcfp + '.png' 
     plt.savefig(plotfp,bbox_inches='tight')
     print(plotfp, flush=True)
 
@@ -169,7 +169,7 @@ if cmdargs.cachedir:
 
     mask.mkplot = mkplot
     def mkplot(taskID, srcfp):
-        plotfp = cmdargs.dest % taskID
+        plotfp = cmdargs.destdir + '/' + srcfp + '.png' 
         if os.path.exists(plotfp) and os.path.getmtime(plotfp) > os.path.getmtime(srcfp):
             return
         return mask.mkplot(taskID, srcfp)
