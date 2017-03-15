@@ -28,6 +28,12 @@ pp.add_argument(
 )
 
 pp.add_argument(
+    '--max_nprocs',
+    help='maximum number of parallel processes',
+    type=int,
+)
+
+pp.add_argument(
     'snapshots',
     help='list of snapshot files',
     type=str,nargs='*',
@@ -182,7 +188,7 @@ def task(args):
 
 if cmdargs.parallel:
     import multiprocessing as mp
-    tmp = mp.Pool().map(task,enumerate(cmdargs.snapshots))
+    tmp = mp.Pool(cmdargs.max_nprocs).map(task,enumerate(cmdargs.snapshots))
 else:
     tmp = [task(x) for x in enumerate(cmdargs.snapshots)]
 
@@ -204,6 +210,6 @@ def task(args):
 
 if cmdargs.parallel:
     import multiprocessing as mpr
-    mpr.Pool().map(task,enumerate(cmdargs.snapshots))
+    mpr.Pool(cmdargs.max_nprocs).map(task,enumerate(cmdargs.snapshots))
 else:
     [task(x) for x in enumerate(cmdargs.snapshots)]
