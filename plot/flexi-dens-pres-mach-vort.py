@@ -42,6 +42,12 @@ pp.add_argument(
 )
 
 pp.add_argument(
+    '--gather_min_max',
+    help='flag to gather min max values beforehand',
+    action='store_true',
+)
+
+pp.add_argument(
     'snapshots',
     help='list of snapshot files',
     type=str,nargs='*',
@@ -173,25 +179,28 @@ if cmdargs.cachedir:
 ## ========================================================================= ##
 ## gather minimun and maximum values
 
-def task(args):
-    return min_max(*args)
+crange = None
 
-if cmdargs.parallel >= 0:
-    import multiprocessing as mp
-    nprocs = None if cmdargs.parallel == 0 else cmdargs.parallel
-    tmp = mp.Pool(nprocs).map(task,enumerate(cmdargs.snapshots))
-else:
-    tmp = [task(x) for x in enumerate(cmdargs.snapshots)]
+if cmdargs.gather_min_max:
+    def task(args):
+        return min_max(*args)
 
-def sanitize(dname, i):
-    return [x for x in (X[dname][i] for X in tmp) if not (np.isnan(x) or np.isinf(x))]
+    if cmdargs.parallel >= 0:
+        import multiprocessing as mp
+        nprocs = None if cmdargs.parallel == 0 else cmdargs.parallel
+        tmp = mp.Pool(nprocs).map(task,enumerate(cmdargs.snapshots))
+    else:
+        tmp = [task(x) for x in enumerate(cmdargs.snapshots)]
 
-crange = {
-    'cmach': ( np.min(sanitize('cmach',0)), np.max(sanitize('cmach',1)) ),
-    'cdens': ( np.min(sanitize('cdens',0)), np.max(sanitize('cdens',1)) ),
-    'cpres': ( np.min(sanitize('cpres',0)), np.max(sanitize('cpres',1)) ),
-    'cvort': ( np.min(sanitize('cvort',0)), np.max(sanitize('cvort',1)) ),
-}
+    def sanitize(dname, i):
+        return [x for x in (X[dname][i] for X in tmp) if not (np.isnan(x) or np.isinf(x))]
+
+    crange = {
+        'cmach': ( np.min(sanitize('cmach',0)), np.max(sanitize('cmach',1)) ),
+        'cdens': ( np.min(sanitize('cdens',0)), np.max(sanitize('cdens',1)) ),
+        'cpres': ( np.min(sanitize('cpres',0)), np.max(sanitize('cpres',1)) ),
+        'cvort': ( np.min(sanitize('cvort',0)), np.max(sanitize('cvort',1)) ),
+    }
 
 ## ========================================================================= ##
 ## do plotting
