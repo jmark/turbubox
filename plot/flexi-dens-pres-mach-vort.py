@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import flexi, ulz # jmark
 import pickle
+from collections import namedtuple
 
 ## ========================================================================= ##
 ## process commandline arguments
@@ -58,6 +59,10 @@ cmdargs = pp.parse_args()
 ## ========================================================================= ##
 ## define tasks 
 
+# interfaces used over subroutines below
+Data   = namedtuple('Data', 'taskID time dyntime cmach cdens cpres cvort')
+CRange = namedtuple('CRange', 'cmach cdens cpres cvort')
+
 def calc_data(srcfp):
     box = flexi.PeriodicBox(srcfp)
 
@@ -78,31 +83,32 @@ def calc_data(srcfp):
     cpres = np.log10(np.nanmean(pres,axis=ax))
     cvort = np.log10(np.nanmean(vort,axis=ax))
 
-    return {
-        'time':     box.time,
-        'dyntime':  box.time / cmdargs.crosstime,
-        'cmach':    cmach,
-        'cdens':    cdens,
-        'cpres':    cpres,
-        'cvort':    cvort
-    }
+    return Data(
+        taskID   = -1,
+        time     = box.time,
+        dyntime  = box.time / cmdargs.crosstime,
+        cmach    = cmach,
+        cdens    = cdens,
+        cpres    = cpres,
+        cvort    = cvort
+    )
 
 def min_max(taskID, srcfp):
     data = calc_data(srcfp)
 
-    result = {
-        'taskID': taskID, 'time': data['time'], 
-        'cmach': (np.min(data['cmach']), np.max(data['cmach'])),
-        'cdens': (np.min(data['cdens']), np.max(data['cdens'])),
-        'cpres': (np.min(data['cpres']), np.max(data['cpres'])),
-        'cvort': (np.min(data['cvort']), np.max(data['cvort'])),
-    }
+    result = Data(
+        taskID = taskID, time = data.time, dyntime = data.dyntime,
+        cmach  = ( np.min(data.cmach), np.max(data.cmach) ),
+        cdens  = ( np.min(data.cdens), np.max(data.cdens) ),
+        cpres  = ( np.min(data.cpres), np.max(data.cpres) ),
+        cvort  = ( np.min(data.cvort), np.max(data.cvort) ),
+    )
 
-    print(ulz.flatten_dict(result), flush=True)
+    print(ulz.flatten_dict(result._asdict()), flush=True)
     
     return result
 
-def mkplot(taskID, srcfp):
+def mkplot(taskID, srcfp, crange):
     import matplotlib
     matplotlib.use('Agg')
     matplotlib.rcParams.update({'font.size': 20})
@@ -110,40 +116,36 @@ def mkplot(taskID, srcfp):
 
     data = calc_data(srcfp)
 
-    time = data['time']
-    dyntime = data['dyntime']
-
     subplt = [2,2,0]
     fig = plt.figure(figsize=(20, 18))
 
     if cmdargs.title is None:
-        title = "dyntime: % 2.4f | frame: %03d/%03d" % (dyntime, taskID+1, len(cmdargs.snapshots))
+        title = "dyntime: % 2.4f | frame: %03d/%03d" % (data.dyntime, taskID+1, len(cmdargs.snapshots))
     else:
-        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (cmdargs.title, dyntime, taskID+1, len(cmdargs.snapshots))
+        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (cmdargs.title, data.dyntime, taskID+1, len(cmdargs.snapshots))
 
     plt.suptitle(title, fontsize='x-large').set_y(1.01)
 
-    def plot(dname, title):
+    def plot(data, crange, title):
         subplt[2] += 1
         ax = fig.add_subplot(*subplt)
         ax.set_title(title)
         ax.set_xlabel('x index')
         ax.set_ylabel('y index')
 
-        p = {
-            'cmap': plt.get_cmap('cubehelix'),
-            'vmin': crange[dname][0] if crange is not None else None, # 'crange' is defined further below
-            'vmax': crange[dname][1] if crange is not None else None,
-            'interpolation': 'none',
-        }
+        img = ax.imshow(data,
+            vmin = crange[0],
+            vmax = crange[1],
+            interpolation = 'none',
+            cmap = plt.get_cmap('cubehelix'),
+        )
 
-        img = ax.imshow(data[dname], **p)
         plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
 
-    plot('cmach', 'column mach number (log10)')
-    plot('cdens', 'column density (log10)')
-    plot('cpres', 'column pressure (log10)')
-    plot('cvort', 'column vorticity (log10)')
+    plot(data.cmach, crange.cmach, title='column mach number (log10)')
+    plot(data.cdens, crange.cdens, title='column density (log10)')
+    plot(data.cpres, crange.cpres, title='column pressure (log10)')
+    plot(data.cvort, crange.cvort, title='column vorticity (log10)')
 
     fig.tight_layout()
 
@@ -170,47 +172,45 @@ if cmdargs.cachedir:
         return ulz.cache(srcfp, cachefp, mask.min_max, taskID, srcfp)
 
     mask.mkplot = mkplot
-    def mkplot(taskID, srcfp):
+    def mkplot(taskID, srcfp, crange):
         plotfp = cmdargs.destdir + '/' + srcfp + '.png' 
         if os.path.exists(plotfp) and os.path.getmtime(plotfp) > os.path.getmtime(srcfp):
             return
-        return mask.mkplot(taskID, srcfp)
+        return mask.mkplot(taskID, srcfp, crange)
 
 ## ========================================================================= ##
 ## gather minimun and maximum values
 
-crange = None
+crange = CRange(cmach=(None,None), cdens=(None,None), cpres=(None,None), cvort=(None,None))
 
 if cmdargs.gather_min_max:
-    def task(args):
-        return min_max(*args)
-
     if cmdargs.parallel >= 0:
         import multiprocessing as mp
+        def task(args):
+            return min_max(*args)
         nprocs = None if cmdargs.parallel == 0 else cmdargs.parallel
         tmp = mp.Pool(nprocs).map(task,enumerate(cmdargs.snapshots))
     else:
-        tmp = [task(x) for x in enumerate(cmdargs.snapshots)]
+        tmp = [min_max(i,x) for i,x in enumerate(cmdargs.snapshots)]
 
     def sanitize(dname, i):
-        return [x for x in (X[dname][i] for X in tmp) if not (np.isnan(x) or np.isinf(x))]
+        return [x for x in (getattr(X,dname)[i] for X in tmp) if not np.isnan(x) or np.isinf(x)]
 
-    crange = {
-        'cmach': ( np.min(sanitize('cmach',0)), np.max(sanitize('cmach',1)) ),
-        'cdens': ( np.min(sanitize('cdens',0)), np.max(sanitize('cdens',1)) ),
-        'cpres': ( np.min(sanitize('cpres',0)), np.max(sanitize('cpres',1)) ),
-        'cvort': ( np.min(sanitize('cvort',0)), np.max(sanitize('cvort',1)) ),
-    }
+    crange = CRange(
+        cmach = ( np.min(sanitize('cmach',0)), np.max(sanitize('cmach',1)) ),
+        cdens = ( np.min(sanitize('cdens',0)), np.max(sanitize('cdens',1)) ),
+        cpres = ( np.min(sanitize('cpres',0)), np.max(sanitize('cpres',1)) ),
+        cvort = ( np.min(sanitize('cvort',0)), np.max(sanitize('cvort',1)) ),
+    )
 
 ## ========================================================================= ##
 ## do plotting
 
-def task(args):
-    return mkplot(*args)
-
 if cmdargs.parallel >= 0:
     import multiprocessing as mpr
+    def task(args):
+        return mkplot(args[0], args[1], crange)
     nprocs = None if cmdargs.parallel == 0 else cmdargs.parallel
     mpr.Pool(nprocs).map(task,enumerate(cmdargs.snapshots))
 else:
-    [task(x) for x in enumerate(cmdargs.snapshots)]
+    [mkplot(i,x,crange) for i,x in enumerate(cmdargs.snapshots)]
