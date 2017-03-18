@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import periodicbox, ulz # jmark
 import pickle
+from pathlib import PurePath
 from collections import namedtuple
 
 ## ========================================================================= ##
@@ -17,7 +18,7 @@ pp = argparse.ArgumentParser(description = 'FLEXI Batch Plotter')
 pp.add_argument(
     '--destdir',
     help='path to store: <dir>/%%03d.png',
-    type=str, required=True,
+    type=PurePath, required=True,
 )
 
 pp.add_argument('--title',type=str,)
@@ -25,7 +26,7 @@ pp.add_argument('--title',type=str,)
 pp.add_argument(
     '--cachedir',
     help='path to cache min max calculations',
-    type=str,
+    type=PurePath,
 )
 
 pp.add_argument(
@@ -57,7 +58,7 @@ pp.add_argument(
 pp.add_argument(
     'snapshots',
     help='list of snapshot files',
-    type=str,nargs='*',
+    type=PurePath,nargs='*',
 )
 
 cmdargs = pp.parse_args()
@@ -70,7 +71,7 @@ Data   = namedtuple('Data', 'taskID time dyntime cmach cdens cpres cvort')
 CRange = namedtuple('CRange', 'cmach cdens cpres cvort')
 
 def calc_data(srcfp):
-    box = periodicbox.File(srcfp, mode='r')
+    box = periodicbox.File(srcfp.as_posix(), mode='r')
 
     dens, velx, vely, velz, pres = box.get_prims()
 
@@ -157,7 +158,7 @@ def mkplot(taskID, srcfp, crange):
 
     fig.tight_layout()
 
-    plotfp = cmdargs.destdir + '/' + srcfp + '.png' 
+    plotfp = ( cmdargs.destdir / srcfp.with_suffix('.png').name ).as_posix()
     plt.savefig(plotfp,bbox_inches='tight')
     print(plotfp, flush=True)
 
@@ -171,17 +172,17 @@ if cmdargs.cachedir:
 
     mask.calc_data = calc_data
     def calc_data(srcfp):
-        cachefp = cmdargs.cachedir + '/' + srcfp + '.cdata.cache.pickle'
+        cachefp = cmdargs.cachedir / srcfp.with_suffix('.cdata.cache.pickle').name
         return ulz.cache(srcfp, cachefp, mask.calc_data, srcfp)
 
     mask.min_max = min_max
     def min_max(taskID, srcfp):
-        cachefp = cmdargs.cachedir + '/' + srcfp + '.minmax.cache.pickle'
+        cachefp = cmdargs.cachedir / srcfp.with_suffix('.minmax.cache.pickle').name
         return ulz.cache(srcfp, cachefp, mask.min_max, taskID, srcfp)
 
     mask.mkplot = mkplot
     def mkplot(taskID, srcfp, crange):
-        plotfp = cmdargs.destdir + '/' + srcfp + '.png' 
+        plotfp = cmdargs.destdir / srcfp.with_suffix('.png').name
         if os.path.exists(plotfp) and os.path.getmtime(plotfp) > os.path.getmtime(srcfp):
             return
         return mask.mkplot(taskID, srcfp, crange)

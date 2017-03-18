@@ -29,7 +29,7 @@ SOLVERUNIT['b5']='--with-unit=physics/Hydro/HydroMain/split/Bouchut5'
 SOLVERUNIT['es']='--with-unit=physics/Hydro/HydroMain/split/ES'
 
 # mask python3 default installation
-if expr "$(hostname)" : '^jmark' > /dev/null
+if hostname | grep -qE '^jmark'
 then
     TMPDIR=$(mktemp -d)
     trap "rm -r $TMPDIR" EXIT
@@ -37,9 +37,7 @@ then
     export PATH="/$TMPDIR:$PATH"
 fi
 
-#-portable 
-
-eval ./setup "$SIMULATIO"\
+./setup "$SIMULATIO"\
     -3d -auto -opt \
 	-nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -nzb=$BLOCKSIZE -maxblocks=$MAXBLOCKS \
 	-site="$SITEDIR" -objdir="$OBJDIR" ${SOLVERUNIT[$SOLVER]} \
