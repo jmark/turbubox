@@ -183,7 +183,8 @@ if cmdargs.cachedir:
     mask.mkplot = mkplot
     def mkplot(taskID, srcfp, crange):
         plotfp = cmdargs.destdir / srcfp.with_suffix('.png').name
-        if os.path.exists(plotfp) and os.path.getmtime(plotfp) > os.path.getmtime(srcfp):
+        if os.path.exists(plotfp.as_posix()) \
+            and os.path.getmtime(plotfp.as_posix()) > os.path.getmtime(srcfp.as_posix()):
             return
         return mask.mkplot(taskID, srcfp, crange)
 
