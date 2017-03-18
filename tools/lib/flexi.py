@@ -6,19 +6,6 @@ import gausslobatto
 import hopr
 import os
 
-def PeriodicBox(srcfp, meshfp=None, mode='r'):
-    if meshfp is None:
-        h5file = H5File(srcfp, 'r')
-        meshfp = h5file.attrs['MeshFile'][0].decode('utf-8')
-        h5file.close()
-        oldcwd = os.path.realpath(os.curdir)
-        #print(os.path.dirname(os.path.realpath(srcfp)))
-        os.chdir(os.path.dirname(os.path.realpath(srcfp)))
-        meshfp = os.path.realpath(meshfp)
-        os.chdir(oldcwd)
-
-    return File(srcfp, hopr.CartesianMeshFile(meshfp), mode)
-
 class File:
     def __init__(self, fpath, mesh, mode='r'):
         self.h5file = H5File(fpath, mode)
@@ -84,17 +71,17 @@ class File:
     def flexi_to_box(self, iVar, Nvisu=None):
         return self.as_box(iVar, Nvisu)
 
+    # def get_cons(self, Nvisu=None):
+    #     return [self.flexi_to_box(i, Nvisu) for i in range(0,len(self.varnames))]
+
+    # def get_prims(self, Nvisu=None):
+    #     cons = [self.as_box(i, Nvisu) for i in range(0,len(self.varnames))]
+    #     return ulz.navier_conservative_to_primitive(cons)
+
     def get_cons(self, Nvisu=None):
-        return [self.flexi_to_box(i, Nvisu) for i in range(0,len(self.varnames))]
-
-    def get_prims(self, Nvisu=None):
-        cons = [self.as_box(i, Nvisu) for i in range(0,len(self.varnames))]
-        return ulz.navier_conservative_to_primitive(cons)
-
-    def get_cons_fv(self, Nvisu=None):
         return [self.as_box_fv(i, Nvisu) for i in range(0,len(self.varnames))]
 
-    def get_prims_fv(self, Nvisu=None):
+    def get_prims(self, Nvisu=None):
         if Nvisu is None:
             Nvisu = self.Nout
 

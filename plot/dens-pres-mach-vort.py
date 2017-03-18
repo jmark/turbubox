@@ -3,7 +3,7 @@
 import os
 import sys
 import numpy as np
-import flexi, ulz # jmark
+import periodicbox, ulz # jmark
 import pickle
 from collections import namedtuple
 
@@ -70,10 +70,9 @@ Data   = namedtuple('Data', 'taskID time dyntime cmach cdens cpres cvort')
 CRange = namedtuple('CRange', 'cmach cdens cpres cvort')
 
 def calc_data(srcfp):
-    box = flexi.PeriodicBox(srcfp)
+    box = periodicbox.File(srcfp, mode='r')
 
-    #dens, velx, vely, velz, pres = box.get_prims()
-    dens, velx, vely, velz, pres = box.get_prims_fv()
+    dens, velx, vely, velz, pres = box.get_prims()
 
     dens[dens < 0] = 1e-5
     pres[pres < 0] = 1e-5

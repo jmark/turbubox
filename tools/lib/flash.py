@@ -1,11 +1,11 @@
-from h5 import H5File
+import h5
 import numpy as np
 import sys
 import ulz
 
 class File:
     def __init__(self,fpath, mode='r'):
-        self.h5file = H5File(fpath, mode)
+        self.h5file = h5.File(fpath, mode)
 
         # transform meta information to python data types
         self.siminfo        = self.get('sim info')
@@ -13,10 +13,10 @@ class File:
         self.refine_levels  = self.get('refine level')
         self.maxrefinelevel = self.refine_levels.max()
 
-        self.integerscalars = H5File.dataset_to_dict(self.get('integer scalars'))
-        self.realscalars    = H5File.dataset_to_dict(self.get('real scalars'))
-        self.integerruntime = H5File.dataset_to_dict(self.get('integer runtime parameters'))
-        self.realruntime    = H5File.dataset_to_dict(self.get('real runtime parameters'))
+        self.integerscalars = h5.dataset_to_dict(self.get('integer scalars'))
+        self.realscalars    = h5.dataset_to_dict(self.get('real scalars'))
+        self.integerruntime = h5.dataset_to_dict(self.get('integer runtime parameters'))
+        self.realruntime    = h5.dataset_to_dict(self.get('real runtime parameters'))
 
         self.is_multilevel  = any(filter(lambda x: x > 1, self.refine_levels))
 
@@ -47,6 +47,8 @@ class File:
         self.params['dt']    = self.realscalars['dt']
         self.params['gamma'] = self.realruntime['gamma']
         self.params['kappa'] = self.realruntime['gamma'] # synonym
+
+        self.time = self.params['time']
 
     def close(self):
         self.h5file.close()
@@ -96,6 +98,9 @@ class File:
     def get_prims(self):
         return [self.get_data(dname) for dname in 'dens velx vely velz pres'.split()]
 
+    def get_cons(self, gamma=5./3.):
+         return ulz.navier_primitive_to_conservative(self.get_prims(), gamma)
+
     def set_data(self, dname, box):
         if self.is_multilevel:
             raise NotImplementedError('Setting data for multilevel grids (AMR) is not supported yet!')
@@ -129,7 +134,7 @@ class File:
 
     def to_hdf(self,fpath): # WIP!
 
-        outfile = H5File(fpath,'w')
+        outfile = h5.File(fpath,'w')
 
         outfile.create_dataset("DIMS", data=self.meta['grid size'])
         outfile.create_dataset("CELL VOL", data=self.meta['cell size'])
