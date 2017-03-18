@@ -178,7 +178,7 @@ if cmdargs.cachedir:
     mask.min_max = min_max
     def min_max(taskID, srcfp):
         cachefp = cmdargs.cachedir / srcfp.with_suffix('.minmax.cache.pickle').name
-        return ulz.cache(srcfp, cachefp, mask.min_max, taskID, srcfp)
+        return ulz.cache(srcfp, cachefp.as_posix(), mask.min_max, taskID, srcfp)
 
     mask.mkplot = mkplot
     def mkplot(taskID, srcfp, crange):
