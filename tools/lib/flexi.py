@@ -1,4 +1,4 @@
-from h5 import H5File
+import h5
 import numpy as np
 import ulz
 import interpolate
@@ -8,10 +8,10 @@ import os
 
 class File:
     def __init__(self, fpath, mesh, mode='r'):
-        self.h5file = H5File(fpath, mode)
-        self.data = self.h5file.get('DG_Solution')
-        self.mesh = self.hopr = mesh
-        self.attr = self.h5file.get("/").attrs
+        self.h5file     = h5.File(fpath, mode)
+        self.data       = self.h5file.get('DG_Solution')
+        self.mesh       = self.hopr = mesh
+        self.attr       = self.h5file.get("/").attrs
         self.nodetype   = self.attr['NodeType'][0].decode('utf-8').lower()
         self.Npoly      = self.attr['N'][0]
         self.Nout       = len(self.data[0,:,0,0,0])

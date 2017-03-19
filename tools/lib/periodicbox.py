@@ -14,20 +14,20 @@ probes.append(probe_flash)
 
 # special handler for FLEXI which assumes special case
 # of periodic box
-def FlexiPeriodicBox(srcfp, meshfp=None, mode='r'):
+def FlexiPeriodicBox(flexfp, meshfp=None, mode='r'):
     import os
     import hopr
-    if meshfp is None:
-        h5file = h5.File(srcfp, 'r')
-        meshfp = h5file.attrs['MeshFile'][0].decode('utf-8')
-        h5file.close()
-        oldcwd = os.path.realpath(os.curdir)
-        #print(os.path.dirname(os.path.realpath(srcfp)))
-        os.chdir(os.path.dirname(os.path.realpath(srcfp)))
-        meshfp = os.path.realpath(meshfp)
-        os.chdir(oldcwd)
+    import pathlib as pl
 
-    return flexi.File(srcfp, hopr.CartesianMeshFile(meshfp), mode)
+    flexfp = pl.Path(flexfp)
+
+    if meshfp is None:
+        with h5.File(flexfp, mode='r') as fh:
+            meshfp = flexfp.parent / pl.Path(fh.attrs['MeshFile'][0].decode('utf-8'))
+    else:
+        meshfp = pathlib.Path(meshfp)
+
+    return flexi.File(flexfp, hopr.CartesianMeshFile(meshfp), mode)
 
 def probe_flexi(h5file):
     if 'Program' in h5file.attrs.keys():
@@ -47,9 +47,8 @@ def File(fpath, mode='r'):
     """Universal routine to probe the file type via introspection
     and calling the appropiate module on it."""
 
-    h5file = h5.File(fpath, mode='r')
-    handler = apply_probes(h5file) 
-    h5file.close()
+    with h5.File(fpath, mode='r') as fh:
+        handler = apply_probes(fh) 
 
     if handler:
         return handler(fpath, mode=mode)

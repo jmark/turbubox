@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import periodicbox, ulz # jmark
 import pickle
-from pathlib import PurePath
+import pathlib as pl
 from collections import namedtuple
 
 ## ========================================================================= ##
@@ -18,7 +18,7 @@ pp = argparse.ArgumentParser(description = 'FLEXI Batch Plotter')
 pp.add_argument(
     '--destdir',
     help='path to store: <dir>/%%03d.png',
-    type=PurePath, required=True,
+    type=pl.Path, required=True,
 )
 
 pp.add_argument('--title',type=str,)
@@ -26,7 +26,7 @@ pp.add_argument('--title',type=str,)
 pp.add_argument(
     '--cachedir',
     help='path to cache min max calculations',
-    type=PurePath,
+    type=pl.Path,
 )
 
 pp.add_argument(
@@ -58,7 +58,7 @@ pp.add_argument(
 pp.add_argument(
     'snapshots',
     help='list of snapshot files',
-    type=PurePath,nargs='*',
+    type=pl.Path,nargs='*',
 )
 
 cmdargs = pp.parse_args()
@@ -183,8 +183,7 @@ if cmdargs.cachedir:
     mask.mkplot = mkplot
     def mkplot(taskID, srcfp, crange):
         plotfp = cmdargs.destdir / srcfp.with_suffix('.png').name
-        if os.path.exists(plotfp.as_posix()) \
-            and os.path.getmtime(plotfp.as_posix()) > os.path.getmtime(srcfp.as_posix()):
+        if plotfp.exists() and plotfp.stat().st_mtime > srcfp.stat().st_mtime:
             return
         return mask.mkplot(taskID, srcfp, crange)
 

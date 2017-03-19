@@ -51,7 +51,6 @@ def turntime(key):
     elif 'cgs' in key:
         return 4.385e+14
 
-
 def sort_unstructured_grid(ugrid, udata, doReshape=True):
     ndim = ugrid.shape[-1]
     tdat = ugrid.dtype
@@ -275,15 +274,19 @@ def moving_avg_1d(data, n=3):
 ## caching and testing routines 
 
 def cache(srcfp, cachefp, task, *args):
-    import pickle
-    if os.path.exists(cachefp) \
-        and os.path.getmtime(cachefp) > os.path.getmtime(srcfp):
-        with open(cachefp, "rb") as fh:
-            result = pickle.load(fh)
+    import pickle as pk
+    import pathlib as pl
+
+    srcfp   = pl.Path(srcfp)
+    cachefp = pl.Path(cachefp)
+
+    if cachefp.exists() and cachefp.stat().st_mtime > srcfp.stat().st_mtime:
+        with cachefp.open(mode='rb') as fh:
+            result = pk.load(fh)
     else:
         result = task(*args)
-        with open(cachefp, "wb") as fh:
-            pickle.dump(result, fh)
+        with cachefp.open(mode='wb') as fh:
+            pk.dump(result, fh)
 
     return result
 
