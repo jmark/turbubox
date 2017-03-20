@@ -56,6 +56,11 @@ pp.add_argument(
 )
 
 pp.add_argument(
+    '--crange',
+    help='color range in the format "cdens = (-1,1), cmach = (-2,2)"',
+)
+
+pp.add_argument(
     'snapshots',
     help='list of snapshot files',
     type=pl.Path,nargs='*',
@@ -188,9 +193,18 @@ if cmdargs.cachedir:
         return mask.mkplot(taskID, srcfp, crange)
 
 ## ========================================================================= ##
-## gather minimun and maximum values
+## set color range defaults
 
-crange = CRange(cmach=(None,None), cdens=(None,None), cpres=(None,None), cvort=(None,None))
+crange = dict(cmach=(None,None), cdens=(None,None), cpres=(None,None), cvort=(None,None))
+
+if cmdargs.crange:
+    # DANGER: using 'eval' on tainted data poses a security risk
+    crange.update(eval('dict(%s)' % cmdargs.crange))
+
+crange = CRange(**crange)
+
+## ========================================================================= ##
+## gather minimun and maximum values
 
 if cmdargs.gather_min_max:
     if cmdargs.parallel >= 0:
