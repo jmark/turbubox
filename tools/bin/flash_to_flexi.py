@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pyturbubox
+
+# This script is a mess and needs clean up. But it kinda works, so...
 
 import time
 import flash
@@ -7,6 +9,7 @@ import flexi
 import gausslobatto
 import scipy.interpolate
 from scipy import ndimage
+import periodicbox
 import numpy as np
 import sys
 import ulz
@@ -271,7 +274,7 @@ def lagrange_3d_5th_order3():
         mgr.add(name='flexifile' ,desc='flexi file path' ,type=ExistingPath)
         mgr.add(name='method'    ,desc='method nr: 0-4'  ,type=ConstrainedInt, default=3)
 
-    flx = flexi.PeriodicBox(str(flexifile), mode='r+')
+    flx = periodicbox.File(str(flexifile), mode='r+')
 
     if isinstance(flashfile, pathlib.Path):
         fls = flash.File(str(flashfile))
@@ -282,11 +285,12 @@ def lagrange_3d_5th_order3():
     import scipy.ndimage
 
     def zoom(src):
-        factor = 0.5
+        #factor = 0.5
+        factor = 396 / 256
         return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
 
     def scale(src):
-        factor = 10.0
+        factor = 1.0
         return factor * src
 
     # interpolate
@@ -298,7 +302,7 @@ def lagrange_3d_5th_order3():
     #for dbname in 'dens velx vely velz pres magx magy magz'.split():
     for dbname in 'dens velx vely velz pres'.split():
         box = fls.data(dbname)
-        #box = zoom(box)
+        box = zoom(box)
         els = methods[method](box, flx)
 
         if dbname in 'dens pres eint':

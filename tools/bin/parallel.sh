@@ -2,7 +2,7 @@
 
 PARALLEL='parallel'
 
-if expr "$(hostname)" : '^cheops' > /dev/null
+if hostname | grep -qE '^cheops'
 then
     PARALLEL=$HOME/libs/parallel/src/parallel
 fi
