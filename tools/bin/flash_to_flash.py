@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pyturbubox
 
 import time
 import flash
@@ -12,17 +12,32 @@ import scipy.ndimage
 
 # =========================================================================== #
 
-def zoom(src):
-    zoomfactor = 0.5
-    return scipy.ndimage.interpolation.zoom(src, zoomfactor, order=1, mode='wrap')
-
-def scale(src):
-    scalefactor = 1
-    return scalefactor * src
+def pipe(source, *filters):
+    sink = source
+    for filter in filters:
+        sink = filter(sink) 
+    return sink
 
 def blur(src):
-    blurfactor = 2
-    return scipy.ndimage.filters.gaussian_filter(src, blurfactor)
+    factor = 2
+    return scipy.ndimage.filters.gaussian_filter(src, factor)
+
+def zoom(src):
+    factor = 1
+    #factor = 1/2
+    #factor = 396 / 256
+    return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
+
+def scale(src):
+    factor = 5
+    return factor * src
+
+def transform_normal(box):
+    avg = box.mean()
+    return avg / np.mean(box) * pipe(box,blur,zoom) 
+
+def transform_scaled(box):
+    return pipe(box,blur,scale,zoom)
 
 # =========================================================================== #
 
@@ -40,12 +55,13 @@ with flash.File(srcfp,mode='r') as srcfls:
 
         gamma = srcfls.params['gamma']
 
-        snkdens = zoom(srcdens)
-        snkvelx = zoom(srcvelx)
-        snkvely = zoom(srcvely)
-        snkvelz = zoom(srcvelz)
-        snkpres = zoom(srcpres)
-        snkener = snkpres/(gamma-1)/snkdens + snkdens/2 * (snkvelx**2 + snkvely**2 + snkvelz**2)
+        snkdens = transform_normal(srcdens)
+        snkvelx = transform_scaled(srcvelx)
+        snkvely = transform_scaled(srcvely)
+        snkvelz = transform_scaled(srcvelz)
+        snkpres = transform_normal(srcpres)
+
+        snkener = snkpres/(gamma-1) + snkdens/2 * (snkvelx**2 + snkvely**2 + snkvelz**2)
 
         srcs = [srcdens, srcvelx, srcvely, srcvelz, srcpres, srcener]
         snks = [snkdens, snkvelx, snkvely, snkvelz, snkpres, snkener]

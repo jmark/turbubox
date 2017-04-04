@@ -177,7 +177,7 @@ def lagrange_3d_5th_order():
 
 methods = []
 
-def method(box, flx):
+def method(box, flx, dname=None):
     "Without neighboring cells: n-th order interpolation (old version)"
     xs  = ulz.mk_body_centered_linspace(-1,1, flx.Nout)
     Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
@@ -186,7 +186,7 @@ def method(box, flx):
 
 methods.append(method)
 
-def method(box, flx):
+def method(box, flx, dname=None):
     "With neighboring cells: (n+2)-th order interpolation (old version)"
     xs  = ulz.mk_body_centered_linspace(-1,1,flx.Nout, withBoundaryNodes=True)
     Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
@@ -195,7 +195,7 @@ def method(box, flx):
 
 methods.append(method)
 
-def method(box, flx):
+def method(box, flx, dname=None):
     "Like '0' (new version)"
     els = interpolate.box_to_elements(box,flx)
 
@@ -206,7 +206,7 @@ def method(box, flx):
 
 methods.append(method)
 
-def method(box, flx):
+def method(box, flx, dname=None):
     "Like '1' (new version)"
     els = interpolate.box_to_elements(box, flx, neighbors = 1)
 
@@ -217,20 +217,45 @@ def method(box, flx):
 
 methods.append(method)
 
-def method(box, flx):
-    "like previous one + gaussian blur and filters"
-    #box = scipy.ndimage.interpolation.zoom(src, 0.5,order=1, mode='wrap')
-    box = scipy.ndimage.filters.gaussian_filter(box, 2)
-    els = interpolate.box_to_elements(box, flx, neighbors = 1)
+def method(box, flx, dname=None):
+    "like previous one + various filters"
 
-    xs  = ulz.mk_body_centered_linspace(-1,1, els.shape[1] - 2, withBoundaryNodes=True)
-    Xs  = gausslobatto.mk_nodes(flx.Nout-1, flx.nodetype) # target grid space
+    import scipy.ndimage.filters
+    import scipy.ndimage.interpolation
 
-    return interpolate.change_grid_space(els, xs, Xs)
+    def pipe(source, *filters):
+        sink = source
+        for filter in filters:
+            sink = filter(sink) 
+        return sink
+
+    def blur(src):
+        factor = 2
+        return scipy.ndimage.filters.gaussian_filter(src, factor)
+
+    def zoom(src):
+        factor = 1
+        #factor = 1/2
+        #factor = 396 / 256
+        return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
+
+    def scale(src):
+        factor = 5
+        return factor * src
+
+    if dname in 'dens pres':
+        avg = box.mean()
+        box = pipe(box,blur,zoom)
+        box = avg / np.mean(box) * box
+
+    if dname in 'velx vely velz':
+        box = pipe(box,blur,scale,zoom)
+
+    return methods[3](box, flx)
 
 methods.append(method)
 
-def method(box, flx):
+def method(box, flx, dname=None):
     "With neighboring cells which get averaged with boundary cells: n-th order interpolation."
     els = interpolate.box_to_elements_avg_boundaries(box, flx)
 
@@ -242,12 +267,11 @@ def method(box, flx):
         
 methods.append(method)
 
-def method(box, flx):
+def method(box, flx, dname=None):
     "Just copy over data. No interpolation!"
     return interpolate.box_to_elements(box, flx, neighbors = 0)
        
 methods.append(method)
-
 
 def lagrange_3d_5th_order3():
     def ExistingPath(arg):
@@ -281,35 +305,17 @@ def lagrange_3d_5th_order3():
     else:
         fls = flash.FakeFile([[0,0,0],[1,1,1]],flx.mesh.gridsize * flx.Nout, fillby=flashfile)
 
-    import scipy.interpolate
-    import scipy.ndimage
-
-    def zoom(src):
-        #factor = 0.5
-        factor = 396 / 256
-        return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
-
-    def scale(src):
-        factor = 1.0
-        return factor * src
-
     # interpolate
     prims = []
     print(" Primitive vars:")
     print("")
     print("  var   |       min    ->    min     |       max    ->    max     ")
     print("  ------|----------------------------|----------------------------")
+
     #for dbname in 'dens velx vely velz pres magx magy magz'.split():
     for dbname in 'dens velx vely velz pres'.split():
         box = fls.data(dbname)
-        box = zoom(box)
-        els = methods[method](box, flx)
-
-        if dbname in 'dens pres eint':
-            els[els <= 1e-4] = 1e-4 
-
-        if dbname in 'velx vely velz':
-            els = scale(els)
+        els = methods[method](box, flx, dbname)
 
         print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % \
                 (dbname, box.min(), els.min(), box.max(), els.max()), file=sys.stderr)

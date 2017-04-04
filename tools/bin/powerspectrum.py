@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pyturbubox
 
 # stdlib
 import os, sys, pickle
@@ -6,7 +6,7 @@ import numpy as np
 from numpy.fft import rfftn, fftshift
 
 # jmark
-import flash, ulz, dslopts
+import periodicbox, ulz, dslopts
 from shellavg import shell_avg_3d
 from defer_signals import DeferSignals
 
@@ -22,8 +22,8 @@ def log(msg):
 with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
     mgr.add('sinkfptmpl', 'path template to store the pickle files: <dir>/03d%.pickle', str, '')
     mgr.add('nsamples' ,'no. of samples'  ,PositiveInt, 0)
-    mgr.add('usemultiproc', 'enable multiprocessing', dslopts.bool, True)
-    mgr.add('skipfiles', 'skip already existing files', dslopts.bool, False)
+    mgr.add('usemultiproc', 'enable multiprocessing', int, 1)
+    mgr.add('skipfiles', 'skip already existing files', int, 0)
 
 def task(taskid, srcfp):
     # prepare sink file path
@@ -38,24 +38,19 @@ def task(taskid, srcfp):
         return
 
     # open flash file
-    fls = flash.File(srcfp, 'r')
+    fls = periodicbox.File(srcfp, 'r')
+    dens, velx, vely, velz, pres = fls.get_prims()
 
-    # ndarrays
-    dens = fls.data('dens')
-    pres = fls.data('pres')
-    velx = fls.data('velx')
-    vely = fls.data('vely')
-    velz = fls.data('velz')
     vels = np.sqrt(velx**2+vely**2+velz**2)
     rhovels = dens**(1/3) * vels
     ekin = np.prod(fls.cellsize)/2 * dens * (velx**2+vely**2+velz**2)
     #vort = ulz.curl(velx,vely,velz,*tuple(fls.cellsize))
 
     # scalars
-    time = fls.realscalars['time']
-    step = fls.integerscalars['nstep']
-    snds = fls.realruntime['c_ambient']
-    dns0 = fls.realruntime['rho_ambient']
+    time = fls.time
+    #step = fls.integerscalars['nstep']
+    #snds = fls.realruntime['c_ambient']
+    #dns0 = fls.realruntime['rho_ambient']
     #vrms = np.sqrt(np.sum(dens * (velx**2+vely**2+velz**2))/np.sum(dens))
     #mach = vrms / snds
     #dyns = snds * mach # dynamic speed
@@ -71,7 +66,7 @@ def task(taskid, srcfp):
     res = {}
     res['taskid'] = taskid
     res['time'] = time
-    res['step'] = step
+    #res['step'] = step
     res['dens'] = shell_avg_3d(fdens**2, nsamples)
     res['vels'] = shell_avg_3d(fvels**2, nsamples)
     res['pres'] = shell_avg_3d(fpres**2, nsamples)
