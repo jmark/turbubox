@@ -22,4 +22,9 @@
 #SBATCH --mem=22gb
 #SBATCH --time=24:00:00
 
-NTASK="$SLURM_NTASKS" "$@"
+module purge
+module load hdf5
+module load intel
+module load intelmpi
+
+srun -n "$SLURM_NTASKS" "$@"

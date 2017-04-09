@@ -23,4 +23,9 @@
 #SBATCH --mem=40gb
 #SBATCH --time=05:00:00
 
-NTASK="$SLURM_NTASKS" "$@"
+module purge
+module load hdf5
+module load intel
+module load intelmpi
+
+srun -n "$SLURM_NTASKS" "$@"
