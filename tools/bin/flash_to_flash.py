@@ -51,6 +51,7 @@ print("  ------|----------------------------|----------------------------")
 with flash.File(srcfp,mode='r') as srcfls:
     with flash.File(snkfp,mode='r+') as snkfls:
         srcdens, srcvelx, srcvely, srcvelz, srcpres = srcfls.get_prims()
+        srceint = srcfls.get_data('eint')
         srcener = srcfls.get_data('ener')
 
         gamma = srcfls.params['gamma']
@@ -61,11 +62,12 @@ with flash.File(srcfp,mode='r') as srcfls:
         snkvelz = transform_scaled(srcvelz)
         snkpres = transform_normal(srcpres)
 
-        snkener = snkpres/(gamma-1) + snkdens/2 * (snkvelx**2 + snkvely**2 + snkvelz**2)
+        snkeint = snkpres/(gamma-1)/snkdens
+        snkener = snkpres/(gamma-1)/snkdens + 0.5*(snkvelx**2 + snkvely**2 + snkvelz**2)
 
-        srcs = [srcdens, srcvelx, srcvely, srcvelz, srcpres, srcener]
-        snks = [snkdens, snkvelx, snkvely, snkvelz, snkpres, snkener]
+        srcs = [srcdens, srcvelx, srcvely, srcvelz, srcpres, srceint, srcener]
+        snks = [snkdens, snkvelx, snkvely, snkvelz, snkpres, snkeint, snkener]
 
-        for dbname, src, snk in zip('dens velx vely velz pres ener'.split(), srcs, snks):
+        for dbname, src, snk in zip('dens velx vely velz pres eint ener'.split(), srcs, snks):
             print("  %s  | % 12.5f % 12.5f  | % 12.5f % 12.5f" % (dbname, src.min(), snk.min(), src.max(), snk.max()))
             snkfls.set_data(dbname, snk)

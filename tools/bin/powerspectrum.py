@@ -4,9 +4,10 @@
 import os, sys, pickle
 import numpy as np
 from numpy.fft import rfftn, fftshift
+import pathlib as pl
 
 # jmark
-import periodicbox, ulz, dslopts
+import periodicbox, ulz
 from shellavg import shell_avg_3d
 from defer_signals import DeferSignals
 
@@ -14,36 +15,76 @@ def PositiveInt(arg):
     x = int(arg)
     if x >= 0:
         return x
-    raise ValueError("'%d' must be positive!" % x)
+    else:
+        raise ValueError("'%d' must be positive!" % x)
 
 def log(msg):
     print(msg, file=sys.stderr)
 
-with dslopts.Manager(scope=globals(),appendix="flashfiles are be defined after '--'.") as mgr:
-    mgr.add('sinkfptmpl', 'path template to store the pickle files: <dir>/03d%.pickle', str, '')
-    mgr.add('nsamples' ,'no. of samples'  ,PositiveInt, 0)
-    mgr.add('usemultiproc', 'enable multiprocessing', int, 1)
-    mgr.add('skipfiles', 'skip already existing files', int, 0)
+## ========================================================================= ##
+## process commandline arguments
 
-def task(taskid, srcfp):
-    # prepare sink file path
-    try:
-        snkfp = sinkfptmpl % taskid
-    except TypeError:
-        snkfp = sinkfptmpl
+import argparse
 
-    # skip already done files
-    if skipfiles and os.path.isfile(snkfp):
-        log('%s skipped.' % snkfp)
-        return
+pp = argparse.ArgumentParser(description = 'Batch Produce Powerspectra')
 
+pp.add_argument(
+    '--destdir',
+    help='path to store: <dir>/%%03d.pickle',
+    type=pl.Path, required=True,
+)
+
+pp.add_argument(
+    '--parallel',
+    help='enable parallel processes: -1 --> serial, 0 --> max. procs, N > 0 --> set n procs',
+    type=int,
+    default=-1,
+)
+
+# pp.add_argument(
+#     '--normalize',
+#     help='normalize',
+#     action='store_true',
+# )
+
+pp.add_argument(
+    '--skip',
+    help='skip already produced files',
+    action='store_true',
+)
+
+pp.add_argument(
+    '--nsamples',
+    help='number samples taken by shellavg3d',
+    type=PositiveInt,
+)
+
+pp.add_argument(
+    'snapshots',
+    help='list of snapshot files',
+    type=pl.Path,nargs='*',
+)
+
+ARGV = pp.parse_args()
+
+## ========================================================================= ##
+## Setup environment
+
+if not ARGV.destdir.exists():
+    ARGV.destdir.mkdir()
+
+## ========================================================================= ##
+## Routines
+
+def mkpowerspectrum(taskid, srcfp):
     # open flash file
-    fls = periodicbox.File(srcfp, 'r')
+    fls = periodicbox.File(srcfp, mode='r')
     dens, velx, vely, velz, pres = fls.get_prims()
 
     vels = np.sqrt(velx**2+vely**2+velz**2)
     rhovels = dens**(1/3) * vels
-    ekin = np.prod(fls.cellsize)/2 * dens * (velx**2+vely**2+velz**2)
+    ekin = dens/2 * (velx**2+vely**2+velz**2)
+    ekin = ekin / np.mean(ekin)
     #vort = ulz.curl(velx,vely,velz,*tuple(fls.cellsize))
 
     # scalars
@@ -63,30 +104,40 @@ def task(taskid, srcfp):
     fekin = fftshift(np.abs(rfftn(ekin)))
     frhovels = fftshift(np.abs(rfftn(rhovels)))
 
-    res = {}
-    res['taskid'] = taskid
-    res['time'] = time
-    #res['step'] = step
-    res['dens'] = shell_avg_3d(fdens**2, nsamples)
-    res['vels'] = shell_avg_3d(fvels**2, nsamples)
-    res['pres'] = shell_avg_3d(fpres**2, nsamples)
-    res['ekin'] = shell_avg_3d(fekin**2, nsamples)
-    res['rhovels'] = shell_avg_3d(frhovels**2, nsamples)
-    
-    if snkfp:
+    return dict(
+        taskid = taskid,
+        time = time,
+        dens = shell_avg_3d(fdens**2, ARGV.nsamples),
+        vels = shell_avg_3d(fvels**2, ARGV.nsamples),
+        pres = shell_avg_3d(fpres**2, ARGV.nsamples),
+        ekin = shell_avg_3d(fekin**2, ARGV.nsamples),
+        rhovels = shell_avg_3d(frhovels**2, ARGV.nsamples),
+    )
+
+## ========================================================================= ##
+## prepare task
+
+def task(taskid, srcfp):
+    snkfp = ARGV.destdir / srcfp.with_suffix('.pickle').name
+
+    if ARGV.skip and snkfp.exists() and snkfp.stat().st_mtime > srcfp.stat().st_mtime:
+        return
+    else:
+        log('Processing: ' + str(snkfp))
+        retval = mkpowerspectrum(taskid, srcfp)
         with DeferSignals(): # make sure write is atomic
-            with open(snkfp, 'wb') as fd:
-                pickle.dump(res, fd)
+            with open(str(snkfp), 'wb') as fd:
+                pickle.dump(retval, fd)
 
-    log(snkfp)
+## ========================================================================= ##
+## do work
 
-srcfiles = map(str.rstrip, ARGV_TAIL)
-
-if usemultiproc:
-    from multiprocessing import Pool
-    def _task(x):
-        return task(x[0],x[1])
-    Pool().map(_task,enumerate(srcfiles))
+if ARGV.parallel >= 0:
+    import multiprocessing as mpr
+    def _task(args):
+        return task(*args)
+    nprocs = None if ARGV.parallel == 0 else ARGV.parallel
+    mpr.Pool(nprocs).map(_task,enumerate(ARGV.snapshots))
 else:
-    for taskid, fp in enumerate(srcfiles):
-        task(taskid, fp)
+    for i,x in enumerate(ARGV.snapshots):
+        task(i,x)
