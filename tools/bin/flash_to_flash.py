@@ -29,7 +29,7 @@ def zoom(src):
     return scipy.ndimage.interpolation.zoom(src, factor, order=1, mode='wrap')
 
 def scale(src):
-    factor = 5
+    factor = 2
     return factor * src
 
 def transform_normal(box):
@@ -51,8 +51,8 @@ print("  ------|----------------------------|----------------------------")
 with flash.File(srcfp,mode='r') as srcfls:
     with flash.File(snkfp,mode='r+') as snkfls:
         srcdens, srcvelx, srcvely, srcvelz, srcpres = srcfls.get_prims()
-        srceint = srcfls.get_data('eint')
-        srcener = srcfls.get_data('ener')
+        srceint = srcfls.get_data('pres')
+        srcener = srcfls.get_data('pres')
 
         gamma = srcfls.params['gamma']
 

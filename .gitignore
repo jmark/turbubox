@@ -3,5 +3,3 @@ wisdom3.txt
 *.o
 *.so
 bin/*
-*.png
-*.pickle

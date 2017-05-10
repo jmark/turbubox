@@ -7,6 +7,11 @@ import periodicbox, ulz # jmark
 import pickle
 import pathlib as pl
 from collections import namedtuple
+import multiprocessing as mpr
+import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': 20})
+from matplotlib import pyplot as plt
 
 ## ========================================================================= ##
 ## process commandline arguments
@@ -21,7 +26,10 @@ pp.add_argument(
     type=pl.Path, required=True,
 )
 
-pp.add_argument('--title',type=str,)
+pp.add_argument(
+    '--title',
+    type=str,
+)
 
 pp.add_argument(
     '--cachedir',
@@ -96,6 +104,15 @@ def calc_data(srcfp):
     cpres = np.log10(np.nanmean(pres,axis=ax))
     cvort = np.log10(np.nanmean(vort,axis=ax))
 
+    # ax = ekin.shape[2] // 2
+    # cekin = np.log10(ekin[:,:,ax])
+    # cmach = np.log10(mach[:,:,ax])
+    # cdens = np.log10(dens[:,:,ax])
+    # cpres = np.log10(pres[:,:,ax])
+    # cvort = np.log10(vort[:,:,ax])
+
+    print('Finnished:  ', srcfp, flush=True)
+
     return Data(
         taskID   = -1,
         time     = box.time,
@@ -124,11 +141,7 @@ def min_max(taskID, srcfp):
     return result
 
 def mkplot(taskID, srcfp, crange):
-    import matplotlib
-    matplotlib.use('Agg')
-    matplotlib.rcParams.update({'font.size': 20})
-    from matplotlib import pyplot as plt
-
+    proc = mpr.current_process()
     data = calc_data(srcfp)
 
     subplt = [2,2,0]
@@ -138,9 +151,9 @@ def mkplot(taskID, srcfp, crange):
     nframes = ARGV.ntasks if ARGV.ntasks else len(ARGV.snapshots)
 
     if ARGV.title is None:
-        title = "dyntime: % 2.4f | frame: %03d/%03d" % (data.dyntime, frameid, nframes)
+        title = "dyntime: % 2.4f | frame: %03d/%03d" % (data.dyntime/ ARGV.crosstime, frameid, nframes)
     else:
-        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (ARGV.title, data.dyntime, frameid, nframes)
+        title = "%s (dyntime: % 2.4f | frame: %03d/%03d)" % (ARGV.title, data.dyntime/ ARGV.crosstime, frameid, nframes)
 
     plt.suptitle(title, fontsize='x-large').set_y(1.01)
 
@@ -170,9 +183,8 @@ def mkplot(taskID, srcfp, crange):
 
     plotfp = ARGV.destdir / srcfp.with_suffix('.png').name
     plt.savefig(str(plotfp), bbox_inches='tight')
-    print(plotfp, flush=True)
-
     plt.close()
+    print('Finnished:  ', str(plotfp), flush=True)
 
 ## ========================================================================= ##
 ## activate caching
@@ -183,16 +195,21 @@ if ARGV.cachedir:
     mask.calc_data = calc_data
     def calc_data(srcfp):
         cachefp = ARGV.cachedir / srcfp.with_suffix('.cdata.cache.pickle').name
+        print('Processing: ', cachefp, flush=True)
         return ulz.cache(srcfp, cachefp, mask.calc_data, srcfp)
 
     mask.min_max = min_max
     def min_max(taskID, srcfp):
         cachefp = ARGV.cachedir / srcfp.with_suffix('.minmax.cache.pickle').name
-        return ulz.cache(srcfp.as_posix(), cachefp.as_posix(), mask.min_max, taskID, srcfp)
+        print('Processing: ', cachefp, flush=True)
+        retval = ulz.cache(srcfp.as_posix(), cachefp.as_posix(), mask.min_max, taskID, srcfp)
+        print('Finnished:  ', cachefp, flush=True)
+        return retval
 
     mask.mkplot = mkplot
     def mkplot(taskID, srcfp, crange):
         plotfp = ARGV.destdir / srcfp.with_suffix('.png').name
+        print('Processing: ', plotfp, flush=True)
         if plotfp.exists() and plotfp.stat().st_mtime > srcfp.stat().st_mtime:
             return
         return mask.mkplot(taskID, srcfp, crange)
@@ -213,7 +230,6 @@ crange = CRange(**crange)
 
 if ARGV.gather_min_max:
     if ARGV.parallel >= 0:
-        import multiprocessing as mp
         def task(args):
             return min_max(*args)
         nprocs = None if ARGV.parallel == 0 else ARGV.parallel
@@ -236,10 +252,9 @@ if ARGV.gather_min_max:
 ## do plotting
 
 if ARGV.parallel >= 0:
-    import multiprocessing as mpr
     def task(args):
         return mkplot(args[0], args[1], crange)
     nprocs = None if ARGV.parallel == 0 else ARGV.parallel
-    mpr.Pool(nprocs).map(task,enumerate(ARGV.snapshots))
+    mpr.Pool(nprocs,maxtasksperchild=1).map(task,enumerate(ARGV.snapshots))
 else:
     [mkplot(i,x,crange) for i,x in enumerate(ARGV.snapshots)]

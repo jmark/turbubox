@@ -6,7 +6,7 @@ then
 	exit 1
 fi
 
-set -eu
+#set -eu
 
 if hostname | grep -q '^cheops'
 then
@@ -28,6 +28,37 @@ then
     module load intel
     module load intelmpi
     module load mkl
+    module load cmake
+
+# SuperMUC
+elif hostname | grep -q '^login'
+then
+    echo 'Detected Supermuc!'
+
+    source /etc/profile
+    source /etc/profile.d/modules.sh
+
+    export CC=icc
+    export CXX=icc
+    export FC=ifort
+    export F9X=ifort
+    export MPI_C_COMPILER=mpicc
+    export MPI_CXX_COMPILER=mpicxx
+    export MPI_Fortran_COMPILER=mpiifort
+    export I_MPI_CC=icc
+    export I_MPI_CXX=icpc
+    export I_MPI_F77=ifort
+    export I_MPI_F90=ifort
+
+    #module purge
+    module load admin
+    module load tempdir
+    module load lrztools
+    module load poe
+    module load intel
+    module load mkl
+    module load mpi.ibm
+    module load hdf5/mpi
     module load cmake
 
 elif hostname | grep -q 'jmark'

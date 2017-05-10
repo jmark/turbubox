@@ -305,29 +305,3 @@ def flatten_dict(d, delimiter='.'):
     return dict(
         [item for k, v in d.items() for item in expand(k, v)]
     )
-
-def despike(ys,xs=None,diff=None,nblock=6,mask=False):
-    if diff is None:
-        diff = 0.01 * np.mean(ys)
-
-    dlen = len(ys)
-    tail = dlen % nblock
-    retv = np.full(dlen, True, dtype=bool)
-    
-    if tail > 0:
-        tmp = ys[:dlen-tail].reshape((-1,nblock))
-        retv[:dlen-tail] = np.ravel(np.abs(tmp.T - np.mean(tmp,axis=1)).T) < diff
-    
-        tmp = ys[dlen-tail:dlen]
-        retv[dlen-tail:dlen] = np.abs(tmp - np.mean(tmp)) < diff
-    else:
-        tmp = ys.reshape((-1,nblock))
-        retv = np.ravel(np.abs(tmp.T - np.mean(tmp,axis=1)).T) < diff
-    
-    if mask:
-        return retv
-    else:
-        if xs is None:
-            return ys[retv]
-        else:
-            return ys[retv],xs[retv]
