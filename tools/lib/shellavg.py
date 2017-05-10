@@ -1,3 +1,5 @@
+#!/usr/bin/env pyturbubox
+
 import numpy as np
 import ctypes as ct
 from numpy.ctypeslib import ndpointer
@@ -90,15 +92,15 @@ def shell_avg_3d(X, nsamples=None):
     rs /= cs
     ts /= cs
 
-    return rs,ts
+    return rs,4*np.pi*ts
 
 if __name__ == '__main__':
     #X = np.random.rand(100,100,100)
-    #X = np.ones((100,100,100))
-    X = np.ones((100,100))
+    X = np.ones((100,100,100))
+    #X = np.ones((100,100))
     
-    #rs,ts = shell_avg_3d(X)
-    rs,ts = shell_avg_2d(X)
+    rs,ts = shell_avg_3d(X)
+    #rs,ts = shell_avg_2d(X)
 
     import sys
     np.savetxt(sys.stdout.buffer, np.array([rs,ts,rs**2 * ts]).T)
