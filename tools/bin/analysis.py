@@ -128,7 +128,7 @@ def pws2(data):
     return powerspectrum( fftshift(np.abs(fftn(data)))**2, nshells = 3*len(data) )
 
 def pdf(data):
-    return np.histogram(np.log10(data), bins=1024*4, range=(-10,10), density=True)
+    return np.histogram(np.log10(data), bins=1024*4, range=(np.nanmin(data),np.nanmax(data)), density=True)
 
 def pws1d_vw(dens,velx,vely,velz,pres):
     fvelx = np.fft.fftn(velx)
