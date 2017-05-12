@@ -23,9 +23,11 @@ pushd $DIR
     SETUP=$(basename $DIR)
     
     x && {
+        rm  -fv *.log *.sh *.ini *.tmp *.conf *.TXT
         rm -rfv pickle*
         rm -rfv png*
         rm -rfv cache*
+        rm -rfv tmp log checkpoints
     }
 
     x && {
@@ -35,7 +37,7 @@ pushd $DIR
             | llsubmit -
     }
 
-    y && { ## analysis
+    x && { ## analysis
         mkdir -p log pickle
         FILES=$(snapshots)
 
@@ -46,7 +48,7 @@ pushd $DIR
             | llsubmit -
     }
     
-    y && { ## plotting
+    x && { ## plotting
 
         CACHEDIR='cache'
         PNGDIR='png'
@@ -67,7 +69,7 @@ pushd $DIR
                 $FILES | llsubmit -
     }
 
-    x && { # progress counting
+    y && { # progress counting
         FILES="$(test -e checkpoints && find checkpoints/ -name 'flash_hdf5_plt_cnt_*' | sort)"
         FILES="$FILES $(find . -name 'sim_State_*.h5' | sort)"
         NFILES="$(echo "$FILES" | wc -w)"

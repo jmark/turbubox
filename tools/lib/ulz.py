@@ -264,14 +264,38 @@ def mkincr(start=0,step=1):
         yield pos
         pos += step
 
-def moving_avg_1d(xs, ys=None, N=3):
-    m = len(xs)
-    ret_xs = xs[:m - (m % N)].reshape(m//N,N)
-    if ys is not None:
-        if m != len(ys): raise ValueError("'xs' and 'ys' must be of equal length!")
-        ret_ys = ys[:m - (m % N)].reshape(m//N,N)
-        return np.mean(ret_xs, axis=1), np.mean(ret_ys, axis=1)
-    return np.mean(ret_xs, axis=1)
+def moving_avg_1d(ys, xs=None, N=3):
+    m = len(ys)
+    ret_ys = ys[:m - (m % N)].reshape(m//N,N)
+    if xs is not None:
+        if m != len(xs): raise ValueError("'ys' and 'xs' must be of equal length!")
+        ret_xs = xs[:m - (m % N)].reshape(m//N,N)
+        return np.mean(ret_ys, axis=1), np.mean(ret_xs, axis=1)
+    return np.mean(ret_ys, axis=1)
+
+def despike(ys,xs=None,diff=0.01,blocksize=6,mask=False):
+    dlen = len(ys)
+    tail = dlen % blocksize
+    retv = np.full(dlen, True, dtype=bool)
+    
+    if tail > 0:
+        tmp = ys[:dlen-tail].reshape((-1,blocksize))
+        retv[:dlen-tail] = np.ravel(np.abs(tmp.T - np.mean(tmp,axis=1)).T) < diff
+    
+        tmp = ys[dlen-tail:dlen]
+        retv[dlen-tail:dlen] = np.abs(tmp - np.mean(tmp)) < diff
+    else:
+        tmp = ys.reshape((-1,blocksize))
+        retv = np.ravel(np.abs(tmp.T - np.mean(tmp,axis=1)).T) < diff
+    
+    if xs is not None:
+        if dlen != len(xs): raise ValueError("'ys' and 'xs' must be of equal length!")
+        return ys[retv], xs[retv]
+    else:
+        if mask is True:
+            return retv
+        else:
+            return ys[retv]
 
 ## ========================================================================= ##
 ## caching and testing routines 
