@@ -25,7 +25,7 @@ def FlexiPeriodicBox(flexfp, meshfp=None, mode='r'):
         with h5.File(flexfp, mode='r') as fh:
             meshfp = flexfp.parent / pl.Path(fh.attrs['MeshFile'][0].decode('utf-8'))
     else:
-        meshfp = pathlib.Path(meshfp)
+        meshfp = pl.Path(meshfp)
 
     return flexi.File(flexfp, hopr.CartesianMeshFile(meshfp), mode)
 

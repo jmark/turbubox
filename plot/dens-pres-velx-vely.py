@@ -88,21 +88,21 @@ def calc_data(srcfp):
 
     dens, velx, vely, velz, pres = box.get_prims()
 
-    dens[dens < 0] = 1e-5
-    pres[pres < 0] = 1e-5
-
     fv = box.domainsize / np.array(dens.shape) # finite volume dimensions
 
-    ekin = 0.5*dens * (velx**2 + vely**2 + velz**2)
-    mach = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(pres/dens)
-    vort = np.mean(fv)**5/12.0 * np.abs(dens) * ulz.norm(*ulz.curl(velx,vely,velz,fv[0],fv[1],fv[2]))
-
     ax = 2
-    cekin = np.nanmean(ekin,axis=ax)
-    cmach = np.nanmean(mach,axis=ax)
-    cdens = np.nanmean(dens,axis=ax)
-    cpres = np.nanmean(pres,axis=ax)
-    cvort = np.nanmean(vort,axis=ax)
+    cmach = np.nanmean(dens,axis=ax)
+    cekin = np.nanmean(pres,axis=ax)
+    cdens = np.nanmean(velx,axis=ax)
+    cvort = np.nanmean(vely,axis=ax)
+    cpres = cekin
+
+    ax = 1
+    cmach = np.nanmean(cmach,axis=ax)
+    cekin = np.nanmean(cekin,axis=ax)
+    cdens = np.nanmean(cdens,axis=ax)
+    cvort = np.nanmean(cvort,axis=ax)
+    cpres = cekin
 
     # ax = 2
     # cekin = np.log10(np.nanmean(ekin,axis=ax))
@@ -170,15 +170,18 @@ def mkplot(taskID, srcfp, crange):
         ax.set_title(title)
         ax.set_xlabel('x index')
         ax.set_ylabel('y index')
+        ax.grid()
 
-        img = ax.imshow(data,
-            vmin = crange[0],
-            vmax = crange[1],
-            interpolation = 'none',
-            cmap = plt.get_cmap('cubehelix'),
-        )
+        # img = ax.imshow(data,
+        #     vmin = crange[0],
+        #     vmax = crange[1],
+        #     interpolation = 'none',
+        #     cmap = plt.get_cmap('cubehelix'),
+        # )
 
-        plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
+        #plt.colorbar(img,fraction=0.0456, pad=0.04, format='%1.2f')
+
+        ax.plot(data, lw=2)
 
     plot(data.cmach, crange.cmach, title='column mach number (log10)')
     plot(data.cdens, crange.cdens, title='column density (log10)')

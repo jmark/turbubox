@@ -20,6 +20,52 @@ fi
 # SOLVER='--with-unit=physics/Hydro/HydroMain/split/Bouchut5'
 # SOLVER='--with-unit=physics/Hydro/HydroMain/split/ES'
 
+y && { # Sod Shock b5
+
+    BLOCKSIZE=128
+    MKFDIR=$HOME/projects/stirturb/turbubox/setup/cheops/makefiles/flash/gcc
+    OBJDIR=$HOME/projects/stirturb/simulations/flash/sod-shock/b3/src
+
+    mkdir -p "$OBJDIR"
+
+    ./setup 'Sod' -3d +ug -auto -opt -portable \
+        '--with-unit=physics/Hydro/HydroMain/split/Bouchut3' \
+        -nxb=$BLOCKSIZE -nyb=4 -nzb=4 -maxblocks=-1 \
+        -site="$MKFDIR" -objdir="$OBJDIR"
+}
+
+x && { # Sod Shock b5
+
+    #BLOCKSIZE=256
+    BLOCKSIZE=128
+    #BLOCKSIZE=64
+    MKFDIR=$HOME/projects/stirturb/turbubox/setup/cheops/makefiles/flash/gcc
+    OBJDIR=$HOME/projects/stirturb/simulations/flash/sod-shock/b5/src
+
+    mkdir -p "$OBJDIR"
+
+    ./setup 'Sod' -3d +ug -auto -opt -portable \
+        '--with-unit=physics/Hydro/HydroMain/split/Bouchut5' \
+        -nxb=$BLOCKSIZE -nyb=4 -nzb=4 -maxblocks=-1 \
+        -site="$MKFDIR" -objdir="$OBJDIR"
+}
+
+x && { # Sod Shock b5
+
+    #BLOCKSIZE=256
+    BLOCKSIZE=128
+    #BLOCKSIZE=64
+    MKFDIR=$HOME/projects/stirturb/turbubox/setup/cheops/makefiles/flash/gcc
+    OBJDIR=$HOME/projects/stirturb/simulations/flash/sod-shock/ppm/src
+
+    mkdir -p "$OBJDIR"
+
+    ./setup 'Sod' -3d +ug -auto -opt -portable \
+        '--with-unit=physics/Hydro/HydroMain/split/PPM' \
+        -nxb=$BLOCKSIZE -nyb=4 -nzb=4 -maxblocks=-1 \
+        -site="$MKFDIR" -objdir="$OBJDIR"
+}
+
 x && { # decayturb b3
 
     BLOCKSIZE=64
@@ -50,7 +96,7 @@ x && { # decayturb b5
             -site="$MKFDIR" -objdir="$OBJDIR"
 }
 
-y && { # stirturb b3
+x && { # stirturb b3
 
     MKFDIR=$HOME/turbubox/setup/supermuc/makefiles/flash/intel/
     OBJDIR=$HOME/builds/flash/b3/stirturb/

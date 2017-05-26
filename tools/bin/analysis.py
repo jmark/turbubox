@@ -194,7 +194,6 @@ def pws3d_mw(dens,velx,vely,velz,pres):
 
     return dict(areas = [A0,A1,A2,A3], m0 = [radii,shells], m1 = [radii2,shells2])
 
-
 def analysis(taskid, srcfp):
     box = periodicbox.File(srcfp, mode='r')
     dens, velx, vely, velz, pres = box.get_prims()

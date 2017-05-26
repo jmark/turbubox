@@ -22,6 +22,11 @@ pushd $DIR
 
     SETUP=$(basename $DIR)
     
+    y && {
+        mkdir -p ~/projects/stirturb/plots/stirturb/snapshots/$DIR
+        cp -rv png/*.png ~/projects/stirturb/plots/stirturb/snapshots/$DIR/
+    }
+
     x && {
         #rm  -fv *.log *.sh *.ini *.tmp *.conf *.TXT
         rm -v pickle/*.pickle
@@ -37,7 +42,7 @@ pushd $DIR
             | llsubmit -
     }
 
-    y && { ## analysis
+    x && { ## analysis
         mkdir -p log pickle
         FILES=$(snapshots)
 
@@ -48,7 +53,7 @@ pushd $DIR
             | llsubmit -
     }
     
-    y && { ## plotting
+    x && { ## plotting
 
         CACHEDIR='cache'
         PNGDIR='png'
