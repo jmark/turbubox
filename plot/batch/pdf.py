@@ -63,13 +63,13 @@ pp.add_argument(
 
 pp.add_argument(
     '--xrange',
-    type=lambda arg: tuple(float(x) for x in arg.split(',')),
+    type=lambda arg: tuple(float(x) for x in arg.split(':')),
     #default=(-4,4),
 )
 
 pp.add_argument(
     '--yrange',
-    type=lambda arg: tuple(float(x) for x in arg.split(',')),
+    type=lambda arg: tuple(float(x) for x in arg.split(':')),
     #default=(-7,2),
 )
 
@@ -79,31 +79,39 @@ pp.add_argument(
 
 ARGV = pp.parse_args()
 
-#Runs = namedtuple('runs', 'eu_fv eu_hy mp_fv mp_hy rk_fv rk_hy bouc3 bouc5'.split())
-
 with open(ARGV.pickle, 'rb') as fh:
     runs = box.Box(pickle.load(fh))
   
 runs.order = [
-    runs.bouc3, runs.bouc5, runs.flppm,
-    runs.mp_fv, runs.mp_hy, runs.rk_fv, runs.rk_hy,
+    runs.bouc3, runs.bouc5,
+    runs.flppm, runs.eu_fv,
+    runs.mp_fv, runs.mp_hy,
+    runs.rk_fv, runs.rk_hy,
 ]
-
-# colour table in HTML hex format
-hexcols = ['#332288', '#88CCEE', '#44AA99', '#117733', '#999933', '#DDCC77', 
-           '#CC6677', '#882255', '#AA4499', '#661100', '#6699CC', '#AA4466',
-           '#4477AA']
 
 runs.bouc3.color = 'orange'
 runs.bouc5.color = 'orange'
+
 runs.flppm.color = 'purple'
-runs.flppm.label = 'PPM     '
+runs.eu_fv.color = 'cyan'
 
 runs.mp_fv.color = 'blue'
 runs.mp_hy.color = 'blue'
 
 runs.rk_fv.color = 'green'
 runs.rk_hy.color = 'green'
+
+runs.bouc3.id = 'bouc3'
+runs.bouc5.id = 'bouc5'
+
+runs.flppm.id = 'flppm'
+runs.eu_fv.id = 'eu_fv'
+
+runs.mp_fv.id = 'mp_fv'
+runs.mp_hy.id = 'mp_hy'
+
+runs.rk_fv.id = 'rk_fv'
+runs.rk_hy.id = 'rk_hy'
 
 ## ------------------------------------------------------------------------- #
 ## define fitting functions
@@ -142,34 +150,46 @@ def sigma_mach_deriv(sigma):
 ## ------------------------------------------------------------------------- #
 ## Set custom configurations 
 
-if ARGV.setup == 'default':
-    index  = ARGV.index
-    key    = ARGV.key
-    subkey = ARGV.subkey
-    xrange = ARGV.xrange
-    yrange = ARGV.yrange
-    title  = '%s/%s PDF at Dynamic Time: t_d = %.1f' % (
-            key, subkey, 
-            runs.order[0].anal['scalars']['dyntime'][index][0])
-    xlabel = 'log. scale %s' % ARGV.subkey
-    ylabel = 'log. scale PDF'
-    fitfun = gauss
-    fitini = [1,0,1]
+index  = ARGV.index
+key    = ARGV.key
+subkey = ARGV.subkey
+xrange = ARGV.xrange
+yrange = ARGV.yrange
+title  = '%s/%s PDF at Dynamic Time: t_d = %.1f' % (
+        key, subkey, 
+        runs.order[0].anal['scalars']['dyntime'][index][0])
+xlabel = 'log. scale %s' % ARGV.subkey
+ylabel = 'log. scale PDF'
+fitfun = gauss
+fitini = [1,0,1]
+dyntime = runs.order[0].anal['scalars']['dyntime'][index][0]
 
-elif ARGV.setup == 'density vw':
-    index  = slice(20,40)
+if ARGV.setup == 'density vw':
+    index  = ARGV.index
     key    = 'pdf_vw'
     subkey = 'dens'
     xrange = ARGV.xrange
     yrange = ARGV.yrange
-    title  = 'Mass-weighted Density PDF between 2 and 4 Crossing Times'
-    xlabel = 'log. scale density'
+    title  = 'Volume-weighted Density PDF at Dynamic Time %.1f' % dyntime
+    xlabel = r'log. scale density log$_{10}(\rho)$'
+    ylabel = 'log. scale PDF'
+    fitfun = gauss_density
+    fitini = [0,1]
+
+elif ARGV.setup == 'density vw range':
+    index  = ARGV.index or  slice(20,40)
+    key    = 'pdf_vw'
+    subkey = 'dens'
+    xrange = ARGV.xrange
+    yrange = ARGV.yrange
+    title  = 'Volume-weighted Density PDF between 2 and 4 Crossing Times'
+    xlabel = r'log. scale density log$_{10}(\rho)$'
     ylabel = 'log. scale PDF'
     fitfun = gauss_density
     fitini = [0,1]
 
 elif ARGV.setup == 'density mw':
-    index  = slice(20,40)
+    index  = ARGV.index or slice(20,40)
     key    = 'pdf_mw'
     subkey = 'dens'
     xrange = ARGV.xrange
@@ -185,7 +205,6 @@ else:
 
 ## ------------------------------------------------------------------------- #
 fig = plt.figure(figsize=(12,6))
-
 
 ## ------------------------------------------------------------------------- #
 if xrange is not None:
@@ -238,36 +257,33 @@ for run in runs.order:
     xs  = xs[ys>0]
     ys  = ys[ys>0]
 
-    plt.fill_between(xs, np.log10(np.where(ys-dys > 0, ys-dys, np.nan)), np.log10(ys+dys), facecolor='grey', alpha=0.5)
+    plt.fill_between(xs, np.log10(np.where(ys-dys > 0, ys-dys, np.nan)), np.log10(ys+dys),
+        facecolor='grey', alpha=0.5)
 
     plt.plot(xs,np.log10(ys),lw=1.5,label=run.label,ls=run.line,color=run.color)
     #plt.plot(xs,ys,lw=1.5,label=run.label,ls=run.line,color=run.color)
 
     if ARGV.fit is not None:
-        coeff, var_matrix = scipy.optimize.curve_fit(fitfun, xs, ys, p0=fitini)
-        _ys = fitfun(xs, *coeff)
-        #label = 'gaussian fit: A=%6.3f, mu=%6.3f, sigma=%6.3f' % tuple(coeff)
-        label = 'fit'
-        plt.plot(xs,np.log10(_ys),':',label='_nolegend_', color='gray')
+        try:
+            coeff, var_matrix = scipy.optimize.curve_fit(fitfun, xs, ys, p0=fitini)
+            _ys = fitfun(xs, *coeff)
 
-        coeffL, var_matrixL = scipy.optimize.curve_fit(fitfun, xs, ys-dys, p0=fitini)
-        coeffU, var_matrixU = scipy.optimize.curve_fit(fitfun, xs, ys+dys, p0=fitini)
+            coeffL, var_matrixL = scipy.optimize.curve_fit(fitfun, xs, ys-dys, p0=fitini)
+            coeffU, var_matrixU = scipy.optimize.curve_fit(fitfun, xs, ys+dys, p0=fitini)
 
-        mu     = coeff[0]
-        dmu    = np.abs(coeffL[0] - coeffU[0])
+            mu     = coeff[0]
+            dmu    = np.abs(coeffL[0] - coeffU[0]) + np.sqrt(var_matrix[0,0])
 
-        sigma  = coeff[1]
-        dsigma = np.abs(coeffL[1] - coeffU[1])
+            sigma  = coeff[1]
+            dsigma = np.abs(coeffL[1] - coeffU[1]) + np.sqrt(var_matrix[1,1])
 
-        mach   = sigma_mach_relation(2*sigma)
-        dmach  = sigma_mach_deriv(2*sigma)*2*dsigma
+            mach   = sigma_mach_relation(2*sigma)
+            dmach  = np.abs(sigma_mach_deriv(2*sigma)*2*dsigma)
 
-        #plt.plot(xs,_ys,':',label='_nolegend_', color='gray')
-        #print(run.label, mu,dmu,sigma,dsigma, mach,dmach)
-
-        print(run.label, 
-            uc.ufloat(mu,dmu), uc.ufloat(sigma,dsigma), uc.ufloat(mach,dmach),
-            sep="\t")
+            print(run.id, dyntime, mu, dmu, sigma, dsigma, mach, dmach, sep="\t")
+            plt.plot(xs,np.log10(_ys),':',label='_nolegend_', color='gray')
+        except:
+            pass
 
 if False:
     Xs = np.mean(np.array(Xs),axis=0)

@@ -20,7 +20,12 @@ for dir in $DIRS
 do
 pushd $dir
 
-    SETUP=$(basename $DIR)
+    SETUP=$(basename $dir)
+
+    y && {
+        mkdir -p ~/projects/stirturb/plots/decayturb/snapshots/files/$SETUP
+        cp -v png/*.png ~/projects/stirturb/plots/decayturb/snapshots/files/$SETUP
+    }
 
     x && {
         cp -v ../../stirturb/$dir/*.ini .
@@ -77,7 +82,7 @@ pushd $dir
         find pickle -name '*.pickle' | wc -l
     }
 
-    y && { # process counting
+    x && { # process counting
 
         FILES=$(snapshots)
         NFILES="$(echo "$FILES" | wc -w)"
