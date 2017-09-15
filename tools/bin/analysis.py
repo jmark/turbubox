@@ -128,7 +128,10 @@ def pws2(data):
     return powerspectrum( fftshift(np.abs(fftn(data)))**2, nshells = 3*len(data) )
 
 def pdf(data):
-    return np.histogram(np.log10(data), bins=1024*4, range=(np.nanmin(data),np.nanmax(data)), density=True)
+    try:
+        return np.histogram(data, bins=1024*4, range=(np.nanmin(data),np.nanmax(data)), density=True)
+    except ValueError:
+        return np.histogram(data, bins=1024*4, range=(-1,1), density=True)
 
 def pws1d_vw(dens,velx,vely,velz,pres):
     fvelx = np.fft.fftn(velx)
@@ -224,8 +227,8 @@ def analysis(taskid, srcfp):
         pws  = apply(pws),
         pws2 = apply(pws2),
 
-        pdf_vw  = apply(pdf),
-        pdf_mw  = apply(lambda dd: pdf(dens*dd/np.sum(dens))),
+        pdf_vw  = apply(lambda x: pdf(np.log10(x))),
+        pdf_mw  = apply(lambda x: pdf(np.log10(dens*x/np.sum(dens)))),
 
         pws3 = dict(
             pws1d_vw = pws1d_vw(dens,velx,vely,velz,pres),
@@ -243,7 +246,6 @@ def task(taskid, srcfp):
     if ARGV.skip and snkfp.exists() and snkfp.stat().st_mtime > srcfp.stat().st_mtime:
         return
     else:
-        log('Processing: ' + str(snkfp))
         retval = analysis(taskid, srcfp)
 
         # prevent inconsistent states
@@ -252,7 +254,7 @@ def task(taskid, srcfp):
             pickle.dump(retval, fd)
         tmpfp.replace(snkfp) 
 
-        log('Finnished:  ' + str(snkfp))
+        log(str(snkfp))
 
 ## ========================================================================= ##
 ## do work
