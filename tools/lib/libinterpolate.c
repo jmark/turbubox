@@ -335,6 +335,38 @@ change_basis_3d_2(
 }
 
 void
+change_grid_space_2d(
+    const int nelems,
+    const int nx, const int ny, const double *xs, const double *fss, 
+    const int Nx, const int Ny, const double *Xs, double *Fss)
+{
+    double *Ls = malloc(sizeof(double) * Nx * nx);
+    for (int I = 0; I < Nx; I++)
+    for (int i = 0; i < nx; i++)
+        Ls[I*nx + i] = LagrangePolynomial(xs, nx, i, Xs[I]);
+
+    const int stride = nx*ny;
+    const int Stride = Nx*Ny;
+
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * stride;
+              double *const Fs = Fss + elemid * Stride;
+
+        for (int I = 0; I < Nx; I++)
+        for (int J = 0; J < Ny; J++) {
+            double F = 0;
+
+            for (int i = 0; i < nx; i++)
+            for (int j = 0; j < ny; j++)
+                F += fs[i*ny + j] * Ls[I*nx + i]*Ls[J*ny + j];
+
+            Fs[(I * Ny) + J] = F;
+        }
+    }
+    free(Ls);
+}
+
+void
 change_grid_space(
     const int nelems,
     const int nx, const int ny, const int nz ,const double *xs, const double *fss, 
