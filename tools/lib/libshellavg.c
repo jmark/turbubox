@@ -29,7 +29,7 @@ void shell_avg_2d(
 
         cs[R] += 1;
         rs[R] += r;
-        ts[R] += r*X[(i * Ny) + j];
+        ts[R] += X[(i * Ny) + j];
     }
 }
 

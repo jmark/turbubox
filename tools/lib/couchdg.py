@@ -14,7 +14,7 @@ class File(h5.File):
         meta_num = tuple((k.strip().decode(),v) for (k,v) in 
             zip(self.get('meta_num').attrs.get('keys'), self.get('meta_num')))
 
-        self.meta = dict((*meta_txt,*meta_num))
+        self.meta = dict(meta_txt + meta_num)
         for k,v in self.meta.items(): setattr(self, k, v)
 
     def topology(self):

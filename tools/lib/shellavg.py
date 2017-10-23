@@ -45,7 +45,7 @@ def shell_avg_2d(X, nsamples=None):
     # note: if div-by-zero warning arises: the inputs-to-samples ratio 
     # is not adequate
 
-    return rs/cs, 2*np.pi*ts/cs
+    return rs/cs, ts/cs
 
 lib.shell_avg_3d.argtypes = [
     # void shell_avg_3d(
