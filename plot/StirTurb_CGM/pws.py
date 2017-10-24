@@ -54,7 +54,13 @@ if ARGV.setup == 'volume-weighted/velocity':
     title  = r'Shell-averaged Powerspectra of Three-dimensional Volume-weighted' \
             + r' Velocity Field at Time $t_d$ = {:1.2e}'.format(data.time)
 
-    yrange = (20,27)
+    yrange = (23,32)
+    #xticks = np.arange(-0.6,2.2,0.2)
+    #xticks = np.arange(-0.6,2.6,0.2)
+    xticks = np.arange(-0.6,2.8,0.2)
+
+    irange = (0.6,1.4)
+
 else:
     raise NotImplementedError("Setup '%s' is unknown." % ARGV.setup)
 
@@ -72,8 +78,8 @@ plt.title(title, y=1.1)
 
 ## --------------------------------------------------------------------- #
 
-plt.axvline(x=0.6,ls=':', color='black')
-plt.axvline(x=1.0,ls=':', color='black')
+plt.axvline(x=irange[0],ls=':', color='black')
+plt.axvline(x=irange[1],ls=':', color='black')
 
 xs = data[key][subkey]['m1'][0]
 ys = data[key][subkey]['m1'][1]
@@ -85,7 +91,7 @@ axB.plot(xs,ys, label='numerical data')
 
 ## --------------------------------------------------------------------- #
 
-__xs = np.linspace(0.6,1.0,100)
+__xs = np.linspace(*irange,100)
 __ys = np.interp(__xs,xs,ys)
 slope, ofs, r_value, p_value, stderr = scipy.stats.linregress(__xs, __ys)
 
@@ -93,8 +99,6 @@ line_xs = np.linspace(*plt.gca().get_xlim(),10)
 axB.plot(line_xs, slope*line_xs + ofs+0.5, ls=':', lw=1, color='green', label='linear fit: slope = {:.2f}'.format(slope))
 
 ## --------------------------------------------------------------------- #
-
-xticks = np.arange(-0.6,2.2,0.2)
 
 ## top x-axis
 axT = axB.twiny()
@@ -112,3 +116,4 @@ axB.legend()
 
 plt.tight_layout()
 plt.savefig(str(ARGV.output), format='png')
+print(str(ARGV.output))
