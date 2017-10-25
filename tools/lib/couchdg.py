@@ -9,12 +9,15 @@ class File(h5.File):
     def __init__(self, fpath, mode='r'):
         super().__init__(fpath, mode)
 
-        meta_txt = tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
-            zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt')))
-        meta_num = tuple((k.strip().decode(),v) for (k,v) in 
-            zip(self.get('meta_num').attrs.get('keys'), self.get('meta_num')))
+        self.meta = dict(
+            tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
+                zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
+            tuple((k.strip().decode(),v) for (k,v) in 
+                zip(self.get('meta_int').attrs.get('keys'), self.get('meta_int'))) + \
+            tuple((k.strip().decode(),v) for (k,v) in 
+                zip(self.get('meta_flt').attrs.get('keys'), self.get('meta_flt')))
+        )
 
-        self.meta = dict(meta_txt + meta_num)
         for k,v in self.meta.items(): setattr(self, k, v)
 
     def topology(self):
