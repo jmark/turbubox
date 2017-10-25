@@ -75,7 +75,8 @@ def sigma_mach_deriv(sigma):
 ## Set custom configurations 
 
 if ARGV.setup == 'dens_vw':
-    xrange = (-28.5,-27.5)
+    #xrange = yrange = None
+    xrange = (-29.5,-27.0)
     yrange = (-3,1)
     key    = 'pdf_vw'
     subkey = 'dens'
@@ -83,7 +84,7 @@ if ARGV.setup == 'dens_vw':
     xlabel = r'log. scale density log$_{10}(\rho)$'
     ylabel = 'log. scale PDF'
     fitfun = gauss_density
-    fitini = (-28,1)
+    fitini = (-27,1)
 
 else:
     raise NotImplementedError("Setup '{}' is unknown.".format(ARGV.setup))
@@ -92,9 +93,10 @@ else:
 fig = plt.figure(figsize=(12,6))
 
 ## ------------------------------------------------------------------------- #
-if xrange is not None:
+
+if xrange:
     plt.xlim(*xrange)
-if yrange is not None:
+if yrange:
     plt.ylim(*yrange)
 
 xs = ulz.bins2xs(data[key][subkey][1])
