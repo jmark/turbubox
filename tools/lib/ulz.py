@@ -207,6 +207,24 @@ def find_file(fname, paths):
                 return os.path.join(root, fname)
     raise FileNotFoundError("Cannot find '%s' in any of %s." % (fname, paths))
 
+def navier_primitive_to_conservative_2d(prims, kappa=5/3):
+    cons    = [None]*len(prims)
+    cons[0] = prims[0]            # density
+    cons[1] = prims[0]*prims[1]   # momentum x
+    cons[2] = prims[0]*prims[2]   # momentum y
+    cons[3] = prims[3]/(kappa-1) \
+        +  prims[0]/2*(prims[1]**2+prims[2]**2) # total energy
+    return cons
+
+def navier_conservative_to_primitive_2d(cons, kappa=5/3):
+    prims    = [None]*len(cons)
+    prims[0] = cons[0]             # density
+    prims[1] = cons[1] / cons[0]   # velx
+    prims[2] = cons[2] / cons[0]   # vely
+    prims[3] = (kappa-1)*(cons[3] \
+        - prims[0]/2*(prims[1]**2+prims[2]**2)) # pressure
+    return prims
+
 def navier_primitive_to_conservative(prims, kappa=5/3):
     cons    = [None]*len(prims)
     cons[0] = prims[0]            # density
@@ -329,3 +347,12 @@ def flatten_dict(d, delimiter='.'):
     return dict(
         [item for k, v in d.items() for item in expand(k, v)]
     )
+
+## ========================================================================= ##
+## command line utilities
+
+def URLhandler(url):
+    if url.lower().startswith('file://'):
+        with open(url[len('file://'):]) as fd: return fd.read()
+
+    return url
