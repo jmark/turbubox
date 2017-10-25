@@ -6,6 +6,13 @@ import ulz
 
 lib = ct.cdll.LoadLibrary(ulz.find_file('libshellavg.so', sys.path))
 
+def shell_avg(X, nsamples=None, mult_with_rsquare=False):
+    if len(X.shape) == 2:
+        return shell_avg_2d(X,nsamples,mult_with_rsquare)
+    if len(X.shape) == 3:
+        return shell_avg_3d(X,nsamples,mult_with_rsquare)
+    raise NotImplementedError("{} dimensions is not supported.".format(len(X.shape)))
+
 lib.shell_avg_2d.argtypes = [
     # void shell_avg_3d(
     #     const double *X, const int Nx, const int Ny,
@@ -18,10 +25,10 @@ lib.shell_avg_2d.argtypes = [
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
-    ct.c_int
+    ct.c_int, ct.c_int
 ]
  
-def shell_avg_2d(X, nsamples=None):
+def shell_avg_2d(X, nsamples=None,mult_with_rsquare=False):
     Nx,Ny = X.shape
 
     if not nsamples:
@@ -39,7 +46,7 @@ def shell_avg_2d(X, nsamples=None):
     ts = np.require(ts.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
 
     # call C-function
-    lib.shell_avg_2d(X,Nx,Ny, cs,rs,ts,nsamples)
+    lib.shell_avg_2d(X,Nx,Ny, cs,rs,ts,nsamples,int(mult_with_rsquare))
 
     # take average and return
     # note: if div-by-zero warning arises: the inputs-to-samples ratio 
@@ -59,10 +66,10 @@ lib.shell_avg_3d.argtypes = [
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
     ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
-    ct.c_int
+    ct.c_int, ct.c_int
 ]
  
-def shell_avg_3d(X, nsamples=None):
+def shell_avg_3d(X, nsamples=None,mult_with_rsquare=False):
     Nx,Ny,Nz = X.shape
 
     if not nsamples:
@@ -80,13 +87,13 @@ def shell_avg_3d(X, nsamples=None):
     ts = np.require(ts.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
 
     # call C-function
-    lib.shell_avg_3d(X,Nx,Ny,Nz, cs,rs,ts,nsamples)
+    lib.shell_avg_3d(X,Nx,Ny,Nz, cs,rs,ts,nsamples,int(mult_with_rsquare))
 
     # take average and return
     # note: if div-by-zero warning arises: the inputs-to-samples ratio 
     # is not adequate
 
-    return rs/cs, 4*np.pi*ts/cs
+    return rs/cs, ts/cs
 
 if __name__ == '__main__':
     #X = np.random.rand(100,100,100)

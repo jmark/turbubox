@@ -1,31 +1,30 @@
 #!/usr/bin/env pyturbubox
 
 # stdlib
-import os, sys, pickle
 import numpy as np
-import pathlib as pl
+from pathlib import Path
+import argparse
 
 # jmark
 import ulz
-import couchdg
+import cubicle
 import shellavg
 
 def PositiveInt(arg):
     x = int(arg)
-    if x >= 0:
-        return x
-    else:
-        raise ValueError("'%d' must be positive!" % x)
-
-def log(msg):
-    print(msg, file=sys.stderr)
+    if x >= 0: return x
+    else: raise ValueError("'%d' must be positive!" % x)
 
 ## ========================================================================= ##
 ## process commandline arguments
 
-import argparse
+pp = argparse.ArgumentParser()
 
-pp = argparse.ArgumentParser(description = 'Batch Produce Shellaverages')
+pp.add_argument(
+    '--nvar',
+    help='index number of variable, e.g.: 0 => dens, 1 => velx, ...',
+    type=PositiveInt, required=True
+)
 
 pp.add_argument(
     '--nsamples',
@@ -34,23 +33,24 @@ pp.add_argument(
 )
 
 pp.add_argument(
+    '--meshfile',
+    help='hopr mesh file for flexi snapshot files',
+    type=Path,
+)
+
+pp.add_argument(
     'snapshot',
-    help='list of snapshot files',
-    type=pl.Path,
+    help='snapshot file',
+    type=Path,
 )
 
 ARGV = pp.parse_args()
+cube = cubicle.File(ARGV.snapshot, meshfile=ARGV.meshfile)
+box  = cube.as_box(ARGV.nvar)
 
-fdata = couchdg.Ribbon(ARGV.snapshot)
+radii, avgs = shellavg.shell_avg(box, ARGV.nsamples)
+radii *= np.sqrt(np.sum(cube.domsize**2))/np.sqrt(np.sum(np.array(box.shape)**2))
 
-velx = fdata.stitch(1,7)
-vely = fdata.stitch(2,7)
-
-radii,avgs = shellavg.shell_avg_2d(np.sqrt(velx**2+vely**2), ARGV.nsamples)
-
-print(np.sqrt(fdata.domsize[0]**2 + fdata.domsize[1]**2))
-
-radii *= 0.5*np.sqrt(fdata.domsize[0]**2 + fdata.domsize[1]**2)/len(radii)
-
+print('#', 'radius', 'shell-average')
 for radius, avg in zip(radii,avgs):
     print(radius, avg)

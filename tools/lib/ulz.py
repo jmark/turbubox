@@ -348,6 +348,7 @@ def flatten_dict(d, delimiter='.'):
         [item for k, v in d.items() for item in expand(k, v)]
     )
 
+<<<<<<< HEAD
 ## ========================================================================= ##
 ## command line utilities
 
@@ -356,3 +357,13 @@ def URLhandler(url):
         with open(url[len('file://'):]) as fd: return fd.read()
 
     return url
+=======
+def PositiveInt(arg):
+    x = int(arg)
+    if x >= 0:
+        return x
+    else:
+        raise ValueError("'%d' must be positive!" % x)
+
+
+>>>>>>> 483fe5f2bde2e7ba04750d33c523d45881207aa1

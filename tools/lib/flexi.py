@@ -17,32 +17,16 @@ class File:
         self.Nout       = len(self.data[0,:,0,0,0])
         self.time       = self.attr['Time'][0]
 
-        self.varnames   = 'dens momx momy momz eint'.split()
+        self.var2idx    = dict((k,v) for v,k in enumerate('dens momx momy momz ener magx magy magz'.split()))
 
         self.domain     = self.mesh.domain
         self.domainsize = self.mesh.domainsize 
         self.cellsize   = self.mesh.cellsize
         self.cellvolume = np.prod(self.cellsize)
         
-        #self.params = dict((k,ulz.coerce(v)) for k,v in 
-        #    [x.decode('utf8').split('=') for x in self.attr['Parameters']])
-
-    # def flexi_to_box(self, iVar, Nvisu=None):
-    #     if Nvisu is None:
-    #         Nvisu = self.Nout
-
-    #     xs = gausslobatto.mk_nodes(self.Nout-1,self.nodetype)
-    #     Xs = ulz.mk_body_centered_linspace(-1,1,Nvisu)
-
-    #     return interpolate.flexi_to_box(xs,Xs,self.data[:,:,:,:,iVar],self)
-
-    #def data(self, varname, Nvisu=None):
-    #    iVar = self.varnames.index(varname)
-    #    return self.as_box(iVar, Nvisu)
-
     def as_box(self, iVar, Nvisu=None):
-        if Nvisu is None:
-            Nvisu = self.Nout
+        if isinstance(iVar, str): iVar = self.var2idx[iVar]
+        if Nvisu is None: Nvisu = self.Nout
 
         xs = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
         Xs = ulz.mk_body_centered_linspace(-1,1, Nvisu)
@@ -51,9 +35,13 @@ class File:
         return interpolate.elements_to_box(elems, self.mesh)
 
     def as_box_fv(self, iVar, Nvisu=None):
+        """This routine works the same as 'as_box' but recognizes finite-volume cells and
+           treats them appropiately."""
+
         if Nvisu is None:
             Nvisu = self.Nout
 
+        # Which elements are FV cells?
         elemData = self.h5file.get('ElemData')
         FVs = elemData[:,2].astype(np.int32)
     
@@ -63,28 +51,11 @@ class File:
         elems = interpolate.change_grid_space_dg_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1),xs,Xs,FVs)
         return interpolate.elements_to_box(elems, self.mesh)
 
-        # return interpolate.elements_to_box_fv(self.data[:,:,:,:,iVar].transpose(0,3,2,1), self.mesh, box, fvs)
-
-        # elems = self.data[:,:,:,:,iVar].transpose(0,3,2,1)
-        # return interpolate.elements_to_box(elems, self.mesh)
-
-    def flexi_to_box(self, iVar, Nvisu=None):
-        return self.as_box(iVar, Nvisu)
-
-    # def get_cons(self, Nvisu=None):
-    #     return [self.flexi_to_box(i, Nvisu) for i in range(0,len(self.varnames))]
-
-    # def get_prims(self, Nvisu=None):
-    #     cons = [self.as_box(i, Nvisu) for i in range(0,len(self.varnames))]
-    #     return ulz.navier_conservative_to_primitive(cons)
-
-    def get_cons(self, Nvisu=None):
-        return [self.as_box_fv(i, Nvisu) for i in range(0,len(self.varnames))]
-
-    def get_prims(self, Nvisu=None):
+    def get_prims(self, Nvisu=None, cons2prim=ulz.navier_conservative_to_primitive, gamma=5/3):
         if Nvisu is None:
             Nvisu = self.Nout
 
+        # Which elements are FV cells?
         elemData = self.h5file.get('ElemData')
         FVs = elemData[:,2]
     
@@ -92,7 +63,7 @@ class File:
         Xs = ulz.mk_body_centered_linspace(-1,1, Nvisu)
 
         cons  = [self.data[:,:,:,:,i] for i in range(0,len(self.varnames))] 
-        prims = ulz.navier_conservative_to_primitive(cons)
+        prims = cons2prim(cons, gamma)
 
         retval = []
         for iVar in range(0,len(self.varnames)):
@@ -101,10 +72,11 @@ class File:
 
         return retval
 
-    def get_cons_dg(self, Nvisu=None):
+    def get_cons(self, Nvisu=None):
         if Nvisu is None:
             Nvisu = self.Nout
 
+        # Which elements are FV cells?
         elemData = self.h5file.get('ElemData')
         FVs = elemData[:,2]
     
@@ -112,13 +84,11 @@ class File:
         Xs = gausslobatto.mk_nodes(self.Nout-1, self.nodetype)
 
         cons  = [self.data[:,:,:,:,i] for i in range(0,len(self.varnames))] 
-        #prims = ulz.navier_conservative_to_primitive(cons)
 
         retval = []
         for iVar in range(0,len(self.varnames)):
             elems = interpolate.change_grid_space_fv_dg(cons[iVar].transpose(0,3,2,1),xs,Xs,FVs)
-            #retval.append(interpolate.elements_to_box(elems, self.mesh))
-            retval.append(elems)
+            retval.append(interpolate.elements_to_box(elems, self.mesh))
 
         return retval
 
@@ -133,3 +103,10 @@ class File:
         self.close()
         if isinstance(value,Exception):
             raise
+
+    # convenience methods
+    def flexi_to_box(self, iVar, Nvisu=None):
+        return self.as_box(iVar, Nvisu)
+
+    def get_cons(self, Nvisu=None):
+        return [self.as_box_fv(i, Nvisu) for i in range(0,len(self.varnames))]

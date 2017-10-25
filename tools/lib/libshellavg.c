@@ -8,7 +8,7 @@
 
 void shell_avg_2d(
     const double *X, const int Nx, const int Ny,
-    double *cs, double *rs, double *ts, const int nsamples
+    double *cs, double *rs, double *ts, const int nsamples, const int mult_with_rsquare
 )
 {
     // cell half-width offsets
@@ -29,13 +29,18 @@ void shell_avg_2d(
 
         cs[R] += 1;
         rs[R] += r;
-        ts[R] += X[(i * Ny) + j];
+
+        if (mult_with_rsquare) {
+            ts[R] += r*r*X[(i * Ny) + j];
+        } else {
+            ts[R] += X[(i * Ny) + j];
+        }
     }
 }
 
 void shell_avg_3d(
     const double *X, const int Nx, const int Ny, const int Nz,
-    double *cs, double *rs, double *ts, const int nsamples
+    double *cs, double *rs, double *ts, const int nsamples, const int mult_with_rsquare
 )
 {
     // cell half-width offsets
@@ -60,6 +65,11 @@ void shell_avg_3d(
 
         cs[R] += 1;
         rs[R] += r;
-        ts[R] += r*r*X[((i * Ny) + j) * Nz + k];
+
+        if (mult_with_rsquare) {
+            ts[R] += r*r*X[((i * Ny) + j) * Nz + k];
+        } else {
+            ts[R] += X[((i * Ny) + j) * Nz + k];
+        }
     }
 }
