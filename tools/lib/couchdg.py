@@ -54,6 +54,9 @@ class Ribbon(File):
 
         self.domsize = np.abs(self.domain[1]-self.domain[0])
 
+    def as_box(self, ivar, Nvisu=None):
+        return self.stitch(ivar, Nvisu)
+
     def stitch(self, ivar, Nvisu=None):
         retv = None
 
@@ -74,3 +77,13 @@ class Ribbon(File):
             retv = temp if retv is None else np.concatenate((retv,temp),axis=0)
 
         return retv.T
+
+    def get_prims(self, Nvisu=None, cons2prim=ulz.navier_conservative_to_primitive, gamma=5/3):
+        cons = [None]*5
+        cons[0] = self.stitch(0)
+        cons[1] = self.stitch(1)
+        cons[2] = self.stitch(1)
+        cons[3] = np.zeros_like(cons[2])
+        cons[4] = self.stitch(3)
+
+        return cons2prim(cons) 

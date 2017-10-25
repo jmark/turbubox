@@ -329,3 +329,12 @@ def flatten_dict(d, delimiter='.'):
     return dict(
         [item for k, v in d.items() for item in expand(k, v)]
     )
+
+def PositiveInt(arg):
+    x = int(arg)
+    if x >= 0:
+        return x
+    else:
+        raise ValueError("'%d' must be positive!" % x)
+
+

@@ -95,6 +95,9 @@ class File:
 
         return box 
 
+    def as_box(self, dname):
+        return self.get_data(dname)
+
     def get_prims(self):
         return [self.get_data(dname) for dname in 'dens velx vely velz pres'.split()]
 
