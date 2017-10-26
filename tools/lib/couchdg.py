@@ -9,14 +9,23 @@ class File(h5.File):
     def __init__(self, fpath, mode='r'):
         super().__init__(fpath, mode)
 
-        self.meta = dict(
-            tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
-                zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
-            tuple((k.strip().decode(),v) for (k,v) in 
-                zip(self.get('meta_int').attrs.get('keys'), self.get('meta_int'))) + \
-            tuple((k.strip().decode(),v) for (k,v) in 
-                zip(self.get('meta_flt').attrs.get('keys'), self.get('meta_flt')))
-        )
+        # support for older deprecated format
+        if 'meta_num' in self.keys():
+            self.meta = dict(
+                tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
+                    zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
+                tuple((k.strip().decode(),v) for (k,v) in 
+                    zip(self.get('meta_num').attrs.get('keys'), self.get('meta_num')))
+            )
+        else:
+            self.meta = dict(
+                tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
+                    zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
+                tuple((k.strip().decode(),v) for (k,v) in 
+                    zip(self.get('meta_int').attrs.get('keys'), self.get('meta_int'))) + \
+                tuple((k.strip().decode(),v) for (k,v) in 
+                    zip(self.get('meta_flt').attrs.get('keys'), self.get('meta_flt')))
+            )
 
         for k,v in self.meta.items(): setattr(self, k, v)
 
