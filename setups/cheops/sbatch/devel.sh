@@ -22,4 +22,7 @@
 #SBATCH --mem=22gb
 #SBATCH --time=01:00:00
 
+#SBATCH --error=devel.log
+#SBATCH --parsable
+
 NTASK="$SLURM_NTASKS" "$@"

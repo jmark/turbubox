@@ -9,7 +9,7 @@ class File(h5.File):
     def __init__(self, fpath, mode='r'):
         super().__init__(fpath, mode)
 
-        # support for older deprecated format
+        # jupport for older deprecated format
         if 'meta_num' in self.keys():
             self.meta = dict(
                 tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
@@ -91,8 +91,8 @@ class Ribbon(File):
         cons = [None]*5
         cons[0] = self.stitch(0)
         cons[1] = self.stitch(1)
-        cons[2] = self.stitch(1)
-        cons[3] = np.zeros_like(cons[2])
+        cons[2] = self.stitch(2)
+        cons[3] = 0.0
         cons[4] = self.stitch(3)
 
-        return cons2prim(cons) 
+        return cons2prim(cons, gamma) 
