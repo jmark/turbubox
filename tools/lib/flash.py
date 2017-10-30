@@ -81,7 +81,7 @@ class File:
         rls  = self.get('refine level')
         rl   = rls.max()
         bids = [i for (i,x) in enumerate(rls) if x == rl] # filter desired blocks
-        
+
         coords = (self.get('coordinates'))[bids] # shape: (#bids,3)
         blocks = (self.get(dname))[bids]         # shape: (#bids,nxb*nyb*nzb)
 
@@ -91,6 +91,7 @@ class File:
         box = np.zeros(gridsize)
         for bid, pos in enumerate(positions):
             I = np.array((pos-blksize//2,pos+blksize//2)).transpose()
+            I[I[:,1] < 1,1] = 1 # consider <3D case
             box[[slice(*i) for i in I]] = blocks[bid].transpose((2,1,0))
 
         return box 
@@ -98,7 +99,7 @@ class File:
     def as_box(self, dname):
         return self.get_data(dname)
 
-    def get_prims(self):
+    def get_prims(self, Nvisu=None, gamma=None):
         return [self.get_data(dname) for dname in 'dens velx vely velz pres'.split()]
 
     def get_cons(self, gamma=5./3.):
