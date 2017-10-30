@@ -53,11 +53,12 @@ pp.add_argument(
 ARGV = pp.parse_args()
 cube = cubicle.File(ARGV.snapshot, meshfile=ARGV.meshfile)
 
-if ARGV.nvar <= 3:
-    box  = cube.as_box(ARGV.nvar)
-else:
-    prim = cube.get_prims(gamma=ARGV.gamma)
-    box = prim[ARGV.nvar]
+# if ARGV.nvar <= 3:
+#     box  = cube.as_box(ARGV.nvar)
+# else:
+
+prim = cube.get_prims(gamma=ARGV.gamma)
+box = prim[ARGV.nvar]
 
 radii, avgs = shellavg.shell_avg(box, ARGV.nsamples)
 radii *= np.sqrt(np.sum(cube.domsize**2))/np.sqrt(np.sum(np.array(box.shape)**2))
