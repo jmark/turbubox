@@ -37,6 +37,7 @@ class File:
         ])
 
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
+        self.domsize = self.domainsize
         self.blocksize  = np.array([self.integerscalars[x] for x in 'nxb nyb nzb'.split()])
         self.cellsize   = self.domainsize / self.gridsize
         self.cellvolume = np.prod(self.cellsize)
