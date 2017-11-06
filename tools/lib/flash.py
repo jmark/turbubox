@@ -29,6 +29,8 @@ class File:
         if not self.is_multilevel:
             self.gridsize *= np.array([self.integerscalars[key] for key in 'iprocs jprocs kprocs'.split()])
 
+        # handle uniform grid case
+
         self.grid = np.array([[0,0,0], self.gridsize-1])
 
         self.domain  = np.array([
@@ -37,6 +39,7 @@ class File:
         ])
 
         self.domainsize = np.abs(self.domain[1]-self.domain[0])
+        self.domsize    = self.domainsize
         self.blocksize  = np.array([self.integerscalars[x] for x in 'nxb nyb nzb'.split()])
         self.cellsize   = self.domainsize / self.gridsize
         self.cellvolume = np.prod(self.cellsize)

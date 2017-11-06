@@ -8,7 +8,7 @@
 
 void shell_avg_2d(
     const double *X, const int Nx, const int Ny,
-    double *cs, double *rs, double *ts, const int nsamples, const int mult_with_rsquare
+    double *cs, double *rs, double *ts, const int nsamples, const int mult_with_r
 )
 {
     // cell half-width offsets
@@ -30,10 +30,10 @@ void shell_avg_2d(
         cs[R] += 1;
         rs[R] += r;
 
-        if (mult_with_rsquare) {
-            ts[R] += r*r*X[(i * Ny) + j];
+        if (mult_with_r) {
+            ts[R] += r*X[(i * Ny) + j];
         } else {
-            ts[R] += X[(i * Ny) + j];
+            ts[R] +=   X[(i * Ny) + j];
         }
     }
 }
