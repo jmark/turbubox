@@ -17,15 +17,12 @@
 #SBATCH --mail-type=all
 
 #SBATCH --cpus-per-task=1
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCh --ntasks-per-node=24
-#SBATCH --ntasks=48
+#SBATCH --ntasks=24
 #SBATCH --mem=40gb
-#SBATCH --time=05:00:00
+#SBATCH --time=06:00:00
 
-module purge
-module load hdf5
-module load intel
-module load intelmpi
+#SBATCH --parsable
 
-srun -n "$SLURM_NTASKS" "$@"
+NTASK="$SLURM_NTASKS" "$@"

@@ -66,11 +66,11 @@ class Ribbon(File):
     def as_box(self, ivar, Nvisu=None):
         return self.stitch(ivar, Nvisu)
 
-    def stitch(self, ivar, Nvisu=None):
+    def stitch(self, ivar, Nvisu=None, dname='state'):
         retv = None
 
         for pid in sorted(self.file['patches'].keys()):
-            patch = self.get('/patches/'+pid+'/state')
+            patch = self.get('/patches/'+pid+'/'+dname)
 
             Np = int(self.npoly)
             Nv = Nvisu if Nvisu else Np + 1
