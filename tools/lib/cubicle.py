@@ -51,16 +51,12 @@ def apply_probes(h5file):
         if result is not None:
             return result
 
-def File(fpath, mode='r', meshfile=None):
+def File(fpath, **kwargs):
     """Universal routine to probe the file type via introspection
     and calling the appropiate module on it."""
 
     with h5.File(fpath, mode='r') as fh:
         handler = apply_probes(fh) 
-
-    if handler:
-        if meshfile is not None:
-            return handler(fpath, meshfile, mode=mode)
-        return handler(fpath, mode=mode)
+        if handler: return handler(fpath, **kwargs)
     
     raise NotImplementedError("No suitable handler for file '%s' found!" % fpath)
