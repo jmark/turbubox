@@ -6,11 +6,11 @@ import ulz
 
 lib = ct.cdll.LoadLibrary(ulz.find_file('libshellavg.so', sys.path))
 
-def shell_avg(X, nsamples=None, mult_with_rsquare=False):
+def shell_avg(X, nsamples=None, want_powerspectrum=False):
     if len(X.shape) == 2:
-        return shell_avg_2d(X,nsamples,mult_with_rsquare)
+        return shell_avg_2d(X,nsamples,want_powerspectrum)
     if len(X.shape) == 3:
-        return shell_avg_3d(X,nsamples,mult_with_rsquare)
+        return shell_avg_3d(X,nsamples,want_powerspectrum)
     raise NotImplementedError("{} dimensions is not supported.".format(len(X.shape)))
 
 lib.shell_avg_2d.argtypes = [
@@ -28,11 +28,10 @@ lib.shell_avg_2d.argtypes = [
     ct.c_int, ct.c_int
 ]
  
-def shell_avg_2d(X, nsamples=None,mult_with_rsquare=False):
+def shell_avg_2d(X, nsamples=None,want_powerspectrum=False):
     Nx,Ny = X.shape
 
-    if not nsamples:
-        nsamples = min(Nx,Ny)
+    if not nsamples: nsamples = min(Nx,Ny)
 
     # setup result arrays
     cs = np.zeros(nsamples, dtype=np.double) # counts
@@ -46,12 +45,14 @@ def shell_avg_2d(X, nsamples=None,mult_with_rsquare=False):
     ts = np.require(ts.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
 
     # call C-function
-    lib.shell_avg_2d(X,Nx,Ny, cs,rs,ts,nsamples,int(mult_with_rsquare))
+    lib.shell_avg_2d(X,Nx,Ny, cs,rs,ts,nsamples,int(want_powerspectrum))
 
     # take average and return
     # note: if div-by-zero warning arises: the inputs-to-samples ratio 
     # is not adequate
 
+    if want_powerspectrum:
+        return rs/cs, 2*np.pi*ts/cs
     return rs/cs, ts/cs
 
 lib.shell_avg_3d.argtypes = [
@@ -69,11 +70,10 @@ lib.shell_avg_3d.argtypes = [
     ct.c_int, ct.c_int
 ]
  
-def shell_avg_3d(X, nsamples=None,mult_with_rsquare=False):
+def shell_avg_3d(X, nsamples=None,want_powerspectrum=False):
     Nx,Ny,Nz = X.shape
 
-    if not nsamples:
-        nsamples = min(Nx,Ny,Nz)
+    if not nsamples: nsamples = min(Nx,Ny,Nz)
 
     # setup result arrays
     cs = np.zeros(nsamples, dtype=np.double) # counts
@@ -87,12 +87,14 @@ def shell_avg_3d(X, nsamples=None,mult_with_rsquare=False):
     ts = np.require(ts.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
 
     # call C-function
-    lib.shell_avg_3d(X,Nx,Ny,Nz, cs,rs,ts,nsamples,int(mult_with_rsquare))
+    lib.shell_avg_3d(X,Nx,Ny,Nz, cs,rs,ts,nsamples,int(want_powerspectrum))
 
     # take average and return
     # note: if div-by-zero warning arises: the inputs-to-samples ratio 
     # is not adequate
 
+    if want_powerspectrum:
+        return rs/cs, 4*np.pi*ts/cs
     return rs/cs, ts/cs
 
 if __name__ == '__main__':

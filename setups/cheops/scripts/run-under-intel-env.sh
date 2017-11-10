@@ -107,4 +107,4 @@ then
     # export PATH="/$TMPDIR:$PATH"
 fi
 
-eval "$@"
+"$@"

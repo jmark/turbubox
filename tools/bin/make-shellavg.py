@@ -1,6 +1,7 @@
 #!/usr/bin/env pyturbubox
 
 # stdlib
+import sys
 import numpy as np
 from pathlib import Path
 import argparse
@@ -39,6 +40,12 @@ pp.add_argument(
 )
 
 pp.add_argument(
+    '--gamma',
+    help='number samples taken by shellavg3d',
+    type=float,
+)
+
+pp.add_argument(
     'snapshot',
     help='snapshot file',
     type=Path,
@@ -46,10 +53,17 @@ pp.add_argument(
 
 ARGV = pp.parse_args()
 cube = cubicle.File(ARGV.snapshot, meshfile=ARGV.meshfile)
-box  = cube.as_box(ARGV.nvar)
+
+prim = cube.get_prims(gamma=ARGV.gamma)
+box = prim[ARGV.nvar][:,:,0]
+domsize = cube.domsize[0:2]
 
 radii, avgs = shellavg.shell_avg(box, ARGV.nsamples)
-radii *= np.sqrt(np.sum(cube.domsize**2))/np.sqrt(np.sum(np.array(box.shape)**2))
+radii *= np.sqrt(np.sum(domsize**2))/np.sqrt(np.sum(np.array(box.shape)**2))
+
+print(box.shape, file=sys.stderr)
+print(domsize, file=sys.stderr)
+print(cube.time, file=sys.stderr)
 
 print('#', 'radius', 'shell-average')
 for radius, avg in zip(radii,avgs):

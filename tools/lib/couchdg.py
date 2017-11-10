@@ -9,14 +9,23 @@ class File(h5.File):
     def __init__(self, fpath, mode='r'):
         super().__init__(fpath, mode)
 
-        self.meta = dict(
-            tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
-                zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
-            tuple((k.strip().decode(),v) for (k,v) in 
-                zip(self.get('meta_int').attrs.get('keys'), self.get('meta_int'))) + \
-            tuple((k.strip().decode(),v) for (k,v) in 
-                zip(self.get('meta_flt').attrs.get('keys'), self.get('meta_flt')))
-        )
+        # jupport for older deprecated format
+        if 'meta_num' in self.keys():
+            self.meta = dict(
+                tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
+                    zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
+                tuple((k.strip().decode(),v) for (k,v) in 
+                    zip(self.get('meta_num').attrs.get('keys'), self.get('meta_num')))
+            )
+        else:
+            self.meta = dict(
+                tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
+                    zip(self.get('meta_txt').attrs.get('keys'), self.get('meta_txt'))) + \
+                tuple((k.strip().decode(),v) for (k,v) in 
+                    zip(self.get('meta_int').attrs.get('keys'), self.get('meta_int'))) + \
+                tuple((k.strip().decode(),v) for (k,v) in 
+                    zip(self.get('meta_flt').attrs.get('keys'), self.get('meta_flt')))
+            )
 
         for k,v in self.meta.items(): setattr(self, k, v)
 
@@ -57,11 +66,11 @@ class Ribbon(File):
     def as_box(self, ivar, Nvisu=None):
         return self.stitch(ivar, Nvisu)
 
-    def stitch(self, ivar, Nvisu=None):
+    def stitch(self, ivar, Nvisu=None, dname='state'):
         retv = None
 
         for pid in sorted(self.file['patches'].keys()):
-            patch = self.get('/patches/'+pid+'/state')
+            patch = self.get('/patches/'+pid+'/'+dname)
 
             Np = int(self.npoly)
             Nv = Nvisu if Nvisu else Np + 1
@@ -82,8 +91,8 @@ class Ribbon(File):
         cons = [None]*5
         cons[0] = self.stitch(0)
         cons[1] = self.stitch(1)
-        cons[2] = self.stitch(1)
-        cons[3] = np.zeros_like(cons[2])
+        cons[2] = self.stitch(2)
+        cons[3] = 0.0
         cons[4] = self.stitch(3)
 
-        return cons2prim(cons) 
+        return cons2prim(cons, gamma) 

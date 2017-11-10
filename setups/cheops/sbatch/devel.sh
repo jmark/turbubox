@@ -22,4 +22,6 @@
 #SBATCH --mem=22gb
 #SBATCH --time=01:00:00
 
+#SBATCH --parsable
+
 NTASK="$SLURM_NTASKS" "$@"
