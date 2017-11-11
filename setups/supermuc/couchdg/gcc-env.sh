@@ -7,6 +7,7 @@ module purge
 source /etc/profile
 source /etc/profile.d/modules.sh
 
+module unload mpi.intel
 module load gcc/7
 module load mpi.ompi/2.0/gcc
 #module load hdf5/mpi/1.8.17_gcc

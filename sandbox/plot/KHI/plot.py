@@ -16,14 +16,17 @@ import matplotlib.pyplot as plt
 
 pp = argparse.ArgumentParser()
 
-pp.add_argument('srcfile', help='path to couchdg snapshot file', type=Path)
-pp.add_argument('snkfile', help='path to of png file', type=Path)
-pp.add_argument('--title', type=ulz.URLhandler, default='')
-pp.add_argument('--profile', type=str.lower, default='density')
+pp.add_argument('--srcfile', type=Path, required=True)
+pp.add_argument('--snkfile', type=Path, required=True)
+pp.add_argument('--profile', type=str.lower)
+pp.add_argument('--title',   type=lambda x: ulz.URLhandler(x).strip())
+pp.add_argument('--nvisu',   type=int)
+pp.add_argument('--gamma',   type=float)
 
 ARGV = pp.parse_args()
 
 fdata = cubicle.File(ARGV.srcfile)
+gamma = fdata.gamma if hasattr(fdata,'gamma') else ARGV.gamma
 
 dpi = 150
 fig = plt.figure(figsize=(1920/dpi, 1080/dpi), dpi=dpi)
@@ -31,12 +34,11 @@ fig = plt.figure(figsize=(1920/dpi, 1080/dpi), dpi=dpi)
 plt.xlim(fdata.domain.T[0,:])
 plt.ylim(fdata.domain.T[1,:])
 
-gamma = 5/3
 if fdata.domain.shape[1] > 2:
-    dens,velx,vely,velz,pres = [x[:,:,0].T for x in fdata.get_prims(Nvisu=10,gamma=gamma)]
+    dens,velx,vely,velz,pres = [x[:,:,0].T for x in fdata.get_prims(gamma=gamma)]
     extent = fdata.domain.T.ravel()[0:4]
 else:
-    dens,velx,vely,velz,pres = fdata.get_prims(Nvisu=10,gamma=gamma)
+    dens,velx,vely,velz,pres = fdata.get_prims(Nvisu=ARGV.nvisu,gamma=gamma)
     extent = fdata.domain.T.ravel()
 
 if ARGV.profile == 'density':
@@ -45,7 +47,7 @@ if ARGV.profile == 'density':
     cblabel = '   density'
     cmap    = plt.get_cmap('cubehelix')
 
-if ARGV.profile == 'log10-density':
+elif ARGV.profile == 'log10-density':
     carpet  = np.log10(dens)
     cbrange = (None,None)
     cbrange = (-2,2)
@@ -94,6 +96,10 @@ plt.imshow(
 cb = plt.colorbar(fraction=0.0456, pad=0.02, format='%1.2f')
 cb.set_label(cblabel, labelpad=-40, x=1.15, y=1.045, rotation=0)
 
-plt.title(ARGV.title.strip() + ": t = {: 6.3f}".format(fdata.time), y=1.01)
+if ARGV.title:
+    title = '{}: t = {: 6.3f}'.format(ARGV.title, fdata.time)
+else:
+    title = 't = {: 6.3f}'.format(fdata.time)
 
+plt.title(title, y=1.01)
 plt.savefig(str(ARGV.snkfile), bbox_inches='tight', dpi=dpi)
