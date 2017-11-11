@@ -54,6 +54,20 @@ for arg in "$@"; do case "$arg" in
             -site="$MKFDIR" -objdir="$OBJDIR"
     ;;
 
+    "KHI ES jmark")
+        BLOCKSIZE=96
+        #MKFDIR=$HOME/projects/turbubox/setups/cheops/flash/makefiles/intel
+        MKFDIR=$HOME/projects/turbubox/setups/cheops/flash/makefiles/gcc
+        OBJDIR=/mnt/data/flash/KHI/ES/build
+
+        mkdir -p "$OBJDIR"
+            
+        ./setup 'Markert-KHI' -2d +ug -auto -opt -portable \
+            '--with-unit=physics/Hydro/HydroMain/split/ES' \
+            -nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -maxblocks=-1 \
+            -site="$MKFDIR" -objdir="$OBJDIR"
+    ;;
+
     "KHI Bouchut5")
         BLOCKSIZE=96
         MKFDIR=$HOME/turbubox/setups/cheops/flash/makefiles/intel
@@ -80,7 +94,6 @@ for arg in "$@"; do case "$arg" in
             -nxb=$BLOCKSIZE -nyb=$BLOCKSIZE -maxblocks=-1 \
             -site="$MKFDIR" -objdir="$OBJDIR"
     ;;
-
 
     "Sedov Blast Bouchut5")
         BLOCKSIZE=96

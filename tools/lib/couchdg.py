@@ -66,7 +66,7 @@ class Ribbon(File):
     def as_box(self, ivar, Nvisu=None):
         return self.stitch(ivar, Nvisu)
 
-    def stitch(self, ivar, Nvisu=None, dname='state'):
+    def stitch_old(self, ivar, Nvisu=None, dname='state'):
         retv = None
 
         for pid in sorted(self.file['patches'].keys()):
@@ -86,6 +86,36 @@ class Ribbon(File):
             retv = temp if retv is None else np.concatenate((retv,temp),axis=0)
 
         return retv.T
+
+    def stitch(self, *args,**kwargs):
+        if 'mesh_type' in self.meta: return self.stitch_structured(*args,**kwargs)
+        return self.stitch_old(*args,**kwargs)
+        
+    def stitch_structured(self, ivar, Nvisu=None, dname='state'):
+        NX_PATCHES = self.meta['mesh_nx_patches']
+        NY_PATCHES = self.meta['mesh_ny_patches']
+
+        Np = int(self.npoly)
+        Nv = Nvisu if Nvisu else Np + 1
+
+        xs = gausslobatto.mk_nodes(Np, self.nodetype)
+        Xs = ulz.mk_body_centered_linspace(-1,1, Nv)
+
+        Nx,Ny = self.meta['mesh_nx_cells'], self.meta['mesh_ny_cells'] 
+
+        cloth = None
+        for patchJ in range(NY_PATCHES):
+            column = None
+            for patchI in range(NX_PATCHES):
+                patchid = patchJ * NX_PATCHES + patchI
+                patch   = self.get('/patches/{:04d}/{}'.format(patchid,dname))
+                patch   = patch[:,:,ivar,:,:].transpose(1,0,3,2).reshape((-1,Np+1,Np+1))
+                patch   = interpolate.change_grid_space_2d(patch,xs,Xs).reshape(Nx,Ny,Nv,Nv)
+                patch   = np.concatenate([np.concatenate(row,axis=1) for row in patch])
+                column  = patch if column is None else np.concatenate((column,patch),axis=0)
+            cloth = column if cloth is None else np.concatenate((cloth,column),axis=1)
+
+        return cloth.T
 
     def get_prims(self, Nvisu=None, cons2prim=ulz.navier_conservative_to_primitive, gamma=5/3):
         cons = [None]*5
