@@ -1,15 +1,16 @@
-import h5
-import ulz
-import interpolate
-import gausslobatto
-
 import numpy as np
+import turbubox.h5 as h5
+import turbubox.ulz as ulz
+import turbubox.interpolate as interpolate
+import turbubox.gausslobatto as gausslobatto
 
-class File(h5.File):
-    def __init__(self, fpath, mode='r'):
+class BaseFile(h5.File):
+    def __init__(self, fpath, mode='r', **kwargs):
         super().__init__(fpath, mode)
 
-        # jupport for older deprecated format
+        self.framework  = 'couchdg'
+
+        # support for older deprecated format
         if 'meta_num' in self.keys():
             self.meta = dict(
                 tuple((k.strip().decode(),v.strip().decode()) for (k,v) in 
@@ -52,7 +53,7 @@ class File(h5.File):
             temp = interpolate.change_grid_space_2d(temp,xs,Xs).reshape(Nx,Ny,Nv,Nv)
             yield np.concatenate([np.concatenate(row,axis=1) for row in temp]).T
 
-class Ribbon(File):
+class StructuredMeshFile(BaseFile):
     def __init__(self, fpath, mode='r'):
         super().__init__(fpath, mode)
 
@@ -66,6 +67,7 @@ class Ribbon(File):
     def as_box(self, ivar, Nvisu=None):
         return self.stitch(ivar, Nvisu)
 
+    # depcrecated stitching routine
     def stitch_old(self, ivar, Nvisu=None, dname='state'):
         retv = None
 
@@ -86,11 +88,7 @@ class Ribbon(File):
             retv = temp if retv is None else np.concatenate((retv,temp),axis=0)
 
         return retv.T
-
-    def stitch(self, *args,**kwargs):
-        if 'mesh_type' in self.meta: return self.stitch_structured(*args,**kwargs)
-        return self.stitch_old(*args,**kwargs)
-        
+       
     def stitch_structured(self, ivar, Nvisu=None, dname='state'):
         NX_PATCHES = self.meta['mesh_nx_patches']
         NY_PATCHES = self.meta['mesh_ny_patches']
@@ -117,6 +115,10 @@ class Ribbon(File):
 
         return cloth.T
 
+    def stitch(self, *args,**kwargs):
+        if 'mesh_type' in self.meta: return self.stitch_structured(*args,**kwargs)
+        return self.stitch_old(*args,**kwargs)
+
     def get_prims(self, Nvisu=None, cons2prim=ulz.navier_conservative_to_primitive, gamma=5/3):
         cons = [None]*5
         cons[0] = self.stitch(0)
@@ -126,3 +128,15 @@ class Ribbon(File):
         cons[4] = self.stitch(3)
 
         return cons2prim(cons, gamma) 
+
+Ribbon = StructuredMeshFile # support legacy code
+
+# entry point and dispatch class
+class File(BaseFile):
+    def __init__(self, fpath, **kwargs):
+        super().__init__(fpath, mode='r')
+        if 'mesh_type' not in self.meta: # legacy support
+            return StructuredMeshFile(fpath, **kwargs)
+        elif self.meta['mesh_type'] == 'structured':
+            return StructuredMeshFile(fpath, **kwargs)
+        raise TypeError('Unsupported mesh type: {}'.format(self.meta['mesh_type']))

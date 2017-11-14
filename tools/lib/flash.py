@@ -1,37 +1,30 @@
-import h5
-import numpy as np
 import sys
 import ulz
+import numpy as np
 
-class File:
-    def __init__(self,fpath, mode='r'):
-        self.h5file = h5.File(fpath, mode)
+import turbubox.h5 as h5
+import turbubox.interpolate as itpl
+
+class File(h5.File):
+    def __init__(self, fpath, mode='r', **kwargs):
+        super().__init__(fpath, mode)
+        self.framework      = 'flash'
 
         # transform meta information to python data types
         self.siminfo        = self.get('sim info')
         
-        self.refine_levels  = self.get('refine level')
-        self.maxrefinelevel = self.refine_levels.max()
-
-        self.integerscalars = h5.dataset_to_dict(self.get('integer scalars'))
-        self.realscalars    = h5.dataset_to_dict(self.get('real scalars'))
-        self.integerruntime = h5.dataset_to_dict(self.get('integer runtime parameters'))
-        self.realruntime    = h5.dataset_to_dict(self.get('real runtime parameters'))
-
+        self.refine_levels  = self.get('refine level').value
+        self.maxrefinelevel = np.max(self.refine_levels)
         self.is_multilevel  = any(filter(lambda x: x > 1, self.refine_levels))
 
-        # figure out global grid size
-        self.gridsize = np.array([
-            self.integerruntime[N] * self.integerscalars[n]*2**(self.maxrefinelevel-1) 
-                for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())]).astype(np.int)
+        self.realscalars    = h5.dataset_to_dict(self.get('real scalars'))
+        self.realruntime    = h5.dataset_to_dict(self.get('real runtime parameters'))
+        self.integerscalars = h5.dataset_to_dict(self.get('integer scalars'))
+        self.integerruntime = h5.dataset_to_dict(self.get('integer runtime parameters'))
 
-        # handle uniform grid case
-        if not self.is_multilevel:
-            self.gridsize *= np.array([self.integerscalars[key] for key in 'iprocs jprocs kprocs'.split()])
-
-        # handle uniform grid case
-
-        self.grid = np.array([[0,0,0], self.gridsize-1])
+        self.coords         = self.get('coordinates').value
+        self.gridsize       = self.calc_gridsize(self.maxrefinelevel)
+        self.grid           = np.array([[0,0,0], self.gridsize-1])
 
         self.domain  = np.array([
             [self.realruntime[x] for x in 'xmin ymin zmin'.split()],
@@ -50,64 +43,44 @@ class File:
         self.params['dt']    = self.realscalars['dt']
         self.params['gamma'] = self.realruntime['gamma']
         self.params['kappa'] = self.realruntime['gamma'] # synonym
+        self.gamma           = self.params['gamma']
+        self.time            = self.params['time']
 
-        self.time = self.params['time']
-
-    def close(self):
-        self.h5file.close()
-
-    def __delete__(self):
-        self.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-        if isinstance(value, Exception):
-            raise
-
-    def get(self,dname):
-        return self.h5file.get(dname).value
-   
     def data(self, dname):
         return self.get_data(dname)
 
-    def get_data(self, dname):
-        # auxiliary variables for code clarity: shape: (3,)
-        gridsize  = self.gridsize
-        domsize   = self.domainsize
-        offset    = -(self.domain[0])
-        blksize   = self.blocksize
+    def calc_gridsize(self, rlevel):
+        gridsize = np.array([self.integerruntime[N] * self.integerscalars[n]*2**(rlevel-1) 
+                for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())]).astype(np.int)
 
-        # get block ids of desired refinement level
-        rls  = self.get('refine level')
-        rl   = rls.max()
-        bids = [i for (i,x) in enumerate(rls) if x == rl] # filter desired blocks
+        if not self.is_multilevel: # handle uniform grid
+            gridsize *= np.array([self.integerscalars[key] for key in 'iprocs jprocs kprocs'.split()])
 
-        coords = (self.get('coordinates'))[bids] # shape: (#bids,3)
-        blocks = (self.get(dname))[bids]         # shape: (#bids,nxb*nyb*nzb)
+        return gridsize
 
-        # note: using numpy broadcasting kung-fu: shape: coords.shape
-        positions = np.round((coords+offset)/domsize * gridsize).astype(np.int)
+    def get_data(self, dname, rlevel=None, **kwargs):
+        rlevels = self.get('refine level').value
+        coords  = self.get('coordinates').value
+        domain  = self.domain
+        blocks  = self.get(dname).value.transpose(0,3,2,1)
+        box     = None
 
-        box = np.zeros(gridsize)
-        for bid, pos in enumerate(positions):
-            I = np.array((pos-blksize//2,pos+blksize//2)).transpose()
-            I[I[:,1] < 1,1] = 1 # consider <3D case
-            box[[slice(*i) for i in I]] = blocks[bid].transpose((2,1,0))
+        for rl in np.unique(self.refine_levels) if rlevel is None else (rlevel,):
+            tmp = np.zeros(self.calc_gridsize(rl)) if box is None else ulz.zoom_array(box, factor=2)        
+            box = itpl.blocks_to_box(rl, rlevels, coords, domain, blocks, tmp)
 
         return box 
 
     def as_box(self, dname):
         return self.get_data(dname)
 
-    def get_prims(self, Nvisu=None, gamma=None):
-        return [self.get_data(dname) for dname in 'dens velx vely velz pres'.split()]
+    def get_prims(self, **kwargs):
+        return [self.get_data(dname, **kwargs) for dname in 'dens velx vely velz pres'.split()]
 
     def get_cons(self, gamma=5./3.):
          return ulz.navier_primitive_to_conservative(self.get_prims(), gamma)
 
+    # experimental!
     def set_data(self, dname, box):
         if self.is_multilevel:
             raise NotImplementedError('Setting data for multilevel grids (AMR) is not supported yet!')
@@ -140,7 +113,6 @@ class File:
         return self.h5file.keys()
 
     def to_hdf(self,fpath): # WIP!
-
         outfile = h5.File(fpath,'w')
 
         outfile.create_dataset("DIMS", data=self.meta['grid size'])
@@ -162,155 +134,10 @@ class File:
 
         outfile.close()
 
-class FakeFile:
-    """This class is a mess, but it works. No docs here. RTFSC."""
-    def __init__(self, domain, boxdims, fillby='constant', blockdims=None):
-       	self.domain     = np.array(domain)
-        self.gridsize   = np.array(boxdims).astype(np.int)
-        self.grid       = np.array([[0,0,0], self.gridsize-1])
-        self.domainsize = np.abs(self.domain[1]-self.domain[0])
-        self.cellsize   = self.domainsize / self.gridsize
+if __name__ == '__main__':
+    fp = sys.argv[1]
+    fh = File(fp)
 
-        if blockdims:
-            self.blocksize = np.array(blockdims)
-        else:
-            self.blocksize = None
+    dens = fh.get_data('dens', rlevel=None)
 
-        self.fillby = fillby
- 
-    @staticmethod
-    def plateau(x,y,z):
-        if np.abs(x) <= 0.2 and np.abs(y) <= 0.2 and np.abs(z) <= 0.2:
-            return 1
-        return 0
-
-    @staticmethod
-    def wiggle(X,Y,Z):
-        return np.sin(4 * 2*np.pi * X) + np.sin(5 * 2*np.pi * Y) + np.sin(6 * 2*np.pi * Z)
-
-    def data(self, dname):
-        dom = self.domain.transpose()
-        grd = self.gridsize
-        ret = np.zeros(grd)
-        fillby = self.fillby
-
-        def exp3D(A,sigma,p,x,y,z):
-            return A * np.exp(-((x-p[0])**2 + (y-p[1])**2 + (z-p[2])**2)/sigma/2.)
-
-        X,Y,Z = np.meshgrid(*tuple(ulz.mk_body_centered_linspace(d[0],d[1],s) for d,s in zip(dom, grd)), indexing='ij')
-
-        if dname == 'dens':
-
-            D1 =  1.0
-            D2 =  2.0
-
-            ret = 0.1 + 0.9 * np.exp(-((Y-0.5)**2)/2/0.01)
-            #ret = D1 * np.ones_like(X)
-            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = D2 
-            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = D2 
-
-            # --------------------------------------------------------------- #
-            # if fillby == 'constant':
-            #     ret[:] = 1.0
-
-            # elif fillby == 'planeX':
-            #     ret[:] = X
-
-            # elif fillby == 'planeX+':
-            #     ret = np.where(
-            #         (2/8-1/grd[0]<X) * (X<6/8+1/grd[0]) * \
-            #         (2/8-1/grd[1]<Y) * (Y<6/8+1/grd[1]) * \
-            #         (2/8-1/grd[2]<Z) * (Z<6/8+1/grd[2]), X,0*X)
-
-            # elif fillby == 'planeXYZ':
-            #     ret = np.where(
-            #         (1/8-1/grd[0]<X) * (X<7/8+1/grd[0]) * \
-            #         (1/8-1/grd[1]<Y) * (Y<7/8+1/grd[1]) * \
-            #         (1/8-1/grd[2]<Z) * (Z<7/8+1/grd[2]), X+Y+Z,0*X)
-
-            # elif fillby == 'plane+wiggle':
-            #     ret = np.where(
-            #         (1/16-1/grd[0]<X) * (X<15/16+1/grd[0]) * \
-            #         (1/16-1/grd[1]<Y) * (Y<15/16+1/grd[1]) * \
-            #         (1/16-1/grd[2]<Z) * (Z<15/16+1/grd[2]),
-            #         X+Y+Z + 0.5*self.wiggle(X+1/16,Y+1/16,Z+1/16),0*X)
-
-            # elif fillby == 'gaussianXYZ':
-            #     ret = np.exp(-((X-0.5)**2 + (Y-0.5)**2 + (Z-0.5)**2)/2/0.02)
-
-            # elif fillby == 'stepsXYZ':
-            #     ret = X + 100*X*(np.sin(4*2*np.pi*X) + 0.2*np.cos(20*2*np.pi*X) + 0.1*np.sin(20*2*np.pi*X))**2 
-
-            # else:
-            #     raise NotImplementedError('unknow fillby: %s' % fillby)
-
-        elif dname == 'pres':
-            # constant
-            #ret[:] = 1.0
-            # plane
-            #ret = X+Y
-
-            # --------------------------------------------------------------- #
-            # shear flow
-            ret = np.ones_like(X)
-            #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
-            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = 5.0
-            #ret[np.where((Y < 5/16) + (11/16 < Y))] = -5.0
-
-            # gaussian2d
-            # ret = 1 + 1 * 10**1 * np.exp(-((X-0.5)**2 + (Y-0.5)**2)/2/0.02)
-
-            # gaussian3d
-            #return 1 + 1 * 10**1 * np.exp(-(X**2 + Y**2 + Z**2)/2/0.02)
-
-            # sine3d
-            #return np.abs(np.sin(10*(X**2 + Y**2 + Z**2)))
-
-            # cube2d
-            # return 1 + 2 * np.vectorize(plateau)(X,Y,0)
-
-            # wiggle2d
-            #ret = 1 + 10 * np.abs(np.sin((X-Y)/2/np.pi * 200) + np.sin((X+Y)/2/np.pi * 100))
-        
-            # sin2d
-            #ret = 200 * (np.sin(X/np.pi/2) + np.cos(Y/np.pi/2))
-
-            #ret = np.sin(2*np.pi*X)
-   
-            # sin2d
-            #return X+Y+Z
-
-        elif dname == 'velx':
-            ## smashing balls
-            #V0 = -0.8
-            #V1 = -2 * V0 
-            #s1 = 0.01
-            #p1 = [0.5,0.5,0.5] 
-
-            #ret = V0 * np.ones_like(X) + exp3D(V1, s1, p1, X,Y,Z)
-
-            # --------------------------------------------------------------- #
-            ## beam
-            #ret = 0.1 * (2 * np.random.rand(*X.shape) - 1)
-            #ret[np.where((0.375 <= Y) * (Y <= 0.625) * (0.375 <= Z) * (Z <= 0.625))] = 1.0
-            #ret[np.where((Y < 23/64) + (41/64 < Y))] = -5.0
-
-            U1 = -0.2
-            U2 =  0.4
-
-            #ret = U1 * np.ones_like(X)
-            #ret[np.where((6/16 <= Y) * (Y <= 10/16))] = U2 
-
-            ret = U1 * np.ones_like(X) + U2 * np.exp(-((Y-0.5)**2)/2/0.01)
-
-        elif dname == 'vely':
-            U1 =  0.01
-            ret = U1 * np.sin(4*np.pi*X)
-
-        elif dname in 'velz magx magy magz'.split():
-            ret[:] = 0.0
-
-        else:
-            raise KeyError('%s not found!' % dname) 
-
-        return ret
+    print(dens.shape)
