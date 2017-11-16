@@ -33,7 +33,7 @@ LIB_DEBUG =
 LIB_TEST  =
 
 LIB_HDF4  = 
-LIB_HDF5  = $(ENV_LIB_HDF5) -lhdf5 -lz -lstdc++
+LIB_HDF5  = $(ENV_LIB_HDF5) -L/opt/hdf5-1.8.19-openmpi/lib -lhdf5 -lz -lstdc++
 
 LIB_PAPI  =
 LIB_MATH  = 

@@ -25,6 +25,9 @@ class H5File(h5py.File):
         if isinstance(value,Exception):
             raise
 
+    def __delete__(self):
+        self.close()
+
 File = H5File
 
 def dataset_to_dict(dataset):

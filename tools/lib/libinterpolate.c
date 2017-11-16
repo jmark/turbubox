@@ -524,3 +524,43 @@ flexi_to_box(
 
     free(Ls);
 }
+
+# define I1(nx,i)                     (i)
+# define I2(nx,ny,i,j)               ((i)*(ny)) + (j)
+# define I3(nx,ny,nz,i,j,k)         (((i)*(ny)  + (j))*(nz) + (k))
+# define I4(nx,ny,nz,nw,i,j,k,l)   ((((i)*(ny)  + (j))*(nz) + (k)))*(nw) + (l)
+
+void
+blocks_to_box(
+    const int  rlevel,  const int nblocks,
+    const int *rlevels, const double *coords, const double *domain,
+    const int nx, const int ny, const int nz, const double *blocks,
+    const int Nx, const int Ny, const int Nz, double *box
+) {
+    double domsize[6];
+    double pos[3]; // position vector
+    int    iul[3]; // index vector upper left 
+
+    domsize[I1(3,0)] = domain[I2(2,3,1,0)] - domain[I2(2,3,0,0)];
+    domsize[I1(3,1)] = domain[I2(2,3,1,1)] - domain[I2(2,3,0,1)];
+    domsize[I1(3,2)] = domain[I2(2,3,1,2)] - domain[I2(2,3,0,2)];
+
+    for (int rl = 0; rl < nblocks; rl++) {
+
+        if (rlevel != rlevels[rl]) continue;
+
+        pos[0] = ((double)Nx)*(coords[I2(nblocks,3,rl,0)] - domain[I2(2,3,0,0)])/domsize[I1(3,0)];
+        pos[1] = ((double)Ny)*(coords[I2(nblocks,3,rl,1)] - domain[I2(2,3,0,1)])/domsize[I1(3,1)];
+        pos[2] = ((double)Nz)*(coords[I2(nblocks,3,rl,2)] - domain[I2(2,3,0,2)])/domsize[I1(3,2)];
+
+        iul[0] = round(pos[0]) - nx/2;
+        iul[1] = round(pos[1]) - ny/2;
+        iul[2] = round(pos[2]) - nz/2;
+
+        // fill box with matching blocks
+        for (int i = 0; i < nx; i++)
+        for (int j = 0; j < ny; j++)
+        for (int k = 0; k < nz; k++)
+            box[I3(Nx,Ny,Nz,iul[0]+i,iul[1]+j,iul[2]+k)] = blocks[I4(nblocks,nx,ny,nz,rl,i,j,k)];
+    }
+}

@@ -489,3 +489,36 @@ def flexi_to_box(xs, Xs, flxdata, flx):
         shape[0], shape[1], shape[2], box)
 
     return box.reshape(shape)
+
+# =========================================================================== #
+
+# void
+# blocks_to_box(
+#     const int  rlevel,  const int nblocks,
+#     const int *rlevels, const double *coords, const double *domain,
+#     const int nx, const int ny, const int nz, const double *blocks,
+#     const int Nx, const int Ny, const int Nz, const double *box,
+# );
+
+lib.blocks_to_box.argtypes = [
+    ct.c_int, ct.c_int, 
+    ndpointer(ct.c_int,    flags="C_CONTIGUOUS"),
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ct.c_int, ct.c_int, ct.c_int, ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ct.c_int, ct.c_int, ct.c_int, ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+]
+
+def blocks_to_box(rlevel, rlevels, coords, domain, blocks, box):
+    _rlevels = np.require(np.ravel(rlevels), dtype=np.int32,  requirements=['C', 'A'])
+    _coords  = np.require(np.ravel( coords), dtype=np.double, requirements=['C', 'A'])
+    _domain  = np.require(np.ravel( domain), dtype=np.double, requirements=['C', 'A'])
+    _blocks  = np.require(np.ravel( blocks), dtype=np.double, requirements=['C', 'A'])
+    _box     = np.require(np.ravel(    box), dtype=np.double, requirements=['C', 'A'])
+
+    lib.blocks_to_box(
+        rlevel, len(_rlevels), _rlevels, _coords, _domain,
+        blocks.shape[1], blocks.shape[2], blocks.shape[3], _blocks,
+           box.shape[0],    box.shape[1],    box.shape[2], _box)
+
+    return _box.reshape(box.shape)

@@ -315,6 +315,11 @@ def despike(ys,xs=None,diff=0.01,blocksize=6,mask=False):
         else:
             return ys[retv]
 
+def zoom_array(arr,factor=2):
+    retv = arr
+    for i in range(len(retv.shape)): retv = retv.repeat(factor,axis=i)
+    return retv
+
 ## ========================================================================= ##
 ## caching and testing routines 
 
