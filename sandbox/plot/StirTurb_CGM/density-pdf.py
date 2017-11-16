@@ -76,7 +76,7 @@ def sigma_mach_deriv(sigma):
 
 if ARGV.setup == 'dens_vw':
     #xrange = yrange = None
-    xrange = (-29.5,-27.0)
+    xrange = (-28. ,-25.0)
     yrange = (-3,1)
     key    = 'pdf_vw'
     subkey = 'dens'
