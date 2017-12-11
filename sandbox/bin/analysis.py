@@ -4,11 +4,11 @@
 import os, sys, pickle
 import numpy as np
 from numpy.fft import fftn, fftshift
-import pathlib as pl
+from pathlib import Path
 import scipy.interpolate
 
 # jmark
-import periodicbox, ulz
+import cubicle, ulz
 from shellavg import shell_avg_3d
 from defer_signals import DeferSignals
 
@@ -27,12 +27,12 @@ def log(msg):
 
 import argparse
 
-pp = argparse.ArgumentParser(description = 'Batch Produce Powerspectra')
+pp = argparse.ArgumentParser(description = 'Batch Produce Analysis Cache Files')
 
 pp.add_argument(
     '--destdir',
     help='path to store: <dir>/%%03d.pickle',
-    type=pl.Path, required=True,
+    type=Path, required=True,
 )
 
 pp.add_argument(
@@ -51,8 +51,9 @@ pp.add_argument(
 
 pp.add_argument(
     '--skip',
+    type=bool,
+    default=False,
     help='skip already produced files',
-    action='store_true',
 )
 
 pp.add_argument(
@@ -62,9 +63,9 @@ pp.add_argument(
 )
 
 pp.add_argument(
-    'snapshots',
+    '--snapshots',
     help='list of snapshot files',
-    type=pl.Path,nargs='*',
+    type=Path,nargs='*', required=True
 )
 
 ARGV = pp.parse_args()
@@ -72,8 +73,7 @@ ARGV = pp.parse_args()
 ## ========================================================================= ##
 ## Setup environment
 
-if not ARGV.destdir.exists():
-    ARGV.destdir.mkdir()
+if not ARGV.destdir.exists(): ARGV.destdir.mkdir()
 
 ## ========================================================================= ##
 ## Routines
@@ -154,7 +154,6 @@ def pws1d_vw(dens,velx,vely,velz,pres):
 
     return dict(areas = [A0,A1,A2,A3], m0 = [radii,shells], m1 = [radii2,shells2])
 
-
 def pws3d_vw(dens,velx,vely,velz,pres):
     fvelx = np.fft.fftn(velx)
     fvely = np.fft.fftn(vely)
@@ -198,16 +197,16 @@ def pws3d_mw(dens,velx,vely,velz,pres):
     return dict(areas = [A0,A1,A2,A3], m0 = [radii,shells], m1 = [radii2,shells2])
 
 def analysis(taskid, srcfp):
-    box = periodicbox.File(srcfp, mode='r')
-    dens, velx, vely, velz, pres = box.get_prims()
-    gamma = ARGV.gamma
+    fh = cubicle.File(srcfp, mode='r')
+    dens, velx, vely, velz, pres = fh.get_prims()
+    gamma = fh.gamma if hasattr(fh, 'gamma') else ARGV.gamma
 
     rmsv = np.sqrt(velx**2+vely**2+velz**2) # rmsv
     rhov = dens**(1/3) * rmsv
     ekin = dens/2. * rmsv**2
     mach = rmsv / np.sqrt(gamma*pres/dens)
 
-    fv = box.domainsize / np.array(dens.shape) # finite volume dimensions
+    fv = fh.domainsize / np.array(dens.shape) # finite volume dimensions
     vort = np.mean(fv)**5/12.0 * np.abs(dens) * ulz.norm(*ulz.curl(velx,vely,velz,fv[0],fv[1],fv[2]))
 
     keys  = 'dens  pres  rmsv  ekin  mach  vort  rhov'.split()
@@ -216,7 +215,7 @@ def analysis(taskid, srcfp):
 
     return dict(
         taskid = taskid,
-        time   = box.time,
+        time   = fh.time,
 
         mean = apply(np.mean),
         msqu = apply(lambda dd: np.mean(dd**2)),
@@ -240,31 +239,26 @@ def analysis(taskid, srcfp):
 ## ========================================================================= ##
 ## prepare task
 
-def task(taskid, srcfp):
+def task(args):
+    taskid, srcfp = args
     snkfp = ARGV.destdir / srcfp.with_suffix('.pickle').name
 
-    if ARGV.skip and snkfp.exists() and snkfp.stat().st_mtime > srcfp.stat().st_mtime:
-        return
-    else:
-        retval = analysis(taskid, srcfp)
+    if ARGV.skip and snkfp.exists() and snkfp.stat().st_mtime > srcfp.stat().st_mtime: return
 
-        # prevent inconsistent states
-        tmpfp  = snkfp.with_suffix('.tmp')
-        with open(str(tmpfp), 'wb') as fd:
-            pickle.dump(retval, fd)
-        tmpfp.replace(snkfp) 
+    retval = analysis(taskid, srcfp)
 
-        log(str(snkfp))
+    # prevent inconsistent states
+    tmpfp  = snkfp.with_suffix('.tmp')
+    with open(str(tmpfp), 'wb') as fd: pickle.dump(retval, fd)
+    tmpfp.replace(snkfp) 
+    log(str(snkfp))
 
 ## ========================================================================= ##
 ## do work
 
-if ARGV.parallel >= 0:
-    import multiprocessing as mpr
-    def _task(args):
-        return task(*args)
-    nprocs = None if ARGV.parallel == 0 else ARGV.parallel
-    mpr.Pool(nprocs,maxtasksperchild=1).map(_task,enumerate(ARGV.snapshots))
+if ARGV.parallel < 0:
+    for i,x in enumerate(ARGV.snapshots): task((i,x))
 else:
-    for i,x in enumerate(ARGV.snapshots):
-        task(i,x)
+    import multiprocessing as mpr
+    nprocs = None if ARGV.parallel == 0 else ARGV.parallel
+    mpr.Pool(nprocs,maxtasksperchild=1).map(task,enumerate(ARGV.snapshots))
