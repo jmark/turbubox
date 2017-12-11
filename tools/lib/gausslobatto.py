@@ -5,7 +5,7 @@ import itertools
 eps = np.finfo(float).eps
 nit,TOL = 4,4*eps
 
-def Weigth(xs,j):
+def Weight(xs,j):
     acc = 1
     for i in range(len(xs)):
         if i==j: continue
@@ -16,7 +16,7 @@ def Weights(xs):
     n  = len(xs)
     ws = np.empty(n)
     for j in range(n):
-        ws[j] = Weigth(xs,j)     
+        ws[j] = Weight(xs,j)     
     return ws
 
 def LagrangePolynomial(xs,j,x):

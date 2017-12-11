@@ -93,6 +93,9 @@ def mk_body_centered_linspace(infimum, supremum, nNodes, withBoundaryNodes=False
 
     return np.linspace(infimum, supremum, nNodes, endpoint=True)
 
+def mk_body_centered_to_face_centered(xs):
+    return np.concatenate([(xs-0.5*(np.roll(xs,-1)-xs))[:-1],(xs+0.5*(xs-np.roll(xs,1)))[len(xs)-2:]])
+
 def wrap_in_guard_cells(stone):
     """
     Wrap a cubiod block of data with 'guard cells' which

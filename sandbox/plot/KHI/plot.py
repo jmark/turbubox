@@ -28,6 +28,8 @@ ARGV = pp.parse_args()
 fdata = cubicle.File(ARGV.srcfile)
 gamma = fdata.gamma if hasattr(fdata,'gamma') else ARGV.gamma
 
+cbrange = (None,None)
+
 dpi = 150
 fig = plt.figure(figsize=(1920/dpi, 1080/dpi), dpi=dpi)
 
@@ -42,8 +44,10 @@ else:
     extent = fdata.domain.T.ravel()
 
 if ARGV.profile == 'density':
-    carpet  = dens
-    cbrange = (0.5,1.2)
+    #carpet  = dens
+    carpet  = fdata.stitch(0,Nvisu=ARGV.nvisu)
+    cbrange = (0.5,1.5)
+    cbrange = (0.0,0.4)
     cblabel = '   density'
     cmap    = plt.get_cmap('cubehelix')
 
@@ -80,6 +84,21 @@ elif ARGV.profile == 'limiter':
     cbrange = (0.98,1.0)
     cblabel = '   limiter'
     cmap    = plt.get_cmap('gist_heat')
+
+elif ARGV.profile == 'edof':
+    carpet  = fdata.stitch(0,dname='edof')
+    carpet  = np.log10(carpet-1e-16)
+    cbrange = (-15.0,0.0)
+    cblabel = '    edof'
+    cmap    = plt.get_cmap('gist_heat')
+
+elif ARGV.profile == 'blend':
+    carpet  = fdata.stitch(0,dname='blend')
+    carpet  = np.log10(carpet+1e-16)
+    cbrange = (-5.0,0.0)
+    cblabel = 'log10(blend)'
+    cmap    = plt.get_cmap('gist_heat')
+
 
 else:
     raise NotImplementedError('Unknown profile: ' + ARGV.profile)
