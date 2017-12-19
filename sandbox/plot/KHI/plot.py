@@ -33,9 +33,6 @@ cbrange = (None,None)
 dpi = 150
 fig = plt.figure(figsize=(1920/dpi, 1080/dpi), dpi=dpi)
 
-plt.xlim(fdata.domain.T[0,:])
-plt.ylim(fdata.domain.T[1,:])
-
 if fdata.domain.shape[1] > 2:
     dens,velx,vely,velz,pres = [x[:,:,0].T for x in fdata.get_prims(gamma=gamma)]
     extent = fdata.domain.T.ravel()[0:4]
@@ -44,10 +41,9 @@ else:
     extent = fdata.domain.T.ravel()
 
 if ARGV.profile == 'density':
-    #carpet  = dens
     carpet  = fdata.stitch(0,Nvisu=ARGV.nvisu)
     cbrange = (0.5,1.5)
-    cbrange = (0.0,0.4)
+    cbrange = (0.0,15)
     cblabel = '   density'
     cmap    = plt.get_cmap('cubehelix')
 
@@ -99,13 +95,12 @@ elif ARGV.profile == 'blend':
     cblabel = 'log10(blend)'
     cmap    = plt.get_cmap('gist_heat')
 
-
 else:
     raise NotImplementedError('Unknown profile: ' + ARGV.profile)
 
 plt.imshow(
-    carpet,
-    extent = extent,
+    carpet.T,
+    extent = np.roll(extent,2),
     vmin = cbrange[0], vmax = cbrange[1],
     origin='lower',
     interpolation = None,
