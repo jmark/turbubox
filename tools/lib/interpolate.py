@@ -232,6 +232,35 @@ def change_basis_2(Vd,fs):
 
 # =========================================================================== #
 # void
+# change_grid_space_2d_2(
+#     const int nelems,
+#     const int nx, const int ny,
+#     const int Nx, const int Ny,
+#     const double *Lss, const double *fss, double *Fss);
+
+lib.change_grid_space_2d_2.argtypes = [
+    t_int,
+    t_int, t_int,
+    t_int, t_int,
+    t_ndouble, t_ndouble, t_ndouble
+]
+
+def change_grid_space_2d_2(Ls,fs):
+    sh = Ls.shape
+    Fs = np.empty([len(fs), sh[0], sh[1]])
+
+    Lsptr = np.require(Ls, dtype=np.double, requirements=['C','A'])
+    fsptr = np.require(fs, dtype=np.double, requirements=['C','A'])
+    Fsptr = np.require(Fs, dtype=np.double, requirements=['C','A','W'])
+
+    lib.change_grid_space_2d_2(
+        len(fs), sh[2], sh[3], sh[0], sh[1], Lsptr, fsptr, Fsptr
+    )
+
+    return Fsptr.reshape(Fs.shape)
+
+# =========================================================================== #
+# void
 # change_grid_space_2d(
 #     const int nelems,
 #     const int nx, const int ny, const double *xs, double *fss, 

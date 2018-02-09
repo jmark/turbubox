@@ -42,8 +42,8 @@ else:
 
 if ARGV.profile == 'density':
     carpet  = fdata.stitch(0,Nvisu=ARGV.nvisu)
-    cbrange = (0.5,1.5)
-    cbrange = (0.0,15)
+    cbrange = (0.1,30)
+    #cbrange = (0.0,15)
     cblabel = '   density'
     cmap    = plt.get_cmap('cubehelix')
 
@@ -51,34 +51,38 @@ elif ARGV.profile == 'log10-density':
     carpet  = np.log10(dens)
     cbrange = (None,None)
     cbrange = (-2,2)
+    cbrange = (-3,1.5)
     cblabel = ' log10 dens.'
     cmap    = plt.get_cmap('cubehelix')
 
 elif ARGV.profile == 'pressure':
     carpet  = pres
     cbrange = (0.4,1.3)
+    cbrange = (0.4,1.8)
     cblabel = '   pressure'
     cmap    = plt.get_cmap('cubehelix')
 
 elif ARGV.profile == 'mach':
     carpet  = np.sqrt(velx**2+vely**2+velz**2)/np.sqrt(gamma*np.abs(pres/dens))
     cbrange = (0.0,1.0)
+    cbrange = (0.0,1.8)
     cblabel = '    Mach'
     cmap    = plt.get_cmap('cubehelix')
 
 elif ARGV.profile == 'vorticity':
     import vectoranalysis2D as v2
     carpet  = v2.curl(velx,vely,Dx=fdata.domsize[0]/velx.shape[0],Dy=fdata.domsize[1]/vely.shape[1])
-    cbrange = (-45,45)
+    #cbrange = (-45,45)
+    cbrange = (-50,50)
+    #cbrange = (-15,15)
     cblabel = '  vorticity'
     cmap    = plt.get_cmap('gnuplot2')
 
-elif ARGV.profile == 'limiter':
-    theta_min = fdata.stitch(0,dname='limiter')
-    theta_max = fdata.stitch(1,dname='limiter')
-    carpet  = np.where(theta_min < theta_max, theta_min, theta_max)
-    cbrange = (0.98,1.0)
-    cblabel = '   limiter'
+elif ARGV.profile == 'moe':
+    moe     = fdata.stitch(fdata.profiles['moe'],dname='profile')
+    carpet  = np.log10(moe+1e-16)
+    cbrange = (0.0,-5.0)
+    cblabel = '   log10(moe)'
     cmap    = plt.get_cmap('gist_heat')
 
 elif ARGV.profile == 'edof':
@@ -93,6 +97,12 @@ elif ARGV.profile == 'blend':
     carpet  = np.log10(carpet+1e-16)
     cbrange = (-5.0,0.0)
     cblabel = 'log10(blend)'
+    cmap    = plt.get_cmap('gist_heat')
+
+elif ARGV.profile == 'vpot':
+    carpet = fdata.stitch(fdata.profiles['vpot'],dname='profile',Nvisu=ARGV.nvisu)
+    cblabel = '   far-field pot.'
+    cbrange = (-5,-25)
     cmap    = plt.get_cmap('gist_heat')
 
 else:

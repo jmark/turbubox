@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import itertools
+import turbubox.ulz as ulz
 
 eps = np.finfo(float).eps
 nit,TOL = 4,4*eps
@@ -280,11 +281,13 @@ def mk_nodes(npoly, ntype='gauss'):
         fun = LegendreGaussNodesAndWeights
     elif ntype == 'gauss-lobatto':
         fun = LegendreGaussLobattoNodesAndWeights
+    elif ntype == 'cell-centered':
+        fun = lambda npoly: (ulz.mk_body_centered_linspace(-1,1,npoly+1),None)
     else:
         raise KeyError("unknown node type: '%s'" % ntype)
 
     nodes, _ = fun(npoly)
-    return nodes
+    return np.array(nodes)
 
 def mk_nodes_from_to(x0,x1,npoly,ntype='gauss'):
     return x0 + (x1-x0) * (mk_nodes(npoly,ntype)+1)/2
