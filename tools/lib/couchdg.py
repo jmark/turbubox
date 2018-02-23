@@ -96,7 +96,7 @@ class StructuredMeshFile(BaseFile):
 
         return retv.T
        
-    def stitch_structured(self, ivar, Nvisu=None, dname='state', imspace=None):
+    def stitch_structured_old(self, ivar, Nvisu=None, dname='state', imspace=None):
         NX_PATCHES = self.meta['mesh_nx_patches']
         NY_PATCHES = self.meta['mesh_ny_patches']
 
@@ -126,19 +126,19 @@ class StructuredMeshFile(BaseFile):
 
         return cloth.T
 
-    def stitch_structured_2(self, ivar, Nvisu=None, mpoly=None, dname='state'):
+    def stitch_structured(self, ivar, Nvisu=None, mpoly=None, dname='state', imspace=None):
         NX_PATCHES = self.meta['mesh_nx_patches']
         NY_PATCHES = self.meta['mesh_ny_patches']
 
-        Nv = Nvisu if Nvisu else Np + 1
-        Nw = Nv
+        npoly = self.npoly
+        mpoly = mpoly if mpoly else self.mpoly
 
-        npoly = int(self.npoly)
-        mpoly = mpoly if mpoly else self.npoly
+        Nv = Nvisu if Nvisu else 2*(npoly + 1)
+        Nw = Nv
 
         nn = int((npoly+1)/(mpoly+1))
         ns = np.array(gausslobatto.mk_nodes(mpoly,ntype=self.nodetype))
-        xs = ulz.mk_body_centered_linspace(-1,1,Nvisu)
+        xs = ulz.mk_body_centered_linspace(-1,1,Nv)
         ys = np.linspace(-1,1,nn,endpoint=False)
         Xs = np.array([-1 + nn*abs(ys[int(np.floor(0.5*nn*(y+1)))] - y) for y in xs])
         ks = list(range(mpoly+1)) * nn

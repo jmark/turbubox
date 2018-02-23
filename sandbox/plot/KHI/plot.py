@@ -42,7 +42,7 @@ else:
 
 if ARGV.profile == 'density':
     carpet  = fdata.stitch(0,Nvisu=ARGV.nvisu)
-    cbrange = (0.1,30)
+    #cbrange = (0.1,30)
     #cbrange = (0.0,15)
     cblabel = '   density'
     cmap    = plt.get_cmap('cubehelix')
@@ -51,7 +51,7 @@ elif ARGV.profile == 'log10-density':
     carpet  = np.log10(dens)
     cbrange = (None,None)
     cbrange = (-2,2)
-    cbrange = (-3,1.5)
+    cbrange = (-2,1.0)
     cblabel = ' log10 dens.'
     cmap    = plt.get_cmap('cubehelix')
 
