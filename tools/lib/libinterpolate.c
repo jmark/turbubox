@@ -1,6 +1,12 @@
 # include <stdio.h>
 # include <math.h>
 # include <malloc.h>
+# include <stdint.h>
+
+# if defined(P4EST)
+# include <p4est.h>
+# include <p4est_connectivity.h>
+# endif
 
 # define I1(nx,i)                     (i)
 # define I2(nx,ny,i,j)               ((i)*(ny)) + (j)
@@ -645,6 +651,7 @@ inline double nearest(
     return fs[I2(nx,ny,ix,iy)];
 }
 
+# if defined(P4EST)
 //# define INTERPOL nearest
 # define INTERPOL bilinear
 # define GRIDLINES 1
@@ -703,3 +710,5 @@ cells_to_image(
     free(ynodes);
     p4est_connectivity_destroy(unitcube);
 }
+
+# endif
