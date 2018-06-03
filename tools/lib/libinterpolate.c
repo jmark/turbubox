@@ -564,3 +564,121 @@ blocks_to_box(
             box[I3(Nx,Ny,Nz,iul[0]+i,iul[1]+j,iul[2]+k)] = blocks[I4(nblocks,nx,ny,nz,rl,i,j,k)];
     }
 }
+
+inline int linearsearch(const int len, const double nodes[], const double x)
+{
+    if (x <= nodes[0]) return 0;
+
+    for (int i = 1; i < len; i++)
+        if (x <= nodes[i]) return i-1;
+
+    return len-2;
+}
+
+inline double bilinear_interpolation(
+    const double x1, const double x2,
+    const double y1, const double y2, 
+    const double f11, const double f12,
+    const double f21, const double f22,
+    const double x,  const double y
+){
+    return (y2-y)/(y2-y1)*((x2-x)/(x2-x1)*f11
+         + (x-x1)/(x2-x1)*f21)
+         + (y-y1)/(y2-y1)*((x2-x)/(x2-x1)*f12
+         + (x-x1)/(x2-x1)*f22);
+}
+
+inline double bilinear(
+    const int nx, const double xnodes[],
+    const int ny, const double ynodes[],
+    const double fs[], const double x, const double y)
+{
+    const int ix = linearsearch(nx, xnodes, x);
+    const int iy = linearsearch(ny, ynodes, y);
+
+    const double x1 = xnodes[ix];
+    const double x2 = xnodes[ix+1];
+
+    const double y1 = ynodes[iy];
+    const double y2 = ynodes[iy+1];
+
+    const double f11 = fs[I2(nx,ny,ix,iy)];
+    const double f12 = fs[I2(nx,ny,ix,iy+1)];
+    const double f21 = fs[I2(nx,ny,ix+1,iy)];
+    const double f22 = fs[I2(nx,ny,ix+1,iy+1)];
+
+    return bilinear_interpolation(x1,x2,y1,y2,f11,f12,f21,f22,x,y);
+}
+
+inline double nearest(
+    const int nx, const double xnodes[],
+    const int ny, const double ynodes[],
+    const double fs[], const double x, const double y)
+{
+    int ix = linearsearch(nx, xnodes, x);
+    int iy = linearsearch(ny, ynodes, y);
+
+    ix = fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
+    iy = fabs(ynodes[iy]-y) < fabs(ynodes[iy+1]-y) ? iy : iy+1;
+
+    return fs[I2(nx,ny,ix,iy)];
+}
+
+//# define INTERPOL nearest
+# define INTERPOL bilinear
+# define GRIDLINES 1
+
+void
+cells_to_image(
+    const int dims_levels[1], const int8_t *levels,
+    const int dims_morton[2], const int32_t *morton,
+    const int dims_cells[3], const double *cells,
+    const int dims_image[2], double *const image
+) {
+    p4est_connectivity_t *unitcube = p4est_connectivity_new_periodic();
+
+    const int nc = dims_cells[0];
+    const int nx = dims_cells[1];
+    const int ny = dims_cells[2];
+
+    const int idx = dims_image[0];
+    const int idy = dims_image[1];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double length = 1. / pow(2,levels[icell]);
+
+        double verts[3];
+        p4est_qcoord_to_vertex(unitcube, 0, 
+            morton[I2(nc,2,icell,0)], morton[I2(nc,2,icell,1)], verts);
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = verts[0] + (i+0.5)/nx * length;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = verts[1] + (i+0.5)/ny * length;
+
+        const int imgx = idx *  verts[0]           + 0.5*length/nx     + GRIDLINES;
+        const int Imgx = idx * (verts[0] + length) - 0.5*length/nx + 1 - GRIDLINES;
+
+        const int imgy = idy *  verts[1]           + 0.5*length/ny     + GRIDLINES;
+        const int Imgy = idy * (verts[1] + length) - 0.5*length/ny + 1 - GRIDLINES;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        {
+            const double x = (i+0.5)/idx;
+            const double y = (j+0.5)/idy;
+
+            image[I2(idx,idy,i,j)] = INTERPOL(
+                nx,xnodes,ny,ynodes,
+                &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    p4est_connectivity_destroy(unitcube);
+}
