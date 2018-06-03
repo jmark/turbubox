@@ -2,6 +2,11 @@
 # include <math.h>
 # include <malloc.h>
 
+# define I1(nx,i)                     (i)
+# define I2(nx,ny,i,j)               ((i)*(ny)) + (j)
+# define I3(nx,ny,nz,i,j,k)         (((i)*(ny)  + (j))*(nz) + (k))
+# define I4(nx,ny,nz,nw,i,j,k,l)   ((((i)*(ny)  + (j))*(nz) + (k)))*(nw) + (l)
+
 double
 LagrangePolynomial(const double *xs, const int xslen, const int j, const double X) {
     double acc = 1;
@@ -335,6 +340,30 @@ change_basis_3d_2(
 }
 
 void
+change_grid_space_2d_2(
+    const int nelems,
+    const int nx, const int ny,
+    const int Nx, const int Ny,
+    const double *Lss, const double *fss, double *Fss)
+{
+    for (int elemid = 0; elemid < nelems; elemid++) {
+        const double *const fs = fss + elemid * nx*ny;
+              double *const Fs = Fss + elemid * Nx*Ny;
+
+        for (int I = 0; I < Nx; I++)
+        for (int J = 0; J < Ny; J++) {
+            double F = 0;
+
+            for (int i = 0; i < nx; i++)
+            for (int j = 0; j < ny; j++)
+                F += fs[i*ny + j] * Lss[I4(Nx,Ny,nx,ny,I,J,i,j)];
+                
+            Fs[(I * Ny) + J] = F;
+        }
+    }
+}
+
+void
 change_grid_space_2d(
     const int nelems,
     const int nx, const int ny, const double *xs, const double *fss, 
@@ -345,12 +374,9 @@ change_grid_space_2d(
     for (int i = 0; i < nx; i++)
         Ls[I*nx + i] = LagrangePolynomial(xs, nx, i, Xs[I]);
 
-    const int stride = nx*ny;
-    const int Stride = Nx*Ny;
-
     for (int elemid = 0; elemid < nelems; elemid++) {
-        const double *const fs = fss + elemid * stride;
-              double *const Fs = Fss + elemid * Stride;
+        const double *const fs = fss + elemid * nx*ny;
+              double *const Fs = Fss + elemid * Nx*Ny;
 
         for (int I = 0; I < Nx; I++)
         for (int J = 0; J < Ny; J++) {
@@ -524,11 +550,6 @@ flexi_to_box(
 
     free(Ls);
 }
-
-# define I1(nx,i)                     (i)
-# define I2(nx,ny,i,j)               ((i)*(ny)) + (j)
-# define I3(nx,ny,nz,i,j,k)         (((i)*(ny)  + (j))*(nz) + (k))
-# define I4(nx,ny,nz,nw,i,j,k,l)   ((((i)*(ny)  + (j))*(nz) + (k)))*(nw) + (l)
 
 void
 blocks_to_box(
