@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import itertools
-import turbubox.ulz as ulz
+import ulz as ulz
 
 eps = np.finfo(float).eps
 nit,TOL = 4,4*eps
