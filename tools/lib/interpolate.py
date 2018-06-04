@@ -551,3 +551,29 @@ def blocks_to_box(rlevel, rlevels, coords, domain, blocks, box):
            box.shape[0],    box.shape[1],    box.shape[2], _box)
 
     return _box.reshape(box.shape)
+
+# =========================================================================== #
+# =========================================================================== #
+# =========================================================================== #
+
+ptr_int8    = ndpointer(ct.c_int8,      flags="C_CONTIGUOUS")
+ptr_int32   = ndpointer(ct.c_int32,     flags="C_CONTIGUOUS")
+ptr_double  = ndpointer(ct.c_double,    flags="C_CONTIGUOUS")
+
+def carray(ndarray, dtype=None):
+    return np.require(ndarray, dtype=dtype, requirements=['C','A'])
+
+lib.cells_to_image.argtypes = (
+    ptr_int32, ptr_int8, 
+    ptr_int32, ptr_int32,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+)
+
+def cells_to_image(levels, morton, cells, image):
+    lib.cells_to_image(
+        carray(levels.shape, dtype=np.int32), carray(levels),
+        carray(morton.shape, dtype=np.int32), carray(morton),
+        carray( cells.shape, dtype=np.int32), carray(cells),
+        carray( image.shape, dtype=np.int32), carray(image)
+    )
