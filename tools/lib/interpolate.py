@@ -577,3 +577,27 @@ def cells_to_image(levels, morton, cells, image):
         carray( cells.shape, dtype=np.int32), carray(cells),
         carray( image.shape, dtype=np.int32), carray(image)
     )
+
+lib.cells_to_image_3d.argtypes = (
+    ptr_int32, ptr_int8, 
+    ptr_int32, ptr_int32,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+)
+
+def cells_to_image_3d(levels, morton, cells, image):
+    if len(cells.shape) < 2:
+        cshape = (cells.shape[0], 1,1,1)
+        lib.cells_to_image_3d(
+            carray(levels.shape, dtype=np.int32), carray(levels),
+            carray(morton.shape, dtype=np.int32), carray(morton),
+            carray(cshape, dtype=np.int32), carray(cells),
+            carray(image.shape, dtype=np.int32), carray(image)
+        )
+    else:
+        lib.cells_to_image_3d(
+            carray(levels.shape, dtype=np.int32), carray(levels),
+            carray(morton.shape, dtype=np.int32), carray(morton),
+            carray( cells.shape, dtype=np.int32), carray(cells),
+            carray( image.shape, dtype=np.int32), carray(image)
+        )

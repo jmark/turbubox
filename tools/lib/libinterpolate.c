@@ -6,6 +6,9 @@
 # if defined(P4EST)
 # include <p4est.h>
 # include <p4est_connectivity.h>
+
+# include <p8est.h>
+# include <p8est_connectivity.h>
 # endif
 
 # define I1(nx,i)                     (i)
@@ -594,7 +597,7 @@ blocks_to_box(
 
 inline int linearsearch(const int len, const double nodes[], const double x)
 {
-    if (x <= nodes[0]) return 0;
+    if (len < 2 || x <= nodes[0]) return 0;
 
     for (int i = 1; i < len; i++)
         if (x <= nodes[i]) return i-1;
@@ -651,10 +654,27 @@ inline double nearest(
     return fs[I2(nx,ny,ix,iy)];
 }
 
+inline double nearest3D(
+    const int nx, const double xnodes[],
+    const int ny, const double ynodes[],
+    const int nz, const double znodes[],
+    const double fs[], const double x, const double y, const double z)
+{
+    int ix = linearsearch(nx, xnodes, x);
+    int iy = linearsearch(ny, ynodes, y);
+    int iz = linearsearch(nz, znodes, z);
+
+    ix = nx < 2 || fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
+    iy = ny < 2 || fabs(ynodes[iy]-y) < fabs(ynodes[iy+1]-y) ? iy : iy+1;
+    iz = nz < 2 || fabs(znodes[iz]-z) < fabs(znodes[iz+1]-z) ? iz : iz+1;
+
+    return fs[I3(nx,ny,nz,ix,iy,iz)];
+}
 # if defined(P4EST)
 //# define INTERPOL nearest
 # define INTERPOL bilinear
-# define GRIDLINES 1
+# define INTERPOL3D nearest3D
+# define GRIDLINES 0
 
 void
 cells_to_image(
@@ -709,6 +729,73 @@ cells_to_image(
     free(xnodes);
     free(ynodes);
     p4est_connectivity_destroy(unitcube);
+}
+
+void
+cells_to_image_3d(
+    const int dims_levels[1], const int8_t *levels,
+    const int dims_morton[2], const int32_t *morton,
+    const int dims_cells[4], const double *cells,
+    const int dims_image[3], double *const image
+) {
+    p8est_connectivity_t *unitcube = p8est_connectivity_new_unitcube();
+
+    const int nc = dims_cells[0];
+    const int nx = dims_cells[1];
+    const int ny = dims_cells[2];
+    const int nz = dims_cells[3];
+
+    const int idx = dims_image[0];
+    const int idy = dims_image[1];
+    const int idz = dims_image[2];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+    double *const znodes = malloc(sizeof(double) * nz);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double length = 1. / pow(2,levels[icell]);
+
+        double verts[3];
+        p8est_qcoord_to_vertex(unitcube, 0, 
+            morton[I2(nc,3,icell,0)], morton[I2(nc,3,icell,1)], morton[I2(nc,3,icell,2)], verts);
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = verts[0] + (i+0.5)/nx * length;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = verts[1] + (i+0.5)/ny * length;
+
+        for (int i = 0; i < nz; i++)
+            znodes[i] = verts[2] + (i+0.5)/nz * length;
+
+        const int imgx = idx *  verts[0]           + 0.5*length/nx     + GRIDLINES;
+        const int Imgx = idx * (verts[0] + length) - 0.5*length/nx + 1 - GRIDLINES;
+
+        const int imgy = idy *  verts[1]           + 0.5*length/ny     + GRIDLINES;
+        const int Imgy = idy * (verts[1] + length) - 0.5*length/ny + 1 - GRIDLINES;
+
+        const int imgz = idz *  verts[2]           + 0.5*length/nz     + GRIDLINES;
+        const int Imgz = idz * (verts[2] + length) - 0.5*length/nz + 1 - GRIDLINES;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        for (int k = imgz; k < Imgz; k++)
+        {
+            const double x = (i+0.5)/idx;
+            const double y = (j+0.5)/idy;
+            const double z = (k+0.5)/idz;
+
+            image[I3(idx,idy,idz,i,j,k)] = INTERPOL3D(
+                nx,xnodes,ny,ynodes,nz,znodes,
+                &cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    free(znodes);
+    p8est_connectivity_destroy(unitcube);
 }
 
 # endif
