@@ -568,14 +568,22 @@ lib.cells_to_image.argtypes = (
     ptr_int32, ptr_int32,
     ptr_int32, ptr_double,
     ptr_int32, ptr_double,
+    ct.c_int32
 )
 
-def cells_to_image(levels, morton, cells, image):
+def cells_to_image(levels, morton, cells, image, method='nearest'):
+    methods = dict(
+        nearest  = 0,
+        bilinear = 1,
+        bicosine = 2,
+    )
+
     lib.cells_to_image(
         carray(levels.shape, dtype=np.int32), carray(levels),
         carray(morton.shape, dtype=np.int32), carray(morton),
         carray( cells.shape, dtype=np.int32), carray(cells),
-        carray( image.shape, dtype=np.int32), carray(image)
+        carray( image.shape, dtype=np.int32), carray(image),
+        methods[str.lower(method)]
     )
 
 lib.cells_to_image_3d.argtypes = (
