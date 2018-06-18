@@ -578,13 +578,24 @@ def cells_to_image(levels, morton, cells, image, method='nearest'):
         bicosine = 2,
     )
 
-    lib.cells_to_image(
-        carray(levels.shape, dtype=np.int32), carray(levels),
-        carray(morton.shape, dtype=np.int32), carray(morton),
-        carray( cells.shape, dtype=np.int32), carray(cells),
-        carray( image.shape, dtype=np.int32), carray(image),
-        methods[str.lower(method)]
-    )
+    if len(cells.shape) < 2:
+        cshape = (cells.shape[0], 1,1)
+ 
+        lib.cells_to_image(
+            carray(levels.shape, dtype=np.int32), carray(levels),
+            carray(morton.shape, dtype=np.int32), carray(morton),
+            carray(      cshape, dtype=np.int32), carray(cells),
+            carray( image.shape, dtype=np.int32), carray(image),
+            methods[str.lower(method)]
+        )
+    else:
+        lib.cells_to_image(
+            carray(levels.shape, dtype=np.int32), carray(levels),
+            carray(morton.shape, dtype=np.int32), carray(morton),
+            carray( cells.shape, dtype=np.int32), carray(cells),
+            carray( image.shape, dtype=np.int32), carray(image),
+            methods[str.lower(method)]
+        )
 
 lib.cells_to_image_3d.argtypes = (
     ptr_int32, ptr_int8, 
@@ -599,8 +610,8 @@ def cells_to_image_3d(levels, morton, cells, image):
         lib.cells_to_image_3d(
             carray(levels.shape, dtype=np.int32), carray(levels),
             carray(morton.shape, dtype=np.int32), carray(morton),
-            carray(cshape, dtype=np.int32), carray(cells),
-            carray(image.shape, dtype=np.int32), carray(image)
+            carray(      cshape, dtype=np.int32), carray(cells),
+            carray( image.shape, dtype=np.int32), carray(image)
         )
     else:
         lib.cells_to_image_3d(
