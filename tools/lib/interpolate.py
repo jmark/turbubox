@@ -283,12 +283,11 @@ def change_grid_space_2d(fs,xs,Xs):
     lib.change_grid_space_2d(
         len(fs),
         len(xs), len(xs), xsptr, fsptr,
-        len(Xs), len(Xs), Xsptr, Fsptr
+        len(Xs), len(Xs), Xsptr, Fsptr,
     )
 
-    return Fsptr.reshape(Fs.shape)
+    return Fsptr
 
-#
 # =========================================================================== #
 # void
 # change_grid_space(
