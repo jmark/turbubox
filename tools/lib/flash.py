@@ -2,8 +2,8 @@ import sys
 import ulz
 import numpy as np
 
-import turbubox.h5 as h5
-import turbubox.interpolate as itpl
+import h5 as h5
+import interpolate as itpl
 
 class File(h5.File):
     def __init__(self, fpath, mode='r', **kwargs):

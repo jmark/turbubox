@@ -1,10 +1,10 @@
 #!/usr/bin/env pyturbubox
 
 import numpy as np
-import turbubox.h5 as h5
-import turbubox.ulz as ulz
-import turbubox.interpolate as interpolate
-import turbubox.gausslobatto as gausslobatto
+import h5 as h5
+import ulz as ulz
+import interpolate as interpolate
+import gausslobatto as gausslobatto
 
 class BaseFile(h5.File):
     def __init__(self, fpath, mode='r', **kwargs):
