@@ -65,6 +65,8 @@ class File(h5.File):
         blocks  = self.get(dname).value.transpose(0,3,2,1)
         box     = None
 
+        print(blocks.shape) 
+
         for rl in np.unique(self.refine_levels) if rlevel is None else (rlevel,):
             tmp = np.zeros(self.calc_gridsize(rl)) if box is None else ulz.zoom_array(box, factor=2)        
             box = itpl.blocks_to_box(rl, rlevels, coords, domain, blocks, tmp)
