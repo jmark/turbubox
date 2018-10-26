@@ -725,7 +725,7 @@ cells_to_image(
     const int dims_morton[2], const int32_t *morton,
     const int dims_cells[3], const double *cells,
     const int dims_image[2], double *const image,
-    const int method
+    const int method, const int gridlines
 ) {
     p4est_connectivity_t *unitcube = p4est_connectivity_new_unitsquare();
 
@@ -752,11 +752,11 @@ cells_to_image(
         for (int i = 0; i < ny; i++)
             ynodes[i] = verts[1] + (i+0.5)/ny * length;
 
-        const int imgx = idx *  verts[0]           + 0.5*length/nx     + GRIDLINES;
-        const int Imgx = idx * (verts[0] + length) - 0.5*length/nx + 1 - GRIDLINES;
+        const int imgx = idx *  verts[0]           + 0.5*length/nx     + gridlines;
+        const int Imgx = idx * (verts[0] + length) - 0.5*length/nx + 1 - gridlines;
 
-        const int imgy = idy *  verts[1]           + 0.5*length/ny     + GRIDLINES;
-        const int Imgy = idy * (verts[1] + length) - 0.5*length/ny + 1 - GRIDLINES;
+        const int imgy = idy *  verts[1]           + 0.5*length/ny     + gridlines;
+        const int Imgy = idy * (verts[1] + length) - 0.5*length/ny + 1 - gridlines;
 
         for (int i = imgx; i < Imgx; i++)
         for (int j = imgy; j < Imgy; j++)

@@ -283,12 +283,11 @@ def change_grid_space_2d(fs,xs,Xs):
     lib.change_grid_space_2d(
         len(fs),
         len(xs), len(xs), xsptr, fsptr,
-        len(Xs), len(Xs), Xsptr, Fsptr
+        len(Xs), len(Xs), Xsptr, Fsptr,
     )
 
-    return Fsptr.reshape(Fs.shape)
+    return Fsptr
 
-#
 # =========================================================================== #
 # void
 # change_grid_space(
@@ -571,7 +570,7 @@ lib.cells_to_image.argtypes = (
     ct.c_int32
 )
 
-def cells_to_image(levels, morton, cells, image, method='nearest'):
+def cells_to_image(levels, morton, cells, image, method='nearest', gridlines=0):
     methods = dict(
         nearest  = 0,
         bilinear = 1,
@@ -586,7 +585,7 @@ def cells_to_image(levels, morton, cells, image, method='nearest'):
             carray(morton.shape, dtype=np.int32), carray(morton),
             carray(      cshape, dtype=np.int32), carray(cells),
             carray( image.shape, dtype=np.int32), carray(image),
-            methods[str.lower(method)]
+            methods[str.lower(method)], gridlines
         )
     else:
         lib.cells_to_image(
@@ -594,7 +593,7 @@ def cells_to_image(levels, morton, cells, image, method='nearest'):
             carray(morton.shape, dtype=np.int32), carray(morton),
             carray( cells.shape, dtype=np.int32), carray(cells),
             carray( image.shape, dtype=np.int32), carray(image),
-            methods[str.lower(method)]
+            methods[str.lower(method)], gridlines
         )
 
 lib.cells_to_image_3d.argtypes = (
