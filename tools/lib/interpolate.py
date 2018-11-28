@@ -619,3 +619,37 @@ def cells_to_image_3d(levels, morton, cells, image):
             carray( cells.shape, dtype=np.int32), carray(cells),
             carray( image.shape, dtype=np.int32), carray(image)
         )
+
+
+lib.cells_to_image.argtypes = (
+    ptr_int32, ptr_int8, 
+    ptr_int32, ptr_int32,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ct.c_int32
+)
+
+# =========================================================================== #
+
+lib.cells_to_image_flash_ug_2d.argtypes = (
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ct.c_int32,
+)
+
+def cells_to_image_flash_ug_2d(coords, bsizes, blocks, image, method='nearest'):
+    methods = dict(
+        nearest  = 0,
+        bilinear = 1,
+        bicosine = 2,
+    )
+
+    lib.cells_to_image_flash_ug_2d(
+        carray(coords.shape, dtype=np.int32), carray(coords),
+        carray(bsizes.shape, dtype=np.int32), carray(bsizes),
+        carray(blocks.shape, dtype=np.int32), carray(blocks),
+        carray( image.shape, dtype=np.int32), carray(image),
+        methods[str.lower(method)]
+    )

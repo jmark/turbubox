@@ -853,3 +853,67 @@ cells_to_image_3d(
 }
 
 # endif
+
+void
+cells_to_image_flash_ug_2d(
+    const int dims_coords[2], const double *coords,
+    const int dims_bsizes[2], const double *bsizes,
+    const int dims_blocks[3], const double *blocks,
+    const int dims_image[2], double *const image,
+    const int method
+){
+    const int nb = dims_blocks[0]; // # of blocks
+    const int nx = dims_blocks[1];
+    const int ny = dims_blocks[2];
+
+    const int ix = dims_image[0];
+    const int iy = dims_image[1];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+
+    for (size_t iblock = 0; iblock < nb; iblock++) {
+        const double xlen = bsizes[I2(nb,2,iblock,0)];
+        const double ylen = bsizes[I2(nb,2,iblock,1)];
+
+        const double xmid = coords[I2(nb,2,iblock,0)];
+        const double ymid = coords[I2(nb,2,iblock,1)];
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xmid - 0.5*xlen + (i+0.5)*xlen/nx;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = ymid - 0.5*ylen + (i+0.5)*ylen/ny;
+
+        // map block vertices onto image space
+        const int imgx = ix * (xmid - 0.5*xlen) + 0.5*xlen/nx;
+        const int Imgx = ix * (xmid + 0.5*xlen) - 0.5*xlen/nx;
+
+        const int imgy = iy * (ymid - 0.5*ylen) + 0.5*ylen/ny;
+        const int Imgy = iy * (ymid + 0.5*ylen) - 0.5*ylen/ny;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        {
+            const double x = (i+0.5)/ix;
+            const double y = (j+0.5)/iy;
+            
+            switch(method) {
+                case NEAREST:
+                    image[I2(ix,iy,i,j)] =  nearest(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
+                    break;
+
+                case BILINEAR:
+                    image[I2(ix,iy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
+                    break;
+
+                case BICOSINE:
+                    image[I2(ix,iy,i,j)] = bicosine(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+}
