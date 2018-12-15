@@ -11,7 +11,7 @@ from pathlib import Path
 
 import matplotlib
 matplotlib.use('Agg')
-matplotlib.rcParams.update({'font.size': 8})
+plt.rcParams.update({'font.family': 'Monospace', 'font.size': 10})
 import matplotlib.pyplot as plt
 
 pp = argparse.ArgumentParser()

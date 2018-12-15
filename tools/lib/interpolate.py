@@ -562,6 +562,23 @@ ptr_double  = ndpointer(ct.c_double,    flags="C_CONTIGUOUS")
 def carray(ndarray, dtype=None):
     return np.require(ndarray, dtype=dtype, requirements=['C','A'])
 
+lib.morton_to_coords.argtypes = (
+    ptr_int32, ptr_int8, 
+    ptr_int32, ptr_int32,
+    ptr_int32, ptr_double,
+)
+
+def morton_to_coords(levels, morton):
+    coords = np.zeros((levels.shape[0],3))
+
+    lib.morton_to_coords(
+        carray(levels.shape, dtype=np.int32), carray(levels),
+        carray(morton.shape, dtype=np.int32), carray(morton),
+        carray(coords.shape, dtype=np.int32), carray(coords),
+    )
+
+    return coords
+
 lib.cells_to_image.argtypes = (
     ptr_int32, ptr_int8, 
     ptr_int32, ptr_int32,

@@ -720,6 +720,31 @@ enum {
 };
 
 void
+morton_to_coords(
+    const int dims_levels[1], const int8_t *levels,
+    const int dims_morton[2], const int32_t *morton,
+    const int dims_coords[2], double *coords
+) {
+    p4est_connectivity_t *unitcube = p4est_connectivity_new_unitsquare();
+
+    const int nc = dims_coords[0]; // # of cells
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double length = 1. / pow(2,levels[icell]);
+
+        double verts[3];
+        p4est_qcoord_to_vertex(unitcube, 0, 
+            morton[I2(nc,2,icell,0)], morton[I2(nc,2,icell,1)], verts);
+
+        coords[I2(nc,3,icell,0)] = verts[0];
+        coords[I2(nc,3,icell,1)] = verts[1];
+        coords[I2(nc,3,icell,2)] = length;
+    }
+
+    p4est_connectivity_destroy(unitcube);
+}
+
+void
 cells_to_image(
     const int dims_levels[1], const int8_t *levels,
     const int dims_morton[2], const int32_t *morton,
