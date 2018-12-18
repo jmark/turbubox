@@ -912,10 +912,10 @@ cells_to_image_flash_ug_2d(
 
         // map block vertices onto image space
         const int imgx = ix * (xmid - 0.5*xlen) + 0.5*xlen/nx;
-        const int Imgx = ix * (xmid + 0.5*xlen) - 0.5*xlen/nx;
+        const int Imgx = ix * (xmid + 0.5*xlen) + 0.5*xlen/nx;
 
         const int imgy = iy * (ymid - 0.5*ylen) + 0.5*ylen/ny;
-        const int Imgy = iy * (ymid + 0.5*ylen) - 0.5*ylen/ny;
+        const int Imgy = iy * (ymid + 0.5*ylen) + 0.5*ylen/ny;
 
         for (int i = imgx; i < Imgx; i++)
         for (int j = imgy; j < Imgy; j++)
