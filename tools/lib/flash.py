@@ -13,7 +13,7 @@ class File(h5.File):
         # transform meta information to python data types
         self.siminfo        = self.get('sim info')
         
-        self.refine_levels  = self.get('refine level').value
+        self.refine_levels  = self.get('refine level')[()]
         self.maxrefinelevel = np.max(self.refine_levels)
         self.is_multilevel  = any(filter(lambda x: x > 1, self.refine_levels))
 
@@ -22,7 +22,7 @@ class File(h5.File):
         self.integerscalars = h5.dataset_to_dict(self.get('integer scalars'))
         self.integerruntime = h5.dataset_to_dict(self.get('integer runtime parameters'))
 
-        self.coords         = self.get('coordinates').value
+        self.coords         = self.get('coordinates')[()]
         self.gridsize       = self.calc_gridsize(self.maxrefinelevel)
         self.grid           = np.array([[0,0,0], self.gridsize-1])
 
@@ -59,10 +59,10 @@ class File(h5.File):
         return gridsize
 
     def get_data(self, dname, rlevel=None, **kwargs):
-        rlevels = self.get('refine level').value
-        coords  = self.get('coordinates').value
+        rlevels = self.get('refine level')[()]
+        coords  = self.get('coordinates')[()]
         domain  = self.domain
-        blocks  = self.get(dname).value.transpose(0,3,2,1)
+        blocks  = self.get(dname)[()].transpose(0,3,2,1)
         box     = None
 
         #print(blocks.shape)
