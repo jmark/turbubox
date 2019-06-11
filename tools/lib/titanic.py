@@ -56,7 +56,8 @@ class File(h5.File):
         if varname in ('dens','momx','momy','ener'):
             return self.stitch(np.transpose(self.get('/data/states/'+varname)[()],(0,1,3,2)))
         if varname == 'blend':
-            return tuple(self.stitch(np.transpose(self.get('/data/hydro/blend')[:,:,i,:,:],(0,1,3,2))) for i in range(3))
+            df = self.get('/data/hydro/blend')
+            return tuple(self.stitch(np.transpose(df[:,:,i,:,:],(0,1,3,2))) for i in range(df.shape[2]))
 
         raise KeyError('Unknown varname: {0}'.format(varname))
 

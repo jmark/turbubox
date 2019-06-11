@@ -3,11 +3,8 @@ import sys
 
 class H5File(h5py.File):
     def __init__(self,fpath,mode='r'):
-        try:
-            super().__init__(str(fpath),mode)
-        except Exception as e:
-            print("%s" % e, file=sys.stderr)
-            sys.exit(1)
+        self.fpath = str(fpath)
+        super().__init__(str(fpath),mode)
     
     def get(self,dname):
         db = super().get(dname)
