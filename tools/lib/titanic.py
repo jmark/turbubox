@@ -3,6 +3,7 @@
 import h5 as h5
 import ulz as ulz
 import numpy as np
+import interpolate as itpl
 
 class File(h5.File):
     def __init__(self, fpath, mode='r', **kwargs):
@@ -51,10 +52,27 @@ class File(h5.File):
                 carpet = np.concatenate((carpet,ribbon),axis=1)
                 
         return carpet
-    
-    def get_var(self,varname):
+
+    @staticmethod
+    def interpolate(patch,method=None,shape=None):
+
+        if shape is None:
+            shape = (patch.shape[0]*patch.shape[2],patch.shape[1]*patch.shape[3])
+
+        image = np.zeros(shape)
+        itpl.cells_to_image_titanic_patch_2d(patch,image,method=method)
+
+        return image
+
+    def get_var(self,varname,method=None,shape=None):
         if varname in ('dens','momx','momy','ener'):
-            return self.stitch(np.transpose(self.get('/data/states/'+varname)[()],(0,1,3,2)))
+            dpath = '/data/states/'+varname
+
+            if method is None:
+                return self.stitch(np.transpose(self.get(dpath)[()],(0,1,3,2)))
+
+            return self.interpolate(self.get(dpath)[()],method,shape)
+
         if varname == 'blend':
             df = self.get('/data/hydro/blend')
             return tuple(self.stitch(np.transpose(df[:,:,i,:,:],(0,1,3,2))) for i in range(df.shape[2]))

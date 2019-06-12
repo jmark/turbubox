@@ -942,3 +942,83 @@ cells_to_image_flash_ug_2d(
     free(xnodes);
     free(ynodes);
 }
+
+void
+cells_to_image_titanic_patch_2d(
+    const int pshape[4], const double *patch,
+    const int ishape[2], double *const image,
+    const int method
+){
+    const double DX = 1.0;
+    const double DY = 1.0;
+
+    const int Nx = pshape[0];
+    const int Ny = pshape[1];
+
+    const int nx = pshape[2];
+    const int ny = pshape[3];
+
+    const int Ix = ishape[0];
+    const int Iy = ishape[1];
+
+    //printf("%d %d | %d %d | %d %d\n",Nx,Ny,nx,ny,Ix,Iy);
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+
+    const double dx = DX/((double) Nx);
+    const double dy = DY/((double) Ny);
+
+    const double Dx = DX/((double) Ix);
+    const double Dy = DY/((double) Iy);
+
+    for (int px = 0; px < Nx; px++) {
+        const double x0 = dx*px;
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = x0 + (i+0.5)*dx/nx;
+
+        // map patch space into image space
+        const int I0 = Ix *  x0;
+        const int I1 = Ix * (x0 + dx);
+
+        for (int py = 0; py < Ny; py++) {
+            const double y0 = dy*py;
+
+            for (int i = 0; i < ny; i++)
+                ynodes[i] = y0 + (i+0.5)*dy/ny;
+
+            const int J0 = Iy *  y0;
+            const int J1 = Iy * (y0 + dy);
+
+            //printf("%d %d | %f %f | %d %d | %d %d\n",px,py,x0,y0,I0,I1,J0,J1);
+            //printf("%d %d ",px,py);
+            //printf("| %f %f | %f %f ",xnodes[0],xnodes[nx-1],Dx*(I0+0.5),Dx*(I1+0.5));
+            //printf("| %f %f | %f %f\n",ynodes[0],ynodes[ny-1],Dy*(J0+0.5),Dy*(J1+0.5));
+
+            //printf("%f %f | %d %d | %d %d | %d %d\n",x0,y0,px,py,I0,I1,J0,J1);
+
+            for (int i = I0; i < I1; i++)
+            for (int j = J0; j < J1; j++)
+            {
+                const double x = Dx*(i+0.5);
+                const double y = Dy*(j+0.5);
+                
+                //printf("%d %d | %f %f | %f %f\n",i,j,x,y,xnodes[0],xnodes[nx-1]);
+
+                switch(method) {
+                    case NEAREST:
+                        image[I2(Ix,Iy,i,j)] =  nearest(nx, xnodes, ny,ynodes, &patch[I4(Nx,Ny,nx,ny,px,py,0,0)],x,y);
+                        break;
+
+                    case BILINEAR:
+                        image[I2(Ix,Iy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &patch[I4(Nx,Ny,nx,ny,px,py,0,0)],x,y);
+                        break;
+                }
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+}

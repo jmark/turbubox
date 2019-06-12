@@ -670,3 +670,23 @@ def cells_to_image_flash_ug_2d(coords, bsizes, blocks, image, method='nearest'):
         carray( image.shape, dtype=np.int32), carray(image),
         methods[str.lower(method)]
     )
+
+# =========================================================================== #
+
+lib.cells_to_image_titanic_patch_2d.argtypes = (
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ct.c_int32,
+)
+
+def cells_to_image_titanic_patch_2d(blocks, image, method='nearest'):
+    methods = dict(
+        nearest  = 0,
+        bilinear = 1,
+    )
+
+    lib.cells_to_image_titanic_patch_2d(
+        carray(blocks.shape, dtype=np.int32), carray(blocks),
+        carray( image.shape, dtype=np.int32), carray(image),
+        methods[str.lower(method)]
+    )
