@@ -3,7 +3,7 @@
 import h5 as h5
 import ulz as ulz
 import numpy as np
-import interpolate as itpl
+#import interpolate as itpl
 
 class File(h5.File):
     def __init__(self, fpath, mode='r', **kwargs):
@@ -36,7 +36,7 @@ class File(h5.File):
         return dict(zip(keys,vals))
 
     @staticmethod
-    def stitch(data):
+    def stitch_2d(data):
         carpet = None
 
         for col in data:
@@ -54,6 +54,19 @@ class File(h5.File):
         return carpet
 
     @staticmethod
+    def stitch_3d(data):
+        box = None
+        for row in data:
+            rows = None
+            for col in row:
+                cols = None
+                for tub in col:
+                    cols = tub if cols is None else np.concatenate((cols,tub),axis=2)
+                rows = cols if rows is None else np.concatenate((rows,cols),axis=1)
+            box = rows if box is None else np.concatenate((box,rows),axis=0)
+        return box
+
+    @staticmethod
     def interpolate(patch,method=None,shape=None):
 
         if shape is None:
@@ -65,17 +78,25 @@ class File(h5.File):
         return image
 
     def get_var(self,varname,method=None,shape=None):
-        if varname in ('dens','momx','momy','ener'):
+        if varname in ('dens','momx','momy','momz','ener'):
             dpath = '/data/states/'+varname
 
             if method is None:
-                return self.stitch(np.transpose(self.get(dpath)[()],(0,1,3,2)))
+                if self.dimension == 2:
+                    return self.stitch_2d(np.transpose(self.get(dpath)[()],(0,1,3,2)))
+                if self.dimension == 3:
+                    #return self.stitch_3d(np.transpose(self.get(dpath)[()],(2,1,0,5,4,3)))
+                    return self.stitch_3d(self.get(dpath)[()])
 
             return self.interpolate(self.get(dpath)[()],method,shape)
 
         if varname == 'blend':
             df = self.get('/data/hydro/blend')
-            return tuple(self.stitch(np.transpose(df[:,:,i,:,:],(0,1,3,2))) for i in range(df.shape[2]))
+
+            if self.dimension == 2:
+                return tuple(self.stitch_2d(np.transpose(df[:,:,i,:,:],(0,1,3,2))) for i in range(df.shape[2]))
+            if self.dimension == 3:
+                return tuple(self.stitch_3d(df[:,:,:,i,:,:,:]) for i in range(df.shape[3]))
 
         raise KeyError('Unknown varname: {0}'.format(varname))
 
