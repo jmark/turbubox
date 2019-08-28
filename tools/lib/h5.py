@@ -4,7 +4,7 @@ import sys
 class H5File(h5py.File):
     def __init__(self,fpath,mode='r'):
         self.fpath = str(fpath)
-        super().__init__(str(fpath),mode)
+        super().__init__(fpath,mode)
     
     def get(self,dname):
         db = super().get(dname)

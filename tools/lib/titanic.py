@@ -97,6 +97,16 @@ class File(h5.File):
                 return tuple(self.stitch_2d(np.transpose(df[:,:,i,:,:],(0,1,3,2))) for i in range(df.shape[2]))
             if self.dimension == 3:
                 return tuple(self.stitch_3d(df[:,:,:,i,:,:,:]) for i in range(df.shape[3]))
+            
+
+        if method is None:
+            if self.dimension == 2:
+                return self.stitch_2d(np.transpose(self.get(varname)[()],(0,1,3,2)))
+            if self.dimension == 3:
+                #return self.stitch_3d(np.transpose(self.get(dpath)[()],(2,1,0,5,4,3)))
+                return self.stitch_3d(self.get(varname)[()])
+
+            return self.interpolate(self.get(dpath)[()],method,shape)
 
         raise KeyError('Unknown varname: {0}'.format(varname))
 

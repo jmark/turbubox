@@ -690,3 +690,55 @@ def cells_to_image_titanic_patch_2d(blocks, image, method='nearest'):
         carray( image.shape, dtype=np.int32), carray(image),
         methods[str.lower(method)]
     )
+
+# =========================================================================== #
+
+lib.cells_to_plane_3d.argtypes = (
+    ptr_int32, ptr_int8, 
+    ptr_int32, ptr_int32,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ptr_double, ptr_double, ptr_double,
+    ct.c_int32,
+)
+
+def cells_to_plane_3d(levels, morton, cells, image, p,u,v, method='nearest'):
+    methods = dict(nearest = 0,linear = 1)
+
+    lib.cells_to_plane_3d(
+        carray(levels.shape, dtype=np.int32), carray(levels),
+        carray(morton.shape, dtype=np.int32), carray(morton),
+        carray( cells.shape, dtype=np.int32), carray(cells),
+        carray( image.shape, dtype=np.int32), carray(image),
+        carray(p),carray(u),carray(v),
+        methods[str.lower(method)],
+    )
+
+
+# =========================================================================== #
+
+
+lib.plane_morton_to_coords.argtypes = (
+    ptr_int32, ptr_int8, 
+    ptr_int32, ptr_int32,
+    ptr_double, ptr_double, ptr_double,
+    ptr_int32, ptr_double, ct.c_int32,
+)
+
+lib.plane_morton_to_coords.restype = ct.c_int32
+
+def plane_morton_to_coords(levels, morton, p,u,v, edges=None):
+
+    doedges = 1
+    if edges is None:
+        edges = np.array([])
+        doedges = 0
+
+    edgecount = lib.plane_morton_to_coords(
+        carray(levels.shape, dtype=np.int32), carray(levels),
+        carray(morton.shape, dtype=np.int32), carray(morton),
+        carray(p),carray(u),carray(v), 
+        carray(edges.shape,dtype=np.int32), carray(edges), doedges,
+    )
+
+    return edgecount
