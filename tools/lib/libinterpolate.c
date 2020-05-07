@@ -16,6 +16,65 @@
 # define I3(nx,ny,nz,i,j,k)         (((i)*(ny)  + (j))*(nz) + (k))
 # define I4(nx,ny,nz,nw,i,j,k,l)   ((((i)*(ny)  + (j))*(nz) + (k)))*(nw) + (l)
 
+# define PI 3.1415926535897932384626433832795
+
+/* ========================================================================= */
+
+double inline dot3(const double a[3], const double b[3])
+{
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+
+double inline norm3(const double a[3], const double b[3])
+{
+    return sqrt(dot3(a,b));
+}
+
+double inline dist3(const double a[3], const double b[3])
+{
+    const double c0 = b[0]-a[0];
+    const double c1 = b[1]-a[1];
+    const double c2 = b[2]-a[2];
+
+    return sqrt(c0*c0 + c1*c1 + c2*c2);
+}
+
+void cross3(const double a[3], const double b[3], double *c)
+{
+    c[0] = a[1]*b[2] - a[2]*b[1];
+    c[1] = a[2]*b[0] - a[0]*b[2];
+    c[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+void pclose3(const double p[3], const double n[3], const double x[3], double *y)
+{
+    /* 
+     * p[3] ... positition vector of plane
+     * n[2] ... normal vector of plane
+     * x[3] ... point nearby plane
+     * y[3] ... closest point on plane
+     */
+
+    //printf("dot3: %f\n", dot3(n,n));
+    const double fac = (dot3(x,n) - dot3(p,n))/dot3(n,n);
+
+    y[0] = x[0] - fac*n[0];
+    y[1] = x[1] - fac*n[1];
+    y[2] = x[2] - fac*n[2];
+}
+
+int inline imin(const int a, const int b)
+{
+    return a < b ? a : b;
+}
+
+int inline imax(const int a, const int b)
+{
+    return a > b ? a : b;
+}
+
+/* ========================================================================= */
+
 double
 LagrangePolynomial(const double *xs, const int xslen, const int j, const double X) {
     double acc = 1;
@@ -694,8 +753,8 @@ inline double bicosine_interpolation(
     const double f12, const double f22,
     const double x,   const double y
 ){
-    const double X = x1 + 0.5*(x2-x1)*(1 - cos(M_PI*(x-x1)/(x2-x1)));
-    const double Y = y1 + 0.5*(y2-y1)*(1 - cos(M_PI*(y-y1)/(y2-y1)));
+    const double X = x1 + 0.5*(x2-x1)*(1 - cos(PI*(x-x1)/(x2-x1)));
+    const double Y = y1 + 0.5*(y2-y1)*(1 - cos(PI*(y-y1)/(y2-y1)));
 
     return (y2-Y)/(y2-y1) * ((x2-X)/(x2-x1)*f11 + (X-x1)/(x2-x1)*f21)
          + (Y-y1)/(y2-y1) * ((x2-X)/(x2-x1)*f12 + (X-x1)/(x2-x1)*f22);
@@ -825,13 +884,308 @@ inline double bicosine(
     return bicosine_interpolation(x1,x2,y1,y2,f11,f21,f12,f22,x,y);
 }
 
-# if defined(P4EST)
-
-# define GRIDLINES 0
-
 enum {
     NEAREST, LINEAR, BICOSINE
 };
+
+void
+cells_to_image_2d(
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const int ncells[3], const double *cells,
+    const int nimage[2], double *const image,
+    const int method
+) {
+    const int nc = ncells[0];
+    const int nx = ncells[1];
+    const int ny = ncells[2];
+
+    const int idx = nimage[0];
+    const int idy = nimage[1];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double xlength = sizes[I2(nc,2,icell,0)];
+        const double ylength = sizes[I2(nc,2,icell,1)];
+
+        const double xvert = coords[I2(nc,2,icell,0)] - 0.5*xlength;
+        const double yvert = coords[I2(nc,2,icell,1)] - 0.5*ylength;
+
+        // printf("%ld %f %f %f %f\n",icell,xlength,ylength,xvert,yvert);
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xvert + (i+0.5)/nx * xlength;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = yvert + (i+0.5)/ny * ylength;
+
+        const int imgx = idx *  xvert            + 0.5*xlength/nx;
+        const int Imgx = idx * (xvert + xlength) - 0.5*xlength/nx + 1;
+
+        const int imgy = idy *  yvert            + 0.5*ylength/ny;
+        const int Imgy = idy * (yvert + ylength) - 0.5*ylength/ny + 1;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        {
+            const double x = (i+0.5)/idx;
+            const double y = (j+0.5)/idy;
+            
+            switch(method) {
+                case NEAREST:
+                    image[I2(idx,idy,i,j)] = nearest2D(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    break;
+
+                case LINEAR:
+                    image[I2(idx,idy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    break;
+
+                case BICOSINE:
+                    image[I2(idx,idy,i,j)] = bicosine(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+}
+
+# define GRIDLINES 0
+
+void
+cells_to_image_3d(
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const int ncells[4], const double *cells,
+    const int nimage[3], double *const image
+) {
+    const int nc = ncells[0];
+    const int nx = ncells[1];
+    const int ny = ncells[2];
+    const int nz = ncells[3];
+
+    const int idx = nimage[0];
+    const int idy = nimage[1];
+    const int idz = nimage[2];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+    double *const znodes = malloc(sizeof(double) * nz);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double xlength = sizes[I2(nc,3,icell,0)];
+        const double ylength = sizes[I2(nc,3,icell,1)];
+        const double zlength = sizes[I2(nc,3,icell,2)];
+
+        const double xvert = coords[I2(nc,3,icell,0)] - 0.5*xlength;
+        const double yvert = coords[I2(nc,3,icell,1)] - 0.5*ylength;
+        const double zvert = coords[I2(nc,3,icell,2)] - 0.5*zlength;
+
+        //printf("%ld | %f %f %f | %f %f %f\n",icell,xlength,ylength,zlength,xvert,yvert,zvert);
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xvert + (i+0.5)/nx * xlength;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = yvert + (i+0.5)/ny * ylength;
+
+        for (int i = 0; i < nz; i++)
+            znodes[i] = zvert + (i+0.5)/nz * zlength;
+
+        const int imgx = idx *  xvert            + 0.5*xlength/nx     + GRIDLINES;
+        const int Imgx = idx * (xvert + xlength) - 0.5*xlength/nx + 1 - GRIDLINES;
+
+        const int imgy = idy *  yvert            + 0.5*ylength/ny     + GRIDLINES;
+        const int Imgy = idy * (yvert + ylength) - 0.5*ylength/ny + 1 - GRIDLINES;
+
+        const int imgz = idz *  zvert            + 0.5*zlength/nz     + GRIDLINES;
+        const int Imgz = idz * (zvert + zlength) - 0.5*zlength/nz + 1 - GRIDLINES;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        for (int k = imgz; k < Imgz; k++)
+        {
+            const double x = (i+0.5)/idx;
+            const double y = (j+0.5)/idy;
+            const double z = (k+0.5)/idz;
+
+            image[I3(idx,idy,idz,i,j,k)] = nearest3D(
+                nx,xnodes,ny,ynodes,nz,znodes,
+                &cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    free(znodes);
+}
+
+void
+morton_to_coords(
+    const int ncenters[2], const double *centers,
+    const int nsizes[2], const double *sizes,
+    const int ncoords[2], double *coords
+) {
+    const int nc = ncoords[0]; // # of cells
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double xlength = sizes[I2(nc,2,icell,0)];
+        const double ylength = sizes[I2(nc,2,icell,1)];
+
+        const double xvert = centers[I2(nc,2,icell,0)] - 0.5*xlength;
+        const double yvert = centers[I2(nc,2,icell,1)] - 0.5*ylength;
+
+        coords[I2(nc,3,icell,0)] = xvert;
+        coords[I2(nc,3,icell,1)] = yvert;
+        coords[I2(nc,3,icell,2)] = xlength;
+    }
+}
+
+void
+cells_to_plane_3d(
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const int ncells[4], const double *cells,
+    const int nimage[2], double *const image,
+    const double p[3], const double u[3], const double v[3],
+    const int method
+) {
+    const int nc = ncells[0];
+    const int nx = ncells[1];
+    const int ny = ncells[2];
+    const int nz = ncells[3];
+
+    // physical locations of nodes within cube
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+    double *const znodes = malloc(sizeof(double) * nz);
+
+    const double uu = dot3(u,u);
+    const double vv = dot3(v,v);
+
+    const double su = sqrt(uu);
+    const double sv = sqrt(vv);
+
+    double normal[3];
+    cross3(u,v,normal);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        double pclose[3];
+        double vshift[3];
+        double center[3];
+
+        const double xlength = sizes[I2(nc,3,icell,0)];
+        const double ylength = sizes[I2(nc,3,icell,1)];
+        const double zlength = sizes[I2(nc,3,icell,2)];
+
+        const double xhalf = 0.5*xlength;
+        const double yhalf = 0.5*ylength;
+        const double zhalf = 0.5*zlength;
+
+        const double xcenter = coords[I2(nc,3,icell,0)];
+        const double ycenter = coords[I2(nc,3,icell,1)];
+        const double zcenter = coords[I2(nc,3,icell,2)];
+
+        const double xvert = xcenter - xhalf;
+        const double yvert = ycenter - yhalf;
+        const double zvert = zcenter - zhalf;
+
+        /* ----------------------------------------------------------------- */
+
+        center[0] = xcenter;
+        center[1] = ycenter;
+        center[2] = zcenter;
+
+        pclose3(p,normal,center,pclose);
+
+        if (dist3(center,pclose) > xlength)
+            continue;
+            
+        /* ----------------------------------------------------------------- */
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xvert + (i+0.5)/nx * xlength;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = yvert + (i+0.5)/ny * ylength;
+
+        for (int i = 0; i < nz; i++)
+            znodes[i] = zvert + (i+0.5)/nz * zlength;
+
+        /* ----------------------------------------------------------------- */
+
+# if 0
+        // vshift[0] = verts[0]-p[0];
+        // vshift[1] = verts[1]-p[1];
+        // vshift[2] = verts[2]-p[2];
+
+        vshift[0] = pclose[0] - 2*length*(u[0]/su + v[0]/sv);
+        vshift[1] = pclose[1] - 2*length*(u[1]/su + v[1]/sv);
+        vshift[2] = pclose[2] - 2*length*(u[2]/su + v[2]/sv);
+
+        const int ix = imax(0,dimage[0] * dot3(vshift,u)/uu - 0.5);
+        const int iy = imax(0,dimage[1] * dot3(vshift,v)/vv - 0.5);
+
+        /* ----------------------------------------------------------------- */
+
+        // vshift[0] = verts[0]-p[0] + length;
+        // vshift[1] = verts[1]-p[1] + length;
+        // vshift[2] = verts[2]-p[2] + length;
+
+        vshift[0] = pclose[0] + 2*length*(u[0]/su + v[0]/sv);
+        vshift[1] = pclose[1] + 2*length*(u[1]/su + v[1]/sv);
+        vshift[2] = pclose[2] + 2*length*(u[2]/su + v[2]/sv);
+
+        const int Ix = imin(dimage[0]-1,dimage[0] * dot3(vshift,u)/uu - 0.5);
+        const int Iy = imin(dimage[0]-1,dimage[1] * dot3(vshift,v)/vv - 0.5);
+
+        //printf("%d %d %d %d\n", ix, Ix, iy, Iy);
+# else
+        const int ix = 0;
+        const int iy = 0;
+
+        const int Ix = nimage[0]-1;
+        const int Iy = nimage[1]-1;
+# endif
+
+        /* ----------------------------------------------------------------- */
+
+        for (int i = ix; i <= Ix; i++)
+        for (int j = iy; j <= Iy; j++)
+        {
+            const double x = p[0] + (i+0.5)/nimage[0]*u[0] + (j+0.5)/nimage[1]*v[0];
+            const double y = p[1] + (i+0.5)/nimage[0]*u[1] + (j+0.5)/nimage[1]*v[1];
+            const double z = p[2] + (i+0.5)/nimage[0]*u[2] + (j+0.5)/nimage[1]*v[2];
+
+            if (!(fabs(xcenter-x) <= xhalf
+               && fabs(ycenter-y) <= yhalf
+               && fabs(zcenter-z) <= zhalf)) {
+                continue;
+            }
+
+            switch(method) {
+                case NEAREST:
+                    image[I2(nimage[0],nimage[1],i,j)]
+                        = nearest3D(nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+
+                case LINEAR:
+                    image[I2(nimage[0],nimage[1],i,j)]
+                        = trilinear(nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    free(znodes);
+}
+
+# if defined(P4EST)
 
 void
 morton_to_coords(
@@ -1138,60 +1492,7 @@ cells_to_image_titanic_patch_2d(
 }
 
 /* ========================================================================= */
-/* ========================================================================= */
-
-double inline dot3(const double a[3], const double b[3])
-{
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
-}
-
-double inline norm3(const double a[3], const double b[3])
-{
-    return sqrt(dot3(a,b));
-}
-
-double inline dist3(const double a[3], const double b[3])
-{
-    const double c0 = b[0]-a[0];
-    const double c1 = b[1]-a[1];
-    const double c2 = b[2]-a[2];
-
-    return sqrt(c0*c0 + c1*c1 + c2*c2);
-}
-
-void cross3(const double a[3], const double b[3], double *c)
-{
-    c[0] = a[1]*b[2] - a[2]*b[1];
-    c[1] = a[2]*b[0] - a[0]*b[2];
-    c[2] = a[0]*b[1] - a[1]*b[0];
-}
-
-void pclose3(const double p[3], const double n[3], const double x[3], double *y)
-{
-    /* 
-     * p[3] ... positition vector of plane
-     * n[2] ... normal vector of plane
-     * x[3] ... point nearby plane
-     * y[3] ... closest point on plane
-     */
-
-    //printf("dot3: %f\n", dot3(n,n));
-    const double fac = (dot3(x,n) - dot3(p,n))/dot3(n,n);
-
-    y[0] = x[0] - fac*n[0];
-    y[1] = x[1] - fac*n[1];
-    y[2] = x[2] - fac*n[2];
-}
-
-int inline imin(const int a, const int b)
-{
-    return a < b ? a : b;
-}
-
-int inline imax(const int a, const int b)
-{
-    return a > b ? a : b;
-}
+# if defined(P4EST)
 
 void
 cells_to_plane_3d(
@@ -1329,6 +1630,8 @@ cells_to_plane_3d(
     p8est_connectivity_destroy(unitcube);
 }
 
+# endif
+
 int intersection(
     const double p1[3], const double p2[3], const double pE[3], const double nE[3], double *x
 ) {
@@ -1359,6 +1662,8 @@ int intersection(
 
     return 0;
 }
+
+# if defined(P4EST)
 
 int
 plane_morton_to_coords(
@@ -1682,3 +1987,5 @@ plane_morton_to_coords(
 
     return ecount;
 }
+
+# endif

@@ -3,7 +3,6 @@
 import h5 as h5
 import ulz as ulz
 import numpy as np
-#import interpolate as itpl
 
 class File(h5.File):
     def __init__(self, fpath, mode='r', **kwargs):
@@ -112,16 +111,77 @@ class File(h5.File):
 
 if __name__ == '__main__':
     import sys
+    import interpolate as itpl
+
     fp = sys.argv[1]
     fh = File(fp)
 
-    print(fh.program)
-    print(fh.time)
+    #print(fh.program)
+    #print(fh.time)
 
-    dens = fh.get_var('dens')
-    blend = fh.get_var('blend')
+    if 0:
+        def render(dataset,shape=(512,512),method='linear'):
+            image = np.zeros(shape)
+            cells = np.transpose(dataset,(0,2,1))
+            itpl.cells_to_image_2d(bcoords,bsizes,cells,image,method=method)
+            return image
 
-    print(blend[1].shape)
+        bcoords = fh.get('/mesh/coordinates')[()]
+        bsizes  = fh.get('/mesh/block size')[()]
+
+        bcoords[:,0] -= fh.xmin
+        bcoords[:,1] -= fh.ymin
+
+        bcoords[:,0] /= abs(fh.xmax-fh.xmin)
+        bcoords[:,1] /= abs(fh.ymax-fh.ymin)
+
+        bsizes[:,0] /= abs(fh.xmax-fh.xmin)
+        bsizes[:,1] /= abs(fh.ymax-fh.ymin)
+
+    if 1:
+        fp = sys.argv[1]
+        fh = File(fp)
+
+        #print(fh.program)
+        #print(fh.time)
+
+        bcoords = fh.get('/mesh/coordinates')[()]
+        bsizes  = fh.get('/mesh/block size')[()]
+
+        print(bcoords)
+
+        bcoords[:,0] -= fh.xmin
+        bcoords[:,1] -= fh.ymin
+        bcoords[:,2] -= fh.zmin
+
+        bcoords[:,0] /= abs(fh.xmax-fh.xmin)
+        bcoords[:,1] /= abs(fh.ymax-fh.ymin)
+        bcoords[:,2] /= abs(fh.zmax-fh.zmin)
+
+        bsizes[:,0] /= abs(fh.xmax-fh.xmin)
+        bsizes[:,1] /= abs(fh.ymax-fh.ymin)
+        bsizes[:,2] /= abs(fh.zmax-fh.zmin)
+
+    print(bcoords)
+
+    def render(dataset,shape=3*(128,),method='linear'):
+        image = np.zeros(shape)
+        cells = np.transpose(dataset,(0,3,2,1))
+        itpl.cells_to_image_3d(bcoords,bsizes,cells,image,method=method)
+        return image
+
+
+    # print(fh.xmin,fh.ymin,fh.zmin)
+    # print(bcoords[:,0])
+
+    # bcoords /= bsizes
+
+    dens = render(fh.get('/data/states/dens'))
+
+    #dens = fh.get_var('dens')
+    #blend = fh.get_var('blend')
+
+    #print(blend[1].shape)
 
     #import numpy as np
     #import matplotlib
