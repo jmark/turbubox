@@ -148,7 +148,7 @@ if __name__ == '__main__':
         bcoords = fh.get('/mesh/coordinates')[()]
         bsizes  = fh.get('/mesh/block size')[()]
 
-        print(bcoords)
+        # print(bcoords)
 
         bcoords[:,0] -= fh.xmin
         bcoords[:,1] -= fh.ymin
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         bsizes[:,1] /= abs(fh.ymax-fh.ymin)
         bsizes[:,2] /= abs(fh.zmax-fh.zmin)
 
-    print(bcoords)
+    # print(bcoords)
 
     def render(dataset,shape=3*(128,),method='linear'):
         image = np.zeros(shape)
@@ -170,13 +170,23 @@ if __name__ == '__main__':
         itpl.cells_to_image_3d(bcoords,bsizes,cells,image,method=method)
         return image
 
+    #dens = render(fh.get('/data/states/dens'))
+
+    dataset = fh.get('/data/states/dens')
+
+    p = np.array([0.0,0.0,0.501])
+    u = np.array([1.0,0.0,0.0])
+    v = np.array([0.0,1.0,0.0])
+
+    nlines = itpl.plane_morton_to_coords(bcoords,bsizes,p,u,v,edges=None)
+
+    print(nlines);
 
     # print(fh.xmin,fh.ymin,fh.zmin)
     # print(bcoords[:,0])
 
     # bcoords /= bsizes
 
-    dens = render(fh.get('/data/states/dens'))
 
     #dens = fh.get_var('dens')
     #blend = fh.get_var('blend')

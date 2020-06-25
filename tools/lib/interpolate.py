@@ -603,6 +603,7 @@ lib.cells_to_image_3d.argtypes = (
     ptr_int32, ptr_double,
     ptr_int32, ptr_double,
     ptr_int32, ptr_double,
+    ct.c_int32
 )
 
 def cells_to_image_3d(coords,sizes,cells,image,method='nearest'):
@@ -612,8 +613,55 @@ def cells_to_image_3d(coords,sizes,cells,image,method='nearest'):
         carray(coords.shape, dtype=np.int32), carray(coords),
         carray(sizes.shape, dtype=np.int32), carray(sizes),
         carray(cells.shape, dtype=np.int32), carray(cells),
-        carray(image.shape, dtype=np.int32), carray(image)
+        carray(image.shape, dtype=np.int32), carray(image),
+        methods[str.lower(method)]
     )
+
+lib.cells_to_plane_3d.argtypes = (
+    ptr_int32, ptr_double, 
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ptr_int32, ptr_double,
+    ptr_double, ptr_double, ptr_double,
+    ct.c_int32,
+)
+
+def cells_to_plane_3d(coords, sizes, cells, image, p,u,v, method='nearest'):
+    methods = dict(nearest = 0,linear = 1)
+
+    lib.cells_to_plane_3d(
+        carray(coords.shape, dtype=np.int32), carray(coords),
+        carray(sizes.shape, dtype=np.int32), carray(sizes),
+        carray(cells.shape, dtype=np.int32), carray(cells),
+        carray(image.shape, dtype=np.int32), carray(image),
+        carray(p),carray(u),carray(v),
+        methods[str.lower(method)],
+    )
+
+lib.plane_morton_to_coords.restype = ct.c_int32
+
+lib.plane_morton_to_coords.argtypes = (
+    ptr_int32, ptr_double, 
+    ptr_int32, ptr_double,
+    ptr_double, ptr_double, ptr_double,
+    ptr_int32, ptr_double,
+    ct.c_int32,
+)
+
+def plane_morton_to_coords(coords,sizes, p,u,v, edges=None):
+    doedges = 1
+    if edges is None:
+        edges = np.array([])
+        doedges = 0
+
+    edgecount = lib.plane_morton_to_coords(
+        carray(coords.shape, dtype=np.int32), carray(coords),
+        carray(sizes.shape, dtype=np.int32), carray(sizes),
+        carray(p),carray(u),carray(v), 
+        carray(edges.shape,dtype=np.int32), carray(edges), doedges,
+    )
+
+    return edgecount
 
 if 0:
     lib.morton_to_coords.argtypes = (
@@ -735,6 +783,13 @@ def cells_to_image_titanic_patch_2d(blocks, image, method='nearest'):
         carray(blocks.shape, dtype=np.int32), carray(blocks),
         carray( image.shape, dtype=np.int32), carray(image),
         methods[str.lower(method)]
+    )
+
+    lib.plane_morton_to_coords.argtypes = (
+        ptr_int32, ptr_int8, 
+        ptr_int32, ptr_int32,
+        ptr_double, ptr_double, ptr_double,
+        ptr_int32, ptr_double, ct.c_int32,
     )
 
 # =========================================================================== #

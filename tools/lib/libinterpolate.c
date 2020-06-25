@@ -960,7 +960,8 @@ cells_to_image_3d(
     const int ncoords[2], const double *coords,
     const int nsizes[2], const double *sizes,
     const int ncells[4], const double *cells,
-    const int nimage[3], double *const image
+    const int nimage[3], double *const image,
+    const int method
 ) {
     const int nc = ncells[0];
     const int nx = ncells[1];
@@ -1012,9 +1013,20 @@ cells_to_image_3d(
             const double y = (j+0.5)/idy;
             const double z = (k+0.5)/idz;
 
-            image[I3(idx,idy,idz,i,j,k)] = nearest3D(
-                nx,xnodes,ny,ynodes,nz,znodes,
-                &cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+            //image[I3(idx,idy,idz,i,j,k)] = nearest3D(
+            //    nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+
+            switch(method) {
+                case NEAREST:
+                    image[I3(idx,idy,idz,i,j,k)] = nearest3D(
+                        nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+
+                case LINEAR:
+                    image[I3(idx,idy,idz,i,j,k)] = trilinear(
+                        nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+            }
         }
     }
 
@@ -1084,6 +1096,10 @@ cells_to_plane_3d(
         const double xhalf = 0.5*xlength;
         const double yhalf = 0.5*ylength;
         const double zhalf = 0.5*zlength;
+
+        const double xdelt = xlength/nx;
+        const double ydelt = ylength/ny;
+        const double zdelt = zlength/nz;
 
         const double xcenter = coords[I2(nc,3,icell,0)];
         const double ycenter = coords[I2(nc,3,icell,1)];
@@ -1160,9 +1176,9 @@ cells_to_plane_3d(
             const double y = p[1] + (i+0.5)/nimage[0]*u[1] + (j+0.5)/nimage[1]*v[1];
             const double z = p[2] + (i+0.5)/nimage[0]*u[2] + (j+0.5)/nimage[1]*v[2];
 
-            if (!(fabs(xcenter-x) <= xhalf
-               && fabs(ycenter-y) <= yhalf
-               && fabs(zcenter-z) <= zhalf)) {
+            if (!(fabs(xcenter-x) <= xdelt+xhalf
+               && fabs(ycenter-y) <= ydelt+yhalf
+               && fabs(zcenter-z) <= zdelt+zhalf)) {
                 continue;
             }
 
@@ -1183,6 +1199,364 @@ cells_to_plane_3d(
     free(xnodes);
     free(ynodes);
     free(znodes);
+}
+
+// cells_to_plane_3d(
+//     const int ncoords[2], const double *coords,
+//     const int nsizes[2], const double *sizes,
+//     const int ncells[4], const double *cells,
+//     const int nimage[2], double *const image,
+//     const double p[3], const double u[3], const double v[3],
+//     const int method
+// )
+
+int intersection(
+    const double p1[3], const double p2[3], const double pE[3], const double nE[3], double *x
+) {
+    double u[3],q[3];
+
+    u[0] = p2[0] - p1[0];
+    u[1] = p2[1] - p1[1];
+    u[2] = p2[2] - p1[2];
+
+    const double t = dot3(u,nE);
+
+    if (fabs(t) < 1e-9)
+        return 0;
+
+    q[0] = pE[0] - p1[0];
+    q[1] = pE[1] - p1[1];
+    q[2] = pE[2] - p1[2];
+
+    const double r = dot3(q,nE)/t;
+
+    if (-0.001 < r && r < 1.001) {
+        x[0] = p1[0] + r * u[0];
+        x[1] = p1[1] + r * u[1];
+        x[2] = p1[2] + r * u[2];
+
+        return 1;   
+    }
+
+    return 0;
+}
+
+int
+plane_morton_to_coords(
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const double p[3], const double u[3], const double v[3],
+    const int nlines[3], double *lines, const int doedges
+) {
+    const int nc = ncoords[0]; // # of cells
+
+    const double uu = dot3(u,u);
+    const double vv = dot3(v,v);
+
+    const double lu = sqrt(uu);
+    const double lv = sqrt(vv);
+
+    double n[3];
+    cross3(u,v,n);
+
+    int ecount = 0;
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        double verts[3];
+        double center[3];
+        double pclose[3];
+
+        const double length = sizes[I2(nc,3,icell,0)];
+        const double half = 0.5*length;
+
+        double edges[6*4*2*3];
+
+        /* ----------------------------------------------------------------- */
+
+        center[0] = coords[I2(nc,3,icell,0)];
+        center[1] = coords[I2(nc,3,icell,1)];
+        center[2] = coords[I2(nc,3,icell,2)];
+
+        verts[0] = center[0] - 0.5*sizes[I2(nc,3,icell,0)];
+        verts[1] = center[1] - 0.5*sizes[I2(nc,3,icell,1)];
+        verts[2] = center[2] - 0.5*sizes[I2(nc,3,icell,2)];
+
+        pclose3(p,n,center,pclose);
+
+        if (!(fabs(center[0]-pclose[0]) <= half
+           && fabs(center[1]-pclose[1]) <= half
+           && fabs(center[2]-pclose[2]) <= half)) {
+            continue;
+        }
+
+        /* north */
+        edges[I4(6,4,2,3, 0,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 0,0,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,0,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 0,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 0,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,1,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 0,2,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 0,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,2,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 0,3,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 0,3,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,3,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,3,1,2)] = verts[2];
+
+
+        /* souTh */
+        edges[I4(6,4,2,3, 1,0,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 1,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,0,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 1,1,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 1,1,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,1,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 1,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 1,2,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,2,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 1,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 1,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,3,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,3,1,2)] = verts[2];
+
+
+
+        /* wesT */
+        edges[I4(6,4,2,3, 2,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 2,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,0,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 2,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 2,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,1,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 2,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,2,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 2,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,2,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 2,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,3,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 2,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,3,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,3,1,2)] = verts[2];
+
+
+        /* easT */
+        edges[I4(6,4,2,3, 3,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,0,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 3,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,0,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 3,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,1,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 3,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,1,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 3,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 3,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,2,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 3,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 3,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,3,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,3,1,2)] = verts[2];
+
+
+        /* froNt */
+        edges[I4(6,4,2,3, 4,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,0,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 4,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,1,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,1,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 4,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,2,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,2,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,2,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 4,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,3,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,3,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,3,1,2)] = verts[2];
+
+
+        /* bacK */
+        edges[I4(6,4,2,3, 5,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,0,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,0,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,0,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 5,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,1,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,1,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 5,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,2,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 5,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,3,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,3,1,2)] = verts[2] + length;
+
+        /* loop over faces/edges */
+        for (int f = 0; f < 6; f++) {
+
+            //printf("%ld %d\n", icell, f);
+
+            for (int e = 0; e < 4; e++) {
+                double x[3],y[3];
+
+                if (intersection(&edges[I4(6,4,2,3,f,e,0,0)],&edges[I4(6,4,2,3,f,e,1,0)],p,n,x)) {
+
+                    // printf("x: %ld %f %f %f\n", icell, x[0],x[1],x[2]);
+
+                    for (int g = e; g < 4; g++) {
+
+                        if (intersection(&edges[I4(6,4,2,3,f,g,0,0)],&edges[I4(6,4,2,3,f,g,1,0)],p,n,y)) {
+
+                            //printf("y: %ld %f %f %f\n", icell, y[0],y[1],y[2]);
+
+                            if (dist3(x,y) < 1e-9)
+                                continue;
+
+                            if (doedges) {
+                                lines[I3(nlines[0],2,3,ecount,0,0)] = x[0];
+                                lines[I3(nlines[0],2,3,ecount,0,1)] = x[1];
+                                lines[I3(nlines[0],2,3,ecount,0,2)] = x[2];
+
+                                lines[I3(nlines[0],2,3,ecount,1,0)] = y[0];
+                                lines[I3(nlines[0],2,3,ecount,1,1)] = y[1];
+                                lines[I3(nlines[0],2,3,ecount,1,2)] = y[2];
+
+                                //printf("%ld %f %f %f\n", icell, x[0],x[1],x[2]);
+                                //printf("%ld %f %f %f\n", icell, y[0],y[1],y[2]);
+                                //printf("\n");
+                            }
+
+                            ecount++;
+                        }
+
+                    } // g
+                    // printf("\n");
+                }
+            } // e
+        } // f
+    } // icell
+
+    return ecount;
 }
 
 # if defined(P4EST)
@@ -1632,37 +2006,6 @@ cells_to_plane_3d(
 
 # endif
 
-int intersection(
-    const double p1[3], const double p2[3], const double pE[3], const double nE[3], double *x
-) {
-    double u[3],q[3];
-
-    u[0] = p2[0] - p1[0];
-    u[1] = p2[1] - p1[1];
-    u[2] = p2[2] - p1[2];
-
-    const double t = dot3(u,nE);
-
-    if (fabs(t) < 1e-9)
-        return 0;
-
-    q[0] = pE[0] - p1[0];
-    q[1] = pE[1] - p1[1];
-    q[2] = pE[2] - p1[2];
-
-    const double r = dot3(q,nE)/t;
-
-    if (-0.001 < r && r < 1.001) {
-        x[0] = p1[0] + r * u[0];
-        x[1] = p1[1] + r * u[1];
-        x[2] = p1[2] + r * u[2];
-
-        return 1;   
-    }
-
-    return 0;
-}
-
 # if defined(P4EST)
 
 int
@@ -1670,7 +2013,7 @@ plane_morton_to_coords(
     const int dlevels[1], const int8_t *levels,
     const int dmorton[2], const int32_t *morton,
     const double p[3], const double u[3], const double v[3],
-    const int dedges[3], double *EDGES, const int doedges
+    const int dedges[3], double *edges, const int doedges
 ) {
     p8est_connectivity_t *unitcube = p8est_connectivity_new_unitcube();
 
@@ -1700,7 +2043,7 @@ plane_morton_to_coords(
         double edges[6*4*2*3];
 
         p8est_qcoord_to_vertex(unitcube, 0, 
-            morton[I2(nc,3,icell,0)], morton[I2(nc,3,icell,1)], morton[I2(nc,3,icell,2)], verts);
+            morton[i2(nc,3,icell,0)], morton[i2(nc,3,icell,1)], morton[i2(nc,3,icell,2)], verts);
 
         /* ----------------------------------------------------------------- */
 
@@ -1728,248 +2071,248 @@ plane_morton_to_coords(
         //if (!(0 <= temp && temp <= vv))
         //    continue;
  
-        /* NORTH */
-        edges[I4(6,4,2,3, 0,0,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,0,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 0,0,0,2)] = verts[2];
+        /* north */
+        edges[i4(6,4,2,3, 0,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,0,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 0,0,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,0,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 0,0,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 0,0,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,0,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,0,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 0,1,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,1,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 0,1,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 0,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,1,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 0,1,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,1,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 0,1,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 0,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,1,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,1,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 0,2,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,2,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 0,2,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 0,2,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,2,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 0,2,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,2,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 0,2,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 0,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,2,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,2,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 0,3,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,3,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 0,3,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 0,3,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,3,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 0,3,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 0,3,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 0,3,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 0,3,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,3,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,3,1,2)] = verts[2];
 
 
-        /* SOUTH */
-        edges[I4(6,4,2,3, 1,0,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,0,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 1,0,0,2)] = verts[2];
+        /* south */
+        edges[i4(6,4,2,3, 1,0,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,0,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 1,0,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,0,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 1,0,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 1,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,0,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,0,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 1,1,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,1,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 1,1,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 1,1,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,1,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 1,1,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,1,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 1,1,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 1,1,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,1,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,1,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 1,2,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,2,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 1,2,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 1,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,2,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 1,2,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,2,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 1,2,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 1,2,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,2,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,2,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 1,3,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,3,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 1,3,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 1,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,3,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 1,3,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 1,3,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 1,3,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 1,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,3,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,3,1,2)] = verts[2];
 
 
 
-        /* WEST */
-        edges[I4(6,4,2,3, 2,0,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 2,0,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,0,0,2)] = verts[2];
+        /* west */
+        edges[i4(6,4,2,3, 2,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,0,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 2,0,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 2,0,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,0,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 2,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,0,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,0,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 2,1,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 2,1,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,1,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 2,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,1,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 2,1,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 2,1,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,1,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 2,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,1,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,1,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 2,2,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 2,2,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,2,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 2,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,2,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,2,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 2,2,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 2,2,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,2,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 2,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,2,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,2,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 2,3,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 2,3,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,3,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 2,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,3,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,3,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 2,3,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 2,3,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 2,3,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 2,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,3,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,3,1,2)] = verts[2];
 
 
-        /* EAST */
-        edges[I4(6,4,2,3, 3,0,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 3,0,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,0,0,2)] = verts[2];
+        /* east */
+        edges[i4(6,4,2,3, 3,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,0,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,0,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 3,0,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 3,0,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,0,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 3,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,0,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,0,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 3,1,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 3,1,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,1,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 3,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,1,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,1,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 3,1,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 3,1,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,1,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 3,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,1,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,1,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 3,2,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 3,2,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,2,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 3,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,2,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 3,2,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 3,2,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,2,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 3,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,2,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,2,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 3,3,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 3,3,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,3,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 3,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,3,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 3,3,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 3,3,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 3,3,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 3,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,3,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,3,1,2)] = verts[2];
 
 
-        /* FRONT */
-        edges[I4(6,4,2,3, 4,0,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 4,0,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 4,0,0,2)] = verts[2];
+        /* front */
+        edges[i4(6,4,2,3, 4,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,0,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 4,0,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 4,0,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 4,0,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,0,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,0,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 4,1,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 4,1,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 4,1,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,1,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 4,1,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 4,1,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 4,1,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,1,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,1,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 4,2,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 4,2,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 4,2,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,2,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 4,2,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 4,2,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 4,2,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,2,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,2,1,2)] = verts[2];
 
 
-        edges[I4(6,4,2,3, 4,3,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 4,3,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 4,3,0,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,3,0,2)] = verts[2];
 
-        edges[I4(6,4,2,3, 4,3,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 4,3,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 4,3,1,2)] = verts[2];
+        edges[i4(6,4,2,3, 4,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,3,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,3,1,2)] = verts[2];
 
 
-        /* BACK */
-        edges[I4(6,4,2,3, 5,0,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 5,0,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 5,0,0,2)] = verts[2] + length;
+        /* back */
+        edges[i4(6,4,2,3, 5,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,0,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 5,0,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 5,0,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 5,0,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,0,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,0,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 5,1,0,0)] = verts[0];
-        edges[I4(6,4,2,3, 5,1,0,1)] = verts[1];
-        edges[I4(6,4,2,3, 5,1,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,1,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 5,1,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 5,1,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 5,1,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,1,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,1,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 5,2,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 5,2,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 5,2,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,2,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 5,2,1,0)] = verts[0];
-        edges[I4(6,4,2,3, 5,2,1,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 5,2,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,2,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,2,1,2)] = verts[2] + length;
 
 
-        edges[I4(6,4,2,3, 5,3,0,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 5,3,0,1)] = verts[1] + length;
-        edges[I4(6,4,2,3, 5,3,0,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,3,0,2)] = verts[2] + length;
 
-        edges[I4(6,4,2,3, 5,3,1,0)] = verts[0] + length;
-        edges[I4(6,4,2,3, 5,3,1,1)] = verts[1];
-        edges[I4(6,4,2,3, 5,3,1,2)] = verts[2] + length;
+        edges[i4(6,4,2,3, 5,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,3,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,3,1,2)] = verts[2] + length;
 
-        /* Loop over Faces/Edges */
+        /* loop over faces/edges */
         for (int f = 0; f < 6; f++) {
-            for (int E = 0; E < 4; E++) {
-                for (int e = E; e < 4; e++) {
+            for (int e = 0; e < 4; e++) {
+                for (int e = e; e < 4; e++) {
                     double x[3],y[3];
 
-                    if(intersection(&edges[I4(6,4,2,3,f,E,0,0)],&edges[I4(6,4,2,3,f,E,1,0)],p,n,x) &&
-                       intersection(&edges[I4(6,4,2,3,f,e,0,0)],&edges[I4(6,4,2,3,f,e,1,0)],p,n,y)) {
+                    if(intersection(&edges[i4(6,4,2,3,f,e,0,0)],&edges[i4(6,4,2,3,f,e,1,0)],p,n,x) &&
+                       intersection(&edges[i4(6,4,2,3,f,e,0,0)],&edges[i4(6,4,2,3,f,e,1,0)],p,n,y)) {
 
                         if (dist3(x,y) < 1e-9)
                             continue;
 
                         if (doedges) {
-                            EDGES[I3(dedges[0],2,3,ecount,0,0)] = x[0];
-                            EDGES[I3(dedges[0],2,3,ecount,0,1)] = x[1];
-                            EDGES[I3(dedges[0],2,3,ecount,0,2)] = x[2];
+                            edges[i3(dedges[0],2,3,ecount,0,0)] = x[0];
+                            edges[i3(dedges[0],2,3,ecount,0,1)] = x[1];
+                            edges[i3(dedges[0],2,3,ecount,0,2)] = x[2];
 
-                            EDGES[I3(dedges[0],2,3,ecount,1,0)] = y[0];
-                            EDGES[I3(dedges[0],2,3,ecount,1,1)] = y[1];
-                            EDGES[I3(dedges[0],2,3,ecount,1,2)] = y[2];
+                            edges[i3(dedges[0],2,3,ecount,1,0)] = y[0];
+                            edges[i3(dedges[0],2,3,ecount,1,1)] = y[1];
+                            edges[i3(dedges[0],2,3,ecount,1,2)] = y[2];
 
                             //printf("%ld %f %f %f\n", icell, x[0],x[1],x[2]);
                             //printf("%ld %f %f %f\n", icell, y[0],y[1],y[2]);
