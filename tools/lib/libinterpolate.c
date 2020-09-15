@@ -713,7 +713,7 @@ inline double bicosine(
 
 # if defined(P4EST)
 
-# define GRIDLINES 2
+# define GRIDLINES 0
 
 enum {
     NEAREST, BILINEAR, BICOSINE

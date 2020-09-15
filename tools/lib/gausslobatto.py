@@ -1,23 +1,61 @@
 import numpy as np
 import math
 import itertools
-import ulz as ulz
 
 eps = np.finfo(float).eps
 nit,TOL = 4,4*eps
 
-def Weight(xs,j):
+def shiftMatrix(nrows,ncols,inmat):
+    exmat = np.zeros(inmat.shape)
+    for i in range(nrows,inmat.shape[0]):
+        for j in range(ncols,inmat.shape[1]):
+            exmat[i,j] = inmat[i-nrows,j-ncols]
+    return exmat
+
+def upAndDownScaleMat(N):
+    tempMat = np.zeros((N,N))
+    tempMat[0,0] = 1.0
+    tempMat[1,0] = 1.0
+
+    rfaceMat = np.zeros((2,N,N))
+    for f in range(2):
+        for i in range(N//2):
+            rfaceMat[f] = rfaceMat[f] + shiftMatrix(2*i,f*N//2+i,tempMat)
+            
+    cfaceMat = np.zeros((2,N,N))
+    for f in range(2):
+        cfaceMat[f] = 0.5*np.transpose(rfaceMat[f])
+
+def mk_body_centered_linspace(infimum, supremum, nNodes, withBoundaryNodes=False):
+    """
+    Make regular body centered linear space w/ or w/o neighboring boundary nodes.
+    """
+
+    domsize = np.abs(supremum - infimum)
+    offset  = domsize / nNodes / 2
+
+    if withBoundaryNodes:
+        nNodes     = nNodes + 2
+        infimum    = infimum  - offset
+        supremum   = supremum + offset
+    else:
+        infimum    = infimum  + offset
+        supremum   = supremum - offset
+
+    return np.linspace(infimum, supremum, nNodes, endpoint=True)
+
+def BarycentricWeight(xs,j):
     acc = 1
     for i in range(len(xs)):
         if i==j: continue
         acc *= xs[j]-xs[i]
     return 1/acc
 
-def Weights(xs):
+def BarycentricWeights(xs):
     n  = len(xs)
     ws = np.empty(n)
     for j in range(n):
-        ws[j] = Weight(xs,j)     
+        ws[j] = BarycentricWeight(xs,j)     
     return ws
 
 def LagrangePolynomial(xs,j,x):
@@ -36,7 +74,8 @@ def BarycentricPolynomial(xs,ws,fs,x):
         denominator +=       ws[j]/diff
     return numerator/denominator
 
-def DiffMatrix(xs,ws):
+def DiffMatrix(xs):
+    ws = BarycentricWeights(xs)
     n = len(xs)
     M = np.empty([n,n])
     for i in range(n):
@@ -282,7 +321,7 @@ def mk_nodes(npoly, ntype='gauss'):
     elif ntype == 'gauss-lobatto':
         fun = LegendreGaussLobattoNodesAndWeights
     elif ntype == 'cell-centered':
-        fun = lambda npoly: (ulz.mk_body_centered_linspace(-1,1,npoly+1),None)
+        fun = lambda npoly: (mk_body_centered_linspace(-1,1,npoly+1),None)
     else:
         raise KeyError("unknown node type: '%s'" % ntype)
 
@@ -298,3 +337,50 @@ def mk_LegendreVandermondeMatrix(xs,doNormalize=False):
             for j in range(0,len(xs))
         ] for i in range(0,len(xs))
     ])
+
+def mk_dg2fvMat(xs,ws,M):
+    """
+    Args:
+        xs: array of quadrature nodes
+        ws: array of quadrature weights
+
+    Returns:
+        (M x len(xs)) projection matrix
+    """
+
+    xL = -0.5*np.sum(ws)
+    xR =  0.5*np.sum(ws)
+
+    # interpolation nodes within each finite volume
+    Ys = [mu + xs/M for mu in mk_body_centered_linspace(xL,xR,M)]
+
+    # projection matrix
+    return np.array([np.dot(ws,mk_vandermonde_matrix(xs,ys)) for ys in Ys])
+
+def mk_galerkinMat(xs,ws,ys,vs,M):
+    """
+    Args:
+        xs: array of sub-element quadrature nodes
+        ws: array of sub-element quadrature weights
+
+        ys: array of main element quadrature nodes
+        vs: array of main element quadrature weights
+
+        M: number of (xs,ws)-elements
+
+    Returns:
+        tuple of M projection (len(ys) x len(xs)) matrices
+    """
+
+    xL = -0.5*np.sum(vs)
+    xR =  0.5*np.sum(vs)
+
+    # interpolation nodes within each sub-element of master element
+    Ys = [mu + xs/M for mu in mk_body_centered_linspace(xL,xR,M)]
+
+    return tuple(
+        np.array([[LagrangePolynomial(ys,i,Ys[m][j])*ws[j]/vs[i]/M for j in range(len(xs))] for i in range(len(ys))])
+    for m in range(M))
+
+def mk_dg2dgMat(xs,ws,ys,vs):
+    return mk_galerkinMat(xs,ws,ys,vs,M=1)
