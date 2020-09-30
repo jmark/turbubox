@@ -15,12 +15,21 @@ class File(h5.File):
         
         self.refine_levels  = self.get('refine level')[()]
         self.maxrefinelevel = np.max(self.refine_levels)
-        self.is_multilevel  = any(filter(lambda x: x > 1, self.refine_levels))
+        self.is_multilevel  = any(level > 1 for level in self.refine_levels)
 
         self.realscalars    = h5.dataset_to_dict(self.get('real scalars'))
         self.realruntime    = h5.dataset_to_dict(self.get('real runtime parameters'))
         self.integerscalars = h5.dataset_to_dict(self.get('integer scalars'))
         self.integerruntime = h5.dataset_to_dict(self.get('integer runtime parameters'))
+
+        for key in 'nblockx nblocky nblockz'.split():
+            if not key in self.integerruntime:
+                self.integerruntime[key] = 1
+
+        if self.integerscalars['nzb'] == 1:
+            self.ndims = 2
+        else:
+            self.ndims = 3
 
         self.coords         = self.get('coordinates')[()]
         self.gridsize       = self.calc_gridsize(self.maxrefinelevel)
@@ -46,45 +55,61 @@ class File(h5.File):
         self.gamma           = self.params['gamma']
         self.time            = self.params['time']
 
-    def data(self, dname):
+        if self.ndims == 2:
+            self.extent = tuple(self.realruntime[k] for k in 'xmin xmax ymin ymax'.split())
+        else:
+            self.extent = tuple(self.realruntime[k] for k in 'xmin xmax ymin ymax zmin zmax'.split())
+
+    def data(self,dname):
         return self.get_data(dname)
 
-    def calc_gridsize(self, rlevel):
+    def calc_gridsize(self,rlevel):
         gridsize = np.array([self.integerruntime[N] * self.integerscalars[n]*2**(rlevel-1) 
                 for N,n in zip('nblockx nblocky nblockz'.split(), 'nxb nyb nzb'.split())]).astype(np.int)
+
+        if self.ndims == 2:
+            gridsize = np.array((gridsize[0],gridsize[1],1))
 
         if not self.is_multilevel: # handle uniform grid
             gridsize *= np.array([self.integerscalars[key] for key in 'iprocs jprocs kprocs'.split()])
 
         return gridsize
 
-    def get_data(self, dname, rlevel=None, **kwargs):
-        rlevels = self.get('refine level')[()]
-        coords  = self.get('coordinates')[()]
-        domain  = self.domain
-        blocks  = self.get(dname)[()].transpose(0,3,2,1)
-        box     = None
+    def get_data(self,dname,shape=None,method='nearest'):
+        levels = self.get('refine level')[()]
+        coords = self.get('coordinates')[()]
+        bsizes = self.get('block size')[()]
+        ntype  = self.get('node type')[()]
 
-        #print(blocks.shape)
+        domsize = self.domainsize
+        if self.ndims == 2:
+            domsize[2] = 1.0
 
-        for rl in np.unique(self.refine_levels) if rlevel is None else (rlevel,):
-            #print(rl)
-            tmp = np.zeros(self.calc_gridsize(rl)) if box is None else ulz.zoom_array(box, factor=2)        
-            box = itpl.blocks_to_box(rl, rlevels, coords, domain, blocks, tmp)
+        coords -= self.domain[0]
+        coords /= domsize
+        bsizes /= domsize
 
-        return box 
+        if shape == None:
+            shape = 2**(self.maxrefinelevel-1) * self.blocksize
 
-    def as_box(self, dname):
+        if self.ndims == 2:
+            image = np.zeros(shape[0:2])
+            blocks = np.transpose(self.get(dname),(0,3,2,1))
+            itpl.cells_to_image_2d(ntype,coords,bsizes,blocks,image,method=method)
+
+        return image
+
+    def as_box(self,dname):
         return self.get_data(dname)
 
-    def get_prims(self, **kwargs):
+    def get_prims(self,**kwargs):
         return [self.get_data(dname, **kwargs) for dname in 'dens velx vely velz pres'.split()]
 
-    def get_cons(self, gamma=5./3.):
+    def get_cons(self,gamma=5./3.):
          return ulz.navier_primitive_to_conservative(self.get_prims(), gamma)
 
     # experimental!
-    def set_data(self, dname, box):
+    def set_data(self,dname,box):
         if self.is_multilevel:
             raise NotImplementedError('Setting data for multilevel grids (AMR) is not supported yet!')
 
@@ -141,6 +166,5 @@ if __name__ == '__main__':
     fp = sys.argv[1]
     fh = File(fp)
 
-    dens = fh.get_data('dens', rlevel=None)
-
-    print(dens.shape)
+    dens = fh.get_data('dens')
+    # print(dens.shape)

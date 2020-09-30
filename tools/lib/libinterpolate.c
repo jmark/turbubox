@@ -16,6 +16,65 @@
 # define I3(nx,ny,nz,i,j,k)         (((i)*(ny)  + (j))*(nz) + (k))
 # define I4(nx,ny,nz,nw,i,j,k,l)   ((((i)*(ny)  + (j))*(nz) + (k)))*(nw) + (l)
 
+# define PI 3.1415926535897932384626433832795
+
+/* ========================================================================= */
+
+double inline dot3(const double a[3], const double b[3])
+{
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+
+double inline norm3(const double a[3], const double b[3])
+{
+    return sqrt(dot3(a,b));
+}
+
+double inline dist3(const double a[3], const double b[3])
+{
+    const double c0 = b[0]-a[0];
+    const double c1 = b[1]-a[1];
+    const double c2 = b[2]-a[2];
+
+    return sqrt(c0*c0 + c1*c1 + c2*c2);
+}
+
+void cross3(const double a[3], const double b[3], double *c)
+{
+    c[0] = a[1]*b[2] - a[2]*b[1];
+    c[1] = a[2]*b[0] - a[0]*b[2];
+    c[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+void pclose3(const double p[3], const double n[3], const double x[3], double *y)
+{
+    /* 
+     * p[3] ... positition vector of plane
+     * n[2] ... normal vector of plane
+     * x[3] ... point nearby plane
+     * y[3] ... closest point on plane
+     */
+
+    //printf("dot3: %f\n", dot3(n,n));
+    const double fac = (dot3(x,n) - dot3(p,n))/dot3(n,n);
+
+    y[0] = x[0] - fac*n[0];
+    y[1] = x[1] - fac*n[1];
+    y[2] = x[2] - fac*n[2];
+}
+
+int inline imin(const int a, const int b)
+{
+    return a < b ? a : b;
+}
+
+int inline imax(const int a, const int b)
+{
+    return a > b ? a : b;
+}
+
+/* ========================================================================= */
+
 double
 LagrangePolynomial(const double *xs, const int xslen, const int j, const double X) {
     double acc = 1;
@@ -597,15 +656,24 @@ blocks_to_box(
 
 inline int linearsearch(const int len, const double nodes[], const double x)
 {
-    if (len < 2 || x <= nodes[0]) return 0;
-
     for (int i = 1; i < len; i++)
-        if (x <= nodes[i]) return i-1;
+        if (nodes[i] > x)
+            return i-1;
 
-    return len-2;
+    return len-1;
 }
 
-inline double nearest(
+void narrow_down(
+    const int nx, const double xnodes[], const double x, int *iL, int *iR)
+{
+    const int L = linearsearch(nx, xnodes, x);
+    const int R = L+1 >= nx ? L : L+1;
+
+    *iL = L;
+    *iR = R;
+}
+
+inline double nearest2D(
     const int nx, const double xnodes[],
     const int ny, const double ynodes[],
     const double fs[], const double x, const double y)
@@ -613,8 +681,11 @@ inline double nearest(
     int ix = linearsearch(nx, xnodes, x);
     int iy = linearsearch(ny, ynodes, y);
 
-    ix = nx < 2 || fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
-    iy = ny < 2 || fabs(ynodes[iy]-y) < fabs(ynodes[iy+1]-y) ? iy : iy+1;
+    if (ix+1 < nx)
+        ix = fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
+
+    if (iy+1 < ny)
+        iy = fabs(ynodes[iy]-y) < fabs(ynodes[iy+1]-y) ? iy : iy+1;
 
     return fs[I2(nx,ny,ix,iy)];
 }
@@ -629,11 +700,24 @@ inline double nearest3D(
     int iy = linearsearch(ny, ynodes, y);
     int iz = linearsearch(nz, znodes, z);
 
-    ix = nx < 2 || fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
-    iy = ny < 2 || fabs(ynodes[iy]-y) < fabs(ynodes[iy+1]-y) ? iy : iy+1;
-    iz = nz < 2 || fabs(znodes[iz]-z) < fabs(znodes[iz+1]-z) ? iz : iz+1;
+    if (ix+1 < nx)
+        ix = fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
+
+    if (iy+1 < ny)
+        iy = fabs(ynodes[iy]-y) < fabs(ynodes[iy+1]-y) ? iy : iy+1;
+
+    if (iz+1 < nz)
+        iz = fabs(znodes[iz]-z) < fabs(znodes[iz+1]-z) ? iz : iz+1;
 
     return fs[I3(nx,ny,nz,ix,iy,iz)];
+}
+
+inline double linear_interpolation(
+    const double x1, const double x2,
+    const double f1, const double f2,
+    const double x
+){
+    return (f1*(x2-x) + f2*(x-x1))/(x2-x1);
 }
 
 inline double bilinear_interpolation(
@@ -647,6 +731,21 @@ inline double bilinear_interpolation(
          + (y-y1)/(y2-y1) * ((x2-x)/(x2-x1)*f12 + (x-x1)/(x2-x1)*f22);
 }
 
+inline double trilinear_interpolation(
+    const double x1,  const double x2,
+    const double y1,  const double y2, 
+    const double z1,  const double z2, 
+    const double f111, const double f211,
+    const double f121, const double f221,
+    const double f112, const double f212,
+    const double f122, const double f222,
+    const double x,   const double y,   const double z
+){
+    const double f1 = bilinear_interpolation(x1,x2,y1,y2,f111,f211,f121,f221,x,y);
+    const double f2 = bilinear_interpolation(x1,x2,y1,y2,f112,f212,f122,f222,x,y);
+    return linear_interpolation(z1,z2,f1,f2,z);
+}
+
 inline double bicosine_interpolation(
     const double x1,  const double x2,
     const double y1,  const double y2, 
@@ -654,8 +753,8 @@ inline double bicosine_interpolation(
     const double f12, const double f22,
     const double x,   const double y
 ){
-    const double X = x1 + 0.5*(x2-x1)*(1 - cos(M_PI*(x-x1)/(x2-x1)));
-    const double Y = y1 + 0.5*(y2-y1)*(1 - cos(M_PI*(y-y1)/(y2-y1)));
+    const double X = x1 + 0.5*(x2-x1)*(1 - cos(PI*(x-x1)/(x2-x1)));
+    const double Y = y1 + 0.5*(y2-y1)*(1 - cos(PI*(y-y1)/(y2-y1)));
 
     return (y2-Y)/(y2-y1) * ((x2-X)/(x2-x1)*f11 + (X-x1)/(x2-x1)*f21)
          + (Y-y1)/(y2-y1) * ((x2-X)/(x2-x1)*f12 + (X-x1)/(x2-x1)*f22);
@@ -666,24 +765,98 @@ inline double bilinear(
     const int ny, const double ynodes[],
     const double fs[], const double x, const double y)
 {
-    const int ix = linearsearch(nx, xnodes, x);
-    const int iy = linearsearch(ny, ynodes, y);
+    const int i = linearsearch(nx,xnodes,x);
+    const int j = linearsearch(ny,ynodes,y);
 
-    const int ox = nx < 2 ? 0 : 1;
-    const int oy = ny < 2 ? 0 : 1;
+    /* Assume nx >= 2. */
+    const int iL = i+2 < nx ? i : nx-2;
+    const int iR = iL+1;
 
-    const double x1 = nx < 2 ? 0 : xnodes[ix];
-    const double x2 = nx < 2 ? 1 : xnodes[ix+1];
+    /* Assume ny >= 2. */
+    const int jL = j+2 < ny ? j : ny-2;
+    const int jR = jL+1;
 
-    const double y1 = ny < 2 ? 0 : ynodes[iy];
-    const double y2 = ny < 2 ? 1 : ynodes[iy+1];
+    const double x1 = xnodes[iL];
+    const double x2 = xnodes[iR];
 
-    const double f11 = fs[I2(nx,ny,ix,   iy)];
-    const double f21 = fs[I2(nx,ny,ix+ox,iy)];
-    const double f12 = fs[I2(nx,ny,ix,   iy+oy)];
-    const double f22 = fs[I2(nx,ny,ix+ox,iy+oy)];
+    const double y1 = ynodes[jL];
+    const double y2 = ynodes[jR];
+
+    const double f11 = fs[I2(nx,ny,iL,jL)];
+    const double f21 = fs[I2(nx,ny,iR,jL)];
+    const double f12 = fs[I2(nx,ny,iL,jR)];
+    const double f22 = fs[I2(nx,ny,iR,jR)];
 
     return bilinear_interpolation(x1,x2,y1,y2,f11,f21,f12,f22,x,y);
+}
+
+// inline double bilinear(
+//     const int nx, const double xnodes[],
+//     const int ny, const double ynodes[],
+//     const double fs[], const double x, const double y)
+// {
+//     const int ix = linearsearch(nx, xnodes, x);
+//     const int iy = linearsearch(ny, ynodes, y);
+// 
+//     const int ox = nx < 2 ? 0 : 1;
+//     const int oy = ny < 2 ? 0 : 1;
+// 
+//     const double x1 = nx < 2 ? 0 : xnodes[ix];
+//     const double x2 = nx < 2 ? 1 : xnodes[ix+1];
+// 
+//     const double y1 = ny < 2 ? 0 : ynodes[iy];
+//     const double y2 = ny < 2 ? 1 : ynodes[iy+1];
+// 
+//     const double f11 = fs[I2(nx,ny,ix,   iy)];
+//     const double f21 = fs[I2(nx,ny,ix+ox,iy)];
+//     const double f12 = fs[I2(nx,ny,ix,   iy+oy)];
+//     const double f22 = fs[I2(nx,ny,ix+ox,iy+oy)];
+// 
+//     return bilinear_interpolation(x1,x2,y1,y2,f11,f21,f12,f22,x,y);
+// }
+
+inline double trilinear(
+    const int nx, const double xnodes[],
+    const int ny, const double ynodes[],
+    const int nz, const double znodes[],
+    const double fs[], const double x, const double y, const double z)
+{
+    const int i = linearsearch(nx,xnodes,x);
+    const int j = linearsearch(ny,ynodes,y);
+    const int k = linearsearch(nz,znodes,z);
+
+    /* Assume nx >= 2. */
+    const int iL = i+2 < nx ? i : nx-2;
+    const int iR = iL+1;
+
+    /* Assume ny >= 2. */
+    const int jL = j+2 < ny ? j : ny-2;
+    const int jR = jL+1;
+
+    /* Assume nz >= 2. */
+    const int kL = k+2 < nz ? k : nz-2;
+    const int kR = kL+1;
+
+    const double x1 = xnodes[iL];
+    const double x2 = xnodes[iR];
+
+    const double y1 = ynodes[jL];
+    const double y2 = ynodes[jR];
+
+    const double z1 = znodes[kL];
+    const double z2 = znodes[kR];
+
+    const double f111 = fs[I3(nx,ny,nz,iL,jL,kL)];
+    const double f211 = fs[I3(nx,ny,nz,iR,jL,kL)];
+    const double f121 = fs[I3(nx,ny,nz,iL,jR,kL)];
+    const double f221 = fs[I3(nx,ny,nz,iR,jR,kL)];
+
+    const double f112 = fs[I3(nx,ny,nz,iL,jL,kR)];
+    const double f212 = fs[I3(nx,ny,nz,iR,jL,kR)];
+    const double f122 = fs[I3(nx,ny,nz,iL,jR,kR)];
+    const double f222 = fs[I3(nx,ny,nz,iR,jR,kR)];
+
+    return trilinear_interpolation(x1,x2,y1,y2,z1,z2,f111,f211,f121,f221,f112,f212,f122,f222,x,y,z);
 }
 
 inline double bicosine(
@@ -711,13 +884,697 @@ inline double bicosine(
     return bicosine_interpolation(x1,x2,y1,y2,f11,f21,f12,f22,x,y);
 }
 
-# if defined(P4EST)
-
 # define GRIDLINES 0
 
 enum {
-    NEAREST, BILINEAR, BICOSINE
+    NEAREST, LINEAR, COSINE
 };
+
+void
+cells_to_image_2d(
+    const int nnodetype[1], const int *nodetype,
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const int ncells[4], const double *cells,
+    const int nimage[2], double *const image,
+    const int method
+) {
+    const int nc = ncells[0];
+    const int nx = ncells[1];
+    const int ny = ncells[2];
+
+    const int idx = nimage[0];
+    const int idy = nimage[1];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+
+        // Render only LEAF nodes.
+        if (nodetype[icell] != 1) continue;
+
+        const double xlength = sizes[I2(nc,3,icell,0)];
+        const double ylength = sizes[I2(nc,3,icell,1)];
+
+        const double xvert = coords[I2(nc,3,icell,0)] - 0.5*xlength;
+        const double yvert = coords[I2(nc,3,icell,1)] - 0.5*ylength;
+
+        // printf("%ld %f %f %f %f\n",icell,xlength,ylength,xvert,yvert);
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xvert + (i+0.5)/nx * xlength;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = yvert + (i+0.5)/ny * ylength;
+
+        const int imgx = idx *  xvert            + 0.5*xlength/nx;
+        const int Imgx = idx * (xvert + xlength) - 0.5*xlength/nx + 1;
+
+        const int imgy = idy *  yvert            + 0.5*ylength/ny;
+        const int Imgy = idy * (yvert + ylength) - 0.5*ylength/ny + 1;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        {
+            const double x = (i+0.5)/idx;
+            const double y = (j+0.5)/idy;
+            
+            switch(method) {
+                case NEAREST:
+                    image[I2(idx,idy,i,j)] = nearest2D(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    break;
+
+                case LINEAR:
+                    image[I2(idx,idy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    break;
+
+                case COSINE:
+                    image[I2(idx,idy,i,j)] = bicosine(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+}
+
+void
+cells_to_image_3d(
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const int ncells[4], const double *cells,
+    const int nimage[3], double *const image,
+    const int method
+) {
+    const int nc = ncells[0];
+    const int nx = ncells[1];
+    const int ny = ncells[2];
+    const int nz = ncells[3];
+
+    const int idx = nimage[0];
+    const int idy = nimage[1];
+    const int idz = nimage[2];
+
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+    double *const znodes = malloc(sizeof(double) * nz);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double xlength = sizes[I2(nc,3,icell,0)];
+        const double ylength = sizes[I2(nc,3,icell,1)];
+        const double zlength = sizes[I2(nc,3,icell,2)];
+
+        const double xvert = coords[I2(nc,3,icell,0)] - 0.5*xlength;
+        const double yvert = coords[I2(nc,3,icell,1)] - 0.5*ylength;
+        const double zvert = coords[I2(nc,3,icell,2)] - 0.5*zlength;
+
+        //printf("%ld | %f %f %f | %f %f %f\n",icell,xlength,ylength,zlength,xvert,yvert,zvert);
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xvert + (i+0.5)/nx * xlength;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = yvert + (i+0.5)/ny * ylength;
+
+        for (int i = 0; i < nz; i++)
+            znodes[i] = zvert + (i+0.5)/nz * zlength;
+
+        const int imgx = idx *  xvert            + 0.5*xlength/nx     + GRIDLINES;
+        const int Imgx = idx * (xvert + xlength) - 0.5*xlength/nx + 1 - GRIDLINES;
+
+        const int imgy = idy *  yvert            + 0.5*ylength/ny     + GRIDLINES;
+        const int Imgy = idy * (yvert + ylength) - 0.5*ylength/ny + 1 - GRIDLINES;
+
+        const int imgz = idz *  zvert            + 0.5*zlength/nz     + GRIDLINES;
+        const int Imgz = idz * (zvert + zlength) - 0.5*zlength/nz + 1 - GRIDLINES;
+
+        for (int i = imgx; i < Imgx; i++)
+        for (int j = imgy; j < Imgy; j++)
+        for (int k = imgz; k < Imgz; k++)
+        {
+            const double x = (i+0.5)/idx;
+            const double y = (j+0.5)/idy;
+            const double z = (k+0.5)/idz;
+
+            //image[I3(idx,idy,idz,i,j,k)] = nearest3D(
+            //    nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+
+            switch(method) {
+                case NEAREST:
+                    image[I3(idx,idy,idz,i,j,k)] = nearest3D(
+                        nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+
+                case LINEAR:
+                    image[I3(idx,idy,idz,i,j,k)] = trilinear(
+                        nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    free(znodes);
+}
+
+void
+morton_to_coords(
+    const int ncenters[2], const double *centers,
+    const int nsizes[2], const double *sizes,
+    const int ncoords[2], double *coords
+) {
+    const int nc = ncoords[0]; // # of cells
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        const double xlength = sizes[I2(nc,2,icell,0)];
+        const double ylength = sizes[I2(nc,2,icell,1)];
+
+        const double xvert = centers[I2(nc,2,icell,0)] - 0.5*xlength;
+        const double yvert = centers[I2(nc,2,icell,1)] - 0.5*ylength;
+
+        coords[I2(nc,3,icell,0)] = xvert;
+        coords[I2(nc,3,icell,1)] = yvert;
+        coords[I2(nc,3,icell,2)] = xlength;
+    }
+}
+
+void
+cells_to_plane_3d(
+    const int nnodetype[1], const int *nodetype,
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const int ncells[4], const double *cells,
+    const int nimage[2], double *const image,
+    const double p[3], const double u[3], const double v[3],
+    const int method
+) {
+    const int nc = ncells[0];
+    const int nx = ncells[1];
+    const int ny = ncells[2];
+    const int nz = ncells[3];
+
+    // physical locations of nodes within cube
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+    double *const znodes = malloc(sizeof(double) * nz);
+
+    const double uu = dot3(u,u);
+    const double vv = dot3(v,v);
+
+    const double su = sqrt(uu);
+    const double sv = sqrt(vv);
+
+    double normal[3];
+    cross3(u,v,normal);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+
+        // Render only LEAF nodes.
+        if (nodetype[icell] != 1) continue;
+
+        double pclose[3];
+        double vshift[3];
+        double center[3];
+
+        const double xlength = sizes[I2(nc,3,icell,0)];
+        const double ylength = sizes[I2(nc,3,icell,1)];
+        const double zlength = sizes[I2(nc,3,icell,2)];
+
+        const double xhalf = 0.5*xlength;
+        const double yhalf = 0.5*ylength;
+        const double zhalf = 0.5*zlength;
+
+        const double xdelt = xlength/nx;
+        const double ydelt = ylength/ny;
+        const double zdelt = zlength/nz;
+
+        const double xcenter = coords[I2(nc,3,icell,0)];
+        const double ycenter = coords[I2(nc,3,icell,1)];
+        const double zcenter = coords[I2(nc,3,icell,2)];
+
+        const double xvert = xcenter - xhalf;
+        const double yvert = ycenter - yhalf;
+        const double zvert = zcenter - zhalf;
+
+        /* ----------------------------------------------------------------- */
+
+        center[0] = xcenter;
+        center[1] = ycenter;
+        center[2] = zcenter;
+
+        pclose3(p,normal,center,pclose);
+
+        if (dist3(center,pclose) > xlength)
+            continue;
+            
+        /* ----------------------------------------------------------------- */
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = xvert + (i+0.5)/nx * xlength;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = yvert + (i+0.5)/ny * ylength;
+
+        for (int i = 0; i < nz; i++)
+            znodes[i] = zvert + (i+0.5)/nz * zlength;
+
+        /* ----------------------------------------------------------------- */
+
+# if 0
+        // vshift[0] = verts[0]-p[0];
+        // vshift[1] = verts[1]-p[1];
+        // vshift[2] = verts[2]-p[2];
+
+        vshift[0] = pclose[0] - 2*length*(u[0]/su + v[0]/sv);
+        vshift[1] = pclose[1] - 2*length*(u[1]/su + v[1]/sv);
+        vshift[2] = pclose[2] - 2*length*(u[2]/su + v[2]/sv);
+
+        const int ix = imax(0,dimage[0] * dot3(vshift,u)/uu - 0.5);
+        const int iy = imax(0,dimage[1] * dot3(vshift,v)/vv - 0.5);
+
+        /* ----------------------------------------------------------------- */
+
+        // vshift[0] = verts[0]-p[0] + length;
+        // vshift[1] = verts[1]-p[1] + length;
+        // vshift[2] = verts[2]-p[2] + length;
+
+        vshift[0] = pclose[0] + 2*length*(u[0]/su + v[0]/sv);
+        vshift[1] = pclose[1] + 2*length*(u[1]/su + v[1]/sv);
+        vshift[2] = pclose[2] + 2*length*(u[2]/su + v[2]/sv);
+
+        const int Ix = imin(dimage[0]-1,dimage[0] * dot3(vshift,u)/uu - 0.5);
+        const int Iy = imin(dimage[0]-1,dimage[1] * dot3(vshift,v)/vv - 0.5);
+
+        //printf("%d %d %d %d\n", ix, Ix, iy, Iy);
+# else
+        const int ix = 0;
+        const int iy = 0;
+
+        const int Ix = nimage[0]-1;
+        const int Iy = nimage[1]-1;
+# endif
+
+        /* ----------------------------------------------------------------- */
+
+        for (int i = ix; i <= Ix; i++)
+        for (int j = iy; j <= Iy; j++)
+        {
+            const double x = p[0] + (i+0.5)/nimage[0]*u[0] + (j+0.5)/nimage[1]*v[0];
+            const double y = p[1] + (i+0.5)/nimage[0]*u[1] + (j+0.5)/nimage[1]*v[1];
+            const double z = p[2] + (i+0.5)/nimage[0]*u[2] + (j+0.5)/nimage[1]*v[2];
+
+            if (!(fabs(xcenter-x) <= xdelt+xhalf
+               && fabs(ycenter-y) <= ydelt+yhalf
+               && fabs(zcenter-z) <= zdelt+zhalf)) {
+                continue;
+            }
+
+            switch(method) {
+                case NEAREST:
+                    image[I2(nimage[0],nimage[1],i,j)]
+                        = nearest3D(nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+
+                case LINEAR:
+                    image[I2(nimage[0],nimage[1],i,j)]
+                        = trilinear(nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    free(znodes);
+}
+
+// cells_to_plane_3d(
+//     const int ncoords[2], const double *coords,
+//     const int nsizes[2], const double *sizes,
+//     const int ncells[4], const double *cells,
+//     const int nimage[2], double *const image,
+//     const double p[3], const double u[3], const double v[3],
+//     const int method
+// )
+
+int intersection(
+    const double p1[3], const double p2[3], const double pE[3], const double nE[3], double *x
+) {
+    double u[3],q[3];
+
+    u[0] = p2[0] - p1[0];
+    u[1] = p2[1] - p1[1];
+    u[2] = p2[2] - p1[2];
+
+    const double t = dot3(u,nE);
+
+    if (fabs(t) < 1e-9)
+        return 0;
+
+    q[0] = pE[0] - p1[0];
+    q[1] = pE[1] - p1[1];
+    q[2] = pE[2] - p1[2];
+
+    const double r = dot3(q,nE)/t;
+
+    if (-0.001 < r && r < 1.001) {
+        x[0] = p1[0] + r * u[0];
+        x[1] = p1[1] + r * u[1];
+        x[2] = p1[2] + r * u[2];
+
+        return 1;   
+    }
+
+    return 0;
+}
+
+int
+plane_morton_to_coords(
+    const int nnodetype[1], const int *nodetype,
+    const int ncoords[2], const double *coords,
+    const int nsizes[2], const double *sizes,
+    const double p[3], const double u[3], const double v[3],
+    const int nlines[3], double *lines, const int doedges
+) {
+    const int nc = ncoords[0]; // # of cells
+
+    const double uu = dot3(u,u);
+    const double vv = dot3(v,v);
+
+    const double lu = sqrt(uu);
+    const double lv = sqrt(vv);
+
+    double n[3];
+    cross3(u,v,n);
+
+    int ecount = 0;
+
+    for (size_t icell = 0; icell < nc; icell++) {
+
+        // Render only LEAF nodes.
+        if (nodetype[icell] != 1) continue;
+
+        double verts[3];
+        double center[3];
+        double pclose[3];
+
+        const double length = sizes[I2(nc,3,icell,0)];
+        const double half = 0.5*length;
+
+        double edges[6*4*2*3];
+
+        /* ----------------------------------------------------------------- */
+
+        center[0] = coords[I2(nc,3,icell,0)];
+        center[1] = coords[I2(nc,3,icell,1)];
+        center[2] = coords[I2(nc,3,icell,2)];
+
+        verts[0] = center[0] - 0.5*sizes[I2(nc,3,icell,0)];
+        verts[1] = center[1] - 0.5*sizes[I2(nc,3,icell,1)];
+        verts[2] = center[2] - 0.5*sizes[I2(nc,3,icell,2)];
+
+        pclose3(p,n,center,pclose);
+
+        if (!(fabs(center[0]-pclose[0]) <= half
+           && fabs(center[1]-pclose[1]) <= half
+           && fabs(center[2]-pclose[2]) <= half)) {
+            continue;
+        }
+
+        /* north */
+        edges[I4(6,4,2,3, 0,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 0,0,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,0,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 0,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 0,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,1,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 0,2,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 0,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,2,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 0,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 0,3,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 0,3,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 0,3,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 0,3,1,2)] = verts[2];
+
+
+        /* souTh */
+        edges[I4(6,4,2,3, 1,0,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 1,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,0,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 1,1,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 1,1,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,1,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 1,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 1,2,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,2,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 1,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 1,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 1,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 1,3,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 1,3,1,2)] = verts[2];
+
+
+
+        /* wesT */
+        edges[I4(6,4,2,3, 2,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 2,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,0,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 2,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 2,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,1,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 2,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,2,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 2,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 2,2,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 2,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,3,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 2,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 2,3,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 2,3,1,2)] = verts[2];
+
+
+        /* easT */
+        edges[I4(6,4,2,3, 3,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,0,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 3,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,0,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 3,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,1,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 3,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,1,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 3,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 3,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 3,2,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 3,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 3,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 3,3,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 3,3,1,2)] = verts[2];
+
+
+        /* froNt */
+        edges[I4(6,4,2,3, 4,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,0,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,0,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,0,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 4,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,1,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,1,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,1,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 4,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,2,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 4,2,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,2,1,2)] = verts[2];
+
+
+        edges[I4(6,4,2,3, 4,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 4,3,0,2)] = verts[2];
+
+        edges[I4(6,4,2,3, 4,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 4,3,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 4,3,1,2)] = verts[2];
+
+
+        /* bacK */
+        edges[I4(6,4,2,3, 5,0,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,0,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,0,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,0,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,0,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,0,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 5,1,0,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,1,0,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,1,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,1,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,1,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,1,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 5,2,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,2,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,2,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,2,1,0)] = verts[0];
+        edges[I4(6,4,2,3, 5,2,1,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,2,1,2)] = verts[2] + length;
+
+
+        edges[I4(6,4,2,3, 5,3,0,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,3,0,1)] = verts[1] + length;
+        edges[I4(6,4,2,3, 5,3,0,2)] = verts[2] + length;
+
+        edges[I4(6,4,2,3, 5,3,1,0)] = verts[0] + length;
+        edges[I4(6,4,2,3, 5,3,1,1)] = verts[1];
+        edges[I4(6,4,2,3, 5,3,1,2)] = verts[2] + length;
+
+        /* loop over faces/edges */
+        for (int f = 0; f < 6; f++) {
+
+            //printf("%ld %d\n", icell, f);
+
+            for (int e = 0; e < 4; e++) {
+                double x[3],y[3];
+
+                if (intersection(&edges[I4(6,4,2,3,f,e,0,0)],&edges[I4(6,4,2,3,f,e,1,0)],p,n,x)) {
+
+                    // printf("x: %ld %f %f %f\n", icell, x[0],x[1],x[2]);
+
+                    for (int g = e; g < 4; g++) {
+
+                        if (intersection(&edges[I4(6,4,2,3,f,g,0,0)],&edges[I4(6,4,2,3,f,g,1,0)],p,n,y)) {
+
+                            //printf("y: %ld %f %f %f\n", icell, y[0],y[1],y[2]);
+
+                            if (dist3(x,y) < 1e-9)
+                                continue;
+
+                            if (doedges) {
+                                lines[I3(nlines[0],2,3,ecount,0,0)] = x[0];
+                                lines[I3(nlines[0],2,3,ecount,0,1)] = x[1];
+                                lines[I3(nlines[0],2,3,ecount,0,2)] = x[2];
+
+                                lines[I3(nlines[0],2,3,ecount,1,0)] = y[0];
+                                lines[I3(nlines[0],2,3,ecount,1,1)] = y[1];
+                                lines[I3(nlines[0],2,3,ecount,1,2)] = y[2];
+
+                                //printf("%ld %f %f %f\n", icell, x[0],x[1],x[2]);
+                                //printf("%ld %f %f %f\n", icell, y[0],y[1],y[2]);
+                                //printf("\n");
+                            }
+
+                            ecount++;
+                        }
+
+                    } // g
+                    // printf("\n");
+                }
+            } // e
+        } // f
+    } // icell
+
+    return ecount;
+}
+
+# if defined(P4EST)
 
 void
 morton_to_coords(
@@ -791,14 +1648,14 @@ cells_to_image(
             
             switch(method) {
                 case NEAREST:
-                    image[I2(idx,idy,i,j)] =  nearest(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
+                    image[I2(idx,idy,i,j)] = nearest2D(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
                     break;
 
-                case BILINEAR:
+                case LINEAR:
                     image[I2(idx,idy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
                     break;
 
-                case BICOSINE:
+                case COSINE:
                     image[I2(idx,idy,i,j)] = bicosine(nx, xnodes, ny,ynodes, &cells[I3(nc,nx,ny,icell,0,0)],x,y);
                     break;
             }
@@ -925,14 +1782,14 @@ cells_to_image_flash_ug_2d(
             
             switch(method) {
                 case NEAREST:
-                    image[I2(ix,iy,i,j)] =  nearest(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
+                    image[I2(ix,iy,i,j)] = nearest2D(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
                     break;
 
-                case BILINEAR:
+                case LINEAR:
                     image[I2(ix,iy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
                     break;
 
-                case BICOSINE:
+                case COSINE:
                     image[I2(ix,iy,i,j)] = bicosine(nx, xnodes, ny,ynodes, &blocks[I3(nb,nx,ny,iblock,0,0)],x,y);
                     break;
             }
@@ -1008,10 +1865,10 @@ cells_to_image_titanic_patch_2d(
 
                 switch(method) {
                     case NEAREST:
-                        image[I2(Ix,Iy,i,j)] =  nearest(nx, xnodes, ny,ynodes, &patch[I4(Nx,Ny,nx,ny,px,py,0,0)],x,y);
+                        image[I2(Ix,Iy,i,j)] = nearest2D(nx, xnodes, ny,ynodes, &patch[I4(Nx,Ny,nx,ny,px,py,0,0)],x,y);
                         break;
 
-                    case BILINEAR:
+                    case LINEAR:
                         image[I2(Ix,Iy,i,j)] = bilinear(nx, xnodes, ny,ynodes, &patch[I4(Nx,Ny,nx,ny,px,py,0,0)],x,y);
                         break;
                 }
@@ -1022,3 +1879,471 @@ cells_to_image_titanic_patch_2d(
     free(xnodes);
     free(ynodes);
 }
+
+/* ========================================================================= */
+# if defined(P4EST)
+
+void
+cells_to_plane_3d(
+    const int dlevels[1], const int8_t *levels,
+    const int dmorton[2], const int32_t *morton,
+    const int dcells[4], const double *cells,
+    const int dimage[2], double *const image,
+    const double p[3], const double u[3], const double v[3],
+    const int method
+) {
+    p8est_connectivity_t *unitcube = p8est_connectivity_new_unitcube();
+
+    const int nc = dcells[0];
+    const int nx = dcells[1];
+    const int ny = dcells[2];
+    const int nz = dcells[3];
+
+    // physical locations of nodes within cube
+    double *const xnodes = malloc(sizeof(double) * nx);
+    double *const ynodes = malloc(sizeof(double) * ny);
+    double *const znodes = malloc(sizeof(double) * nz);
+
+    const double uu = dot3(u,u);
+    const double vv = dot3(v,v);
+
+    const double su = sqrt(uu);
+    const double sv = sqrt(vv);
+
+    double normal[3];
+    cross3(u,v,normal);
+
+    for (size_t icell = 0; icell < nc; icell++) {
+
+        double verts[3];
+        double center[3];
+        double pclose[3];
+        double vshift[3];
+
+        const double length = 1. / pow(2,levels[icell]);
+        const double half = 0.5*length;
+
+        p8est_qcoord_to_vertex(unitcube, 0, 
+            morton[I2(nc,3,icell,0)], morton[I2(nc,3,icell,1)], morton[I2(nc,3,icell,2)], verts);
+
+        /* ----------------------------------------------------------------- */
+
+        center[0] = verts[0] + half;
+        center[1] = verts[1] + half;
+        center[2] = verts[2] + half;
+
+        pclose3(p,normal,center,pclose);
+
+        if (dist3(center,pclose) > length)
+            continue;
+            
+        /* ----------------------------------------------------------------- */
+
+        for (int i = 0; i < nx; i++)
+            xnodes[i] = verts[0] + (i+0.5)/nx * length;
+
+        for (int i = 0; i < ny; i++)
+            ynodes[i] = verts[1] + (i+0.5)/ny * length;
+
+        for (int i = 0; i < nz; i++)
+            znodes[i] = verts[2] + (i+0.5)/nz * length;
+
+        /* ----------------------------------------------------------------- */
+
+# if 0
+        // vshift[0] = verts[0]-p[0];
+        // vshift[1] = verts[1]-p[1];
+        // vshift[2] = verts[2]-p[2];
+
+        vshift[0] = pclose[0] - 2*length*(u[0]/su + v[0]/sv);
+        vshift[1] = pclose[1] - 2*length*(u[1]/su + v[1]/sv);
+        vshift[2] = pclose[2] - 2*length*(u[2]/su + v[2]/sv);
+
+        const int ix = imax(0,dimage[0] * dot3(vshift,u)/uu - 0.5);
+        const int iy = imax(0,dimage[1] * dot3(vshift,v)/vv - 0.5);
+
+        /* ----------------------------------------------------------------- */
+
+        // vshift[0] = verts[0]-p[0] + length;
+        // vshift[1] = verts[1]-p[1] + length;
+        // vshift[2] = verts[2]-p[2] + length;
+
+        vshift[0] = pclose[0] + 2*length*(u[0]/su + v[0]/sv);
+        vshift[1] = pclose[1] + 2*length*(u[1]/su + v[1]/sv);
+        vshift[2] = pclose[2] + 2*length*(u[2]/su + v[2]/sv);
+
+        const int Ix = imin(dimage[0]-1,dimage[0] * dot3(vshift,u)/uu - 0.5);
+        const int Iy = imin(dimage[0]-1,dimage[1] * dot3(vshift,v)/vv - 0.5);
+
+        //printf("%d %d %d %d\n", ix, Ix, iy, Iy);
+# else
+        const int ix = 0;
+        const int iy = 0;
+
+        const int Ix = dimage[0]-1;
+        const int Iy = dimage[1]-1;
+# endif
+
+        /* ----------------------------------------------------------------- */
+
+        for (int i = ix; i <= Ix; i++)
+        for (int j = iy; j <= Iy; j++)
+        {
+            const double x = p[0] + (i+0.5)/dimage[0]*u[0] + (j+0.5)/dimage[1]*v[0];
+            const double y = p[1] + (i+0.5)/dimage[0]*u[1] + (j+0.5)/dimage[1]*v[1];
+            const double z = p[2] + (i+0.5)/dimage[0]*u[2] + (j+0.5)/dimage[1]*v[2];
+
+            if (!(fabs(center[0]-x) <= half
+               && fabs(center[1]-y) <= half
+               && fabs(center[2]-z) <= half)) {
+                continue;
+            }
+
+            switch(method) {
+                case NEAREST:
+                    image[I2(dimage[0],dimage[1],i,j)]
+                        = nearest3D(nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+
+                case LINEAR:
+                    image[I2(dimage[0],dimage[1],i,j)]
+                        = trilinear(nx,xnodes,ny,ynodes,nz,znodes,&cells[I4(nc,nx,ny,nz,icell,0,0,0)],x,y,z);
+                    break;
+            }
+        }
+    }
+
+    free(xnodes);
+    free(ynodes);
+    free(znodes);
+    p8est_connectivity_destroy(unitcube);
+}
+
+# endif
+
+# if defined(P4EST)
+
+int
+plane_morton_to_coords(
+    const int dlevels[1], const int8_t *levels,
+    const int dmorton[2], const int32_t *morton,
+    const double p[3], const double u[3], const double v[3],
+    const int dedges[3], double *edges, const int doedges
+) {
+    p8est_connectivity_t *unitcube = p8est_connectivity_new_unitcube();
+
+    const int nc = dlevels[0]; // # of cells
+
+    const double uu = dot3(u,u);
+    const double vv = dot3(v,v);
+
+    const double lu = sqrt(uu);
+    const double lv = sqrt(vv);
+
+    double n[3];
+    cross3(u,v,n);
+
+    int ecount = 0;
+
+    for (size_t icell = 0; icell < nc; icell++) {
+        double verts[3];
+        double center[3];
+        double pclose[3];
+        double vshift[3];
+        double temp;
+
+        const double length = 1. / pow(2,levels[icell]);
+        const double half = 0.5*length;
+
+        double edges[6*4*2*3];
+
+        p8est_qcoord_to_vertex(unitcube, 0, 
+            morton[i2(nc,3,icell,0)], morton[i2(nc,3,icell,1)], morton[i2(nc,3,icell,2)], verts);
+
+        /* ----------------------------------------------------------------- */
+
+        center[0] = verts[0] + half;
+        center[1] = verts[1] + half;
+        center[2] = verts[2] + half;
+
+        pclose3(p,n,center,pclose);
+
+        if (!(fabs(center[0]-pclose[0]) <= half
+           && fabs(center[1]-pclose[1]) <= half
+           && fabs(center[2]-pclose[2]) <= half)) {
+            continue;
+        }
+
+        vshift[0] = pclose[0] - p[0];
+        vshift[1] = pclose[1] - p[1];
+        vshift[2] = pclose[2] - p[2];
+
+        //temp = dot3(vshift,u);
+        //if (!(0 <= temp && temp <= uu))
+        //    continue;
+ 
+        //temp = dot3(vshift,v);
+        //if (!(0 <= temp && temp <= vv))
+        //    continue;
+ 
+        /* north */
+        edges[i4(6,4,2,3, 0,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,0,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 0,0,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,0,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,0,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 0,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,1,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 0,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,1,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,1,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 0,2,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,2,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 0,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,2,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 0,2,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 0,3,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,3,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 0,3,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 0,3,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 0,3,1,2)] = verts[2];
+
+
+        /* south */
+        edges[i4(6,4,2,3, 1,0,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,0,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 1,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,0,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,0,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 1,1,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,1,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 1,1,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,1,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,1,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 1,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,2,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 1,2,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,2,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 1,2,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 1,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,3,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 1,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 1,3,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 1,3,1,2)] = verts[2];
+
+
+
+        /* west */
+        edges[i4(6,4,2,3, 2,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,0,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 2,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,0,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,0,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 2,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,1,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 2,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,1,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,1,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 2,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,2,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,2,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 2,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 2,2,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,2,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 2,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,3,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,3,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 2,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 2,3,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 2,3,1,2)] = verts[2];
+
+
+        /* east */
+        edges[i4(6,4,2,3, 3,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,0,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,0,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 3,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,0,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,0,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 3,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,1,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,1,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 3,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,1,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,1,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 3,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,2,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 3,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 3,2,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,2,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 3,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,3,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 3,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 3,3,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 3,3,1,2)] = verts[2];
+
+
+        /* front */
+        edges[i4(6,4,2,3, 4,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,0,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 4,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,0,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,0,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 4,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,1,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 4,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,1,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,1,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 4,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,2,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 4,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 4,2,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,2,1,2)] = verts[2];
+
+
+        edges[i4(6,4,2,3, 4,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 4,3,0,2)] = verts[2];
+
+        edges[i4(6,4,2,3, 4,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 4,3,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 4,3,1,2)] = verts[2];
+
+
+        /* back */
+        edges[i4(6,4,2,3, 5,0,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,0,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,0,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 5,0,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,0,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,0,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 5,1,0,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,1,0,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,1,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 5,1,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,1,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,1,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 5,2,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,2,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,2,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 5,2,1,0)] = verts[0];
+        edges[i4(6,4,2,3, 5,2,1,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,2,1,2)] = verts[2] + length;
+
+
+        edges[i4(6,4,2,3, 5,3,0,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,3,0,1)] = verts[1] + length;
+        edges[i4(6,4,2,3, 5,3,0,2)] = verts[2] + length;
+
+        edges[i4(6,4,2,3, 5,3,1,0)] = verts[0] + length;
+        edges[i4(6,4,2,3, 5,3,1,1)] = verts[1];
+        edges[i4(6,4,2,3, 5,3,1,2)] = verts[2] + length;
+
+        /* loop over faces/edges */
+        for (int f = 0; f < 6; f++) {
+            for (int e = 0; e < 4; e++) {
+                for (int e = e; e < 4; e++) {
+                    double x[3],y[3];
+
+                    if(intersection(&edges[i4(6,4,2,3,f,e,0,0)],&edges[i4(6,4,2,3,f,e,1,0)],p,n,x) &&
+                       intersection(&edges[i4(6,4,2,3,f,e,0,0)],&edges[i4(6,4,2,3,f,e,1,0)],p,n,y)) {
+
+                        if (dist3(x,y) < 1e-9)
+                            continue;
+
+                        if (doedges) {
+                            edges[i3(dedges[0],2,3,ecount,0,0)] = x[0];
+                            edges[i3(dedges[0],2,3,ecount,0,1)] = x[1];
+                            edges[i3(dedges[0],2,3,ecount,0,2)] = x[2];
+
+                            edges[i3(dedges[0],2,3,ecount,1,0)] = y[0];
+                            edges[i3(dedges[0],2,3,ecount,1,1)] = y[1];
+                            edges[i3(dedges[0],2,3,ecount,1,2)] = y[2];
+
+                            //printf("%ld %f %f %f\n", icell, x[0],x[1],x[2]);
+                            //printf("%ld %f %f %f\n", icell, y[0],y[1],y[2]);
+                            //printf("\n");
+                        }
+
+                        ecount++;
+                    }
+                }
+            }
+        }
+    }
+
+    p8est_connectivity_destroy(unitcube);
+
+    return ecount;
+}
+
+# endif

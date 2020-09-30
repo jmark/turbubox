@@ -77,11 +77,11 @@ def BarycentricPolynomial(xs,ws,fs,x):
 def DiffMatrix(xs):
     ws = BarycentricWeights(xs)
     n = len(xs)
-    M = np.empty([n,n])
+    M = np.zeros([n,n])
     for i in range(n):
         for j in range(n):
             if i != j:
-                M[i,j] = ws[j]/ws[i]/(xs[i]-xs[j])
+                M[i,j] = ws[j]/(ws[i]*(xs[i]-xs[j]))
             else:
                 acc = 0
                 for k in range(n):
@@ -92,6 +92,17 @@ def DiffMatrix(xs):
 
 def MassMatrix(ws):
     return np.diagflat(ws)
+
+def LagrangePolynomialDerivative(xs,j,x):
+    ACC = 0
+    for i in range(len(xs)):
+        if i == j: continue
+        acc = 1
+        for m in range(len(xs)):
+            if m == i or m == j: continue
+            acc *= (x-xs[m])/(xs[j]-xs[m])
+        ACC += acc/(xs[j]-xs[i])
+    return ACC
 
 # =========================================================================== #
 
@@ -120,10 +131,11 @@ def LegendreGaussNodesAndWeights(N):
     """ Compute the nodes (roots of the Legendre Polynomial) and weights for
         the Legendre-Gauss-Quadrature. """
     if N == 0: return (0,2)
-    if N == 1: return ( [-np.sqrt(1/3),np.sqrt(1/3)] , [1,1] )
+    if N == 1: return ( np.array([-np.sqrt(1/3),np.sqrt(1/3)]) , np.array([1,1]) )
 
-    # list of nodes and weights
-    xs,ws = np.empty(N+1),np.empty(N+1)
+    # nodes and weights
+    xs = np.zeros(N+1)
+    ws = np.zeros(N+1)
     
     for j in range(math.floor((N+1)/2)):
         # make initial guess for the jth's node
