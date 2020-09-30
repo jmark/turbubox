@@ -629,7 +629,7 @@ lib.cells_to_plane_3d.argtypes = (
     ct.c_int32,
 )
 
-def cells_to_plane_3d(nodetype, coords, sizes, cells, image, p,u,v, method='nearest'):
+def cells_to_plane_3d(nodetype,coords,sizes,cells,image,p,u,v,method='nearest'):
     methods = dict(nearest = 0,linear = 1)
 
     lib.cells_to_plane_3d(

@@ -1186,9 +1186,15 @@ cells_to_plane_3d(
             const double y = p[1] + (i+0.5)/nimage[0]*u[1] + (j+0.5)/nimage[1]*v[1];
             const double z = p[2] + (i+0.5)/nimage[0]*u[2] + (j+0.5)/nimage[1]*v[2];
 
-            if (!(fabs(xcenter-x) <= xdelt+xhalf
-               && fabs(ycenter-y) <= ydelt+yhalf
-               && fabs(zcenter-z) <= zdelt+zhalf)) {
+            // if (!(fabs(xcenter-x) <= xdelt+xhalf
+            //    && fabs(ycenter-y) <= ydelt+yhalf
+            //    && fabs(zcenter-z) <= zdelt+zhalf)) {
+            //     continue;
+            // }
+
+            if (!(fabs(xcenter-x) <= xhalf
+               && fabs(ycenter-y) <= yhalf
+               && fabs(zcenter-z) <= zhalf)) {
                 continue;
             }
 

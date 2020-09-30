@@ -60,6 +60,18 @@ class File(h5.File):
         else:
             self.extent = tuple(self.realruntime[k] for k in 'xmin xmax ymin ymax zmin zmax'.split())
 
+    def __getattr__(self, name):
+        if name in self.realscalars:
+            return self.realscalars[name]
+        if name in self.realruntime:
+            return self.realruntime[name]
+        if name in self.integerscalars:
+            return self.integerscalars[name]
+        if name in self.integerruntime:
+            return self.integerruntime[name]
+
+        raise AttributeError('Unknown attritube: {}'.format(name))
+
     def data(self,dname):
         return self.get_data(dname)
 
@@ -166,5 +178,26 @@ if __name__ == '__main__':
     fp = sys.argv[1]
     fh = File(fp)
 
-    dens = fh.get_data('dens')
+    # dens = fh.get_data('dens')
     # print(dens.shape)
+
+    levels = fh.get('refine level')[()]
+    coords = fh.get('coordinates')[()]
+    bsizes = fh.get('block size')[()]
+    ntype  = fh.get('node type')[()]
+
+    domsize = fh.domainsize
+    coords -= fh.domain[0]
+    coords /= domsize
+    bsizes /= domsize
+
+    p = np.array([0.0,0.0,0.1])
+    u = np.array([1.0,0.0,0.0])
+    v = np.array([0.0,1.0,0.0])
+
+    nedges = itpl.plane_morton_to_coords(ntype,coords,bsizes, p,u,v, edges=None)
+    edges = np.zeros([nedges,2,3])
+    nedges = itpl.plane_morton_to_coords(ntype,coords,bsizes, p,u,v, edges=edges)
+
+    print(nedges)
+    print(edges)
