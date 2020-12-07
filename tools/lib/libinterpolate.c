@@ -696,9 +696,9 @@ inline double nearest3D(
     const int nz, const double znodes[],
     const double fs[], const double x, const double y, const double z)
 {
-    int ix = linearsearch(nx, xnodes, x);
-    int iy = linearsearch(ny, ynodes, y);
-    int iz = linearsearch(nz, znodes, z);
+    int ix = linearsearch(nx,xnodes,x);
+    int iy = linearsearch(ny,ynodes,y);
+    int iz = linearsearch(nz,znodes,z);
 
     if (ix+1 < nx)
         ix = fabs(xnodes[ix]-x) < fabs(xnodes[ix+1]-x) ? ix : ix+1;
@@ -962,6 +962,7 @@ cells_to_image_2d(
 
 void
 cells_to_image_3d(
+    const int nnodetype[1], const int *nodetype,
     const int ncoords[2], const double *coords,
     const int nsizes[2], const double *sizes,
     const int ncells[4], const double *cells,
@@ -981,7 +982,14 @@ cells_to_image_3d(
     double *const ynodes = malloc(sizeof(double) * ny);
     double *const znodes = malloc(sizeof(double) * nz);
 
+    // printf("%d %d %d %d\n",nc,nx,ny,nz);
+    // return;
+
     for (size_t icell = 0; icell < nc; icell++) {
+
+        // Render only LEAF nodes.
+        if (nodetype[icell] != 1) continue;
+
         const double xlength = sizes[I2(nc,3,icell,0)];
         const double ylength = sizes[I2(nc,3,icell,1)];
         const double zlength = sizes[I2(nc,3,icell,2)];
@@ -990,7 +998,7 @@ cells_to_image_3d(
         const double yvert = coords[I2(nc,3,icell,1)] - 0.5*ylength;
         const double zvert = coords[I2(nc,3,icell,2)] - 0.5*zlength;
 
-        //printf("%ld | %f %f %f | %f %f %f\n",icell,xlength,ylength,zlength,xvert,yvert,zvert);
+        // printf("%ld | %f %f %f | %f %f %f\n",icell,xlength,ylength,zlength,xvert,yvert,zvert);
 
         for (int i = 0; i < nx; i++)
             xnodes[i] = xvert + (i+0.5)/nx * xlength;

@@ -601,6 +601,7 @@ def cells_to_image_2d(nodetype,coords,sizes,cells,image,method='nearest'):
     )
 
 lib.cells_to_image_3d.argtypes = (
+    ptr_int32, ptr_int32, 
     ptr_int32, ptr_double, 
     ptr_int32, ptr_double,
     ptr_int32, ptr_double,
@@ -608,16 +609,27 @@ lib.cells_to_image_3d.argtypes = (
     ct.c_int32
 )
 
-def cells_to_image_3d(coords,sizes,cells,image,method='nearest'):
+def cells_to_image_3d(nodetype,coords,sizes,cells,image,method='nearest'):
     methods = dict(nearest = 0, linear = 1, cosine = 2)
 
-    lib.cells_to_image_3d(
-        carray(coords.shape, dtype=np.int32), carray(coords),
-        carray(sizes.shape, dtype=np.int32), carray(sizes),
-        carray(cells.shape, dtype=np.int32), carray(cells),
-        carray(image.shape, dtype=np.int32), carray(image),
-        methods[str.lower(method)]
-    )
+    if len(cells.shape) == 1:
+        lib.cells_to_image_3d(
+            carray(nodetype.shape, dtype=np.int32), carray(nodetype, dtype=np.int32),
+            carray(coords.shape, dtype=np.int32), carray(coords),
+            carray(sizes.shape, dtype=np.int32), carray(sizes),
+            carray(((cells.shape[0],1,1,1)), dtype=np.int32), carray(cells),
+            carray(image.shape, dtype=np.int32), carray(image),
+            methods[str.lower(method)]
+        )
+    else:
+        lib.cells_to_image_3d(
+            carray(nodetype.shape, dtype=np.int32), carray(nodetype, dtype=np.int32),
+            carray(coords.shape, dtype=np.int32), carray(coords),
+            carray(sizes.shape, dtype=np.int32), carray(sizes),
+            carray(cells.shape, dtype=np.int32), carray(cells),
+            carray(image.shape, dtype=np.int32), carray(image),
+            methods[str.lower(method)]
+        )
 
 lib.cells_to_plane_3d.argtypes = (
     ptr_int32, ptr_int32, 

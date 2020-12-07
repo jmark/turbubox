@@ -139,6 +139,45 @@ def shell_avg_3d(X, nsamples=None,want_powerspectrum=False):
         return rs/cs, 4*np.pi*ts/cs
     return rs/cs, ts/cs
 
+lib.shell_avg_3d_corner.argtypes = [
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ct.c_int, ct.c_int, ct.c_int,
+
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ndpointer(ct.c_double, flags="C_CONTIGUOUS"),
+    ct.c_int, ct.c_int
+]
+ 
+def shell_avg_3d_corner(X, nsamples=None,want_powerspectrum=False):
+    Nx,Ny,Nz = X.shape
+
+    if not nsamples: nsamples = min(Nx,Ny,Nz)
+
+    # setup result arrays
+    cs = np.zeros(nsamples, dtype=np.double) # counts
+    rs = np.zeros(nsamples, dtype=np.double) # radii
+    ts = np.zeros(nsamples, dtype=np.double) # totals
+
+    # ensure C-like arrays
+    X  = np.require( X.ravel(), dtype=np.double, requirements=['C', 'A'])
+    cs = np.require(cs.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
+    rs = np.require(rs.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
+    ts = np.require(ts.ravel(), dtype=np.double, requirements=['C', 'A', 'W'])
+
+    # call C-function
+    lib.shell_avg_3d_corner(X,Nx,Ny,Nz, cs,rs,ts,nsamples,int(want_powerspectrum))
+
+    # take average and return
+    # note: if div-by-zero warning arises: the inputs-to-samples ratio 
+    # is not adequate
+
+    if want_powerspectrum:
+        return rs/cs, 4*np.pi*ts/cs
+    return rs/cs, ts/cs
+
+
+
 lib.shell_max_3d.argtypes = [
     # void shell_avg_3d(
     #     const double *X, const int Nx, const int Ny, const int Nz,

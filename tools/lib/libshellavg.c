@@ -106,6 +106,43 @@ void shell_avg_3d(
     }
 }
 
+void shell_avg_3d_corner(
+    const double *X, const int Nx, const int Ny, const int Nz,
+    double *cs, double *rs, double *ts, const int nsamples, const int mult_with_rsquare
+)
+{
+    // cell half-width offsets
+    const double cxofs = 0.5/Nx;
+    const double cyofs = 0.5/Ny;
+    const double czofs = 0.5/Nz;
+
+    const double I_max = Nx + cxofs;
+    const double J_max = Ny + cyofs;
+    const double K_max = Nz + czofs;
+    const double r_max = sqrt(I_max*I_max + J_max*J_max + K_max*K_max);
+
+    for (int i = 0; i < Nx; i++)
+    for (int j = 0; j < Ny; j++)
+    for (int k = 0; k < Nz; k++)
+    {
+        const double I = i + cxofs;
+        const double J = j + cyofs;
+        const double K = k + czofs;
+        const double r = sqrt(I*I + J*J + K*K);
+        const    int R = r/r_max * nsamples;
+
+        cs[R] += 1;
+        rs[R] += r;
+
+        if (mult_with_rsquare) {
+            ts[R] += r*r*X[((i * Ny) + j) * Nz + k];
+        } else {
+            ts[R] += X[((i * Ny) + j) * Nz + k];
+        }
+    }
+}
+
+
 void shell_max_3d(
     const double *X, const int Nx, const int Ny, const int Nz,
     double *cs, double *rs, double *ts, const int nsamples

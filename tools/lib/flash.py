@@ -106,7 +106,10 @@ class File(h5.File):
 
         if self.ndims == 2:
             image = np.zeros(shape[0:2])
-            blocks = np.transpose(self.get(dname),(0,3,2,1))
+            if isinstance(dname,str):
+                blocks = np.transpose(self.get(dname),(0,3,2,1))
+            else:
+                blocks = dname
             itpl.cells_to_image_2d(ntype,coords,bsizes,blocks,image,method=method)
 
         return image
@@ -181,23 +184,46 @@ if __name__ == '__main__':
     # dens = fh.get_data('dens')
     # print(dens.shape)
 
+    if 0:
+        levels = fh.get('refine level')[()]
+        coords = fh.get('coordinates')[()]
+        bsizes = fh.get('block size')[()]
+        ntype  = fh.get('node type')[()]
+
+        domsize = fh.domainsize
+        coords -= fh.domain[0]
+        coords /= domsize
+        bsizes /= domsize
+
+        p = np.array([0.0,0.0,0.1])
+        u = np.array([1.0,0.0,0.0])
+        v = np.array([0.0,1.0,0.0])
+
+        nedges = itpl.plane_morton_to_coords(ntype,coords,bsizes, p,u,v, edges=None)
+        edges = np.zeros([nedges,2,3])
+        nedges = itpl.plane_morton_to_coords(ntype,coords,bsizes, p,u,v, edges=edges)
+
+        print(nedges)
+        print(edges)
+
     levels = fh.get('refine level')[()]
     coords = fh.get('coordinates')[()]
     bsizes = fh.get('block size')[()]
     ntype  = fh.get('node type')[()]
 
-    domsize = fh.domainsize
     coords -= fh.domain[0]
-    coords /= domsize
-    bsizes /= domsize
+    coords /= fh.domsize
+    bsizes /= fh.domsize
 
-    p = np.array([0.0,0.0,0.1])
-    u = np.array([1.0,0.0,0.0])
-    v = np.array([0.0,1.0,0.0])
+    method = 'nearest'
+    image = np.zeros(3*(128,))
+    cells = fh.get('minloc')[()].astype(np.float64)
+    # print(cells.shape)
+    # cells = fh.get('minloc')[()].astype(np.float64)
+    # cells = np.transpose(fh.get('dens'),(0,3,2,1))
 
-    nedges = itpl.plane_morton_to_coords(ntype,coords,bsizes, p,u,v, edges=None)
-    edges = np.zeros([nedges,2,3])
-    nedges = itpl.plane_morton_to_coords(ntype,coords,bsizes, p,u,v, edges=edges)
+    # print(cells.shape)
+    itpl.cells_to_image_3d(ntype,coords,bsizes,cells,image,method=method)
 
-    print(nedges)
-    print(edges)
+    print(np.max(cells))
+    print(np.max(image))
