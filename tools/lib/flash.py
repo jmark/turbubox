@@ -107,10 +107,23 @@ class File(h5.File):
         if self.ndims == 2:
             image = np.zeros(shape[0:2])
             if isinstance(dname,str):
-                blocks = np.transpose(self.get(dname),(0,3,2,1))
+                blocks = self.get(dname)[()].astype(np.float64)
+                blocks = np.transpose(blocks,(0,3,2,1))
             else:
                 blocks = dname
             itpl.cells_to_image_2d(ntype,coords,bsizes,blocks,image,method=method)
+
+        elif self.ndims == 3:
+            image = np.zeros(shape)
+            if isinstance(dname,str):
+                blocks = self.get(dname)[()].astype(np.float64)
+                blocks = np.transpose(blocks,(0,3,2,1))
+            else:
+                blocks = dname
+            itpl.cells_to_image_3d(ntype,coords,bsizes,blocks,image,method=method)
+
+        else:
+            raise RuntimeError('Unknown dimension.')
 
         return image
 

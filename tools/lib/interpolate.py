@@ -572,8 +572,8 @@ def morton_to_coords(centers,sizes):
     coords = np.zeros((centers.shape[0],3))
 
     lib.morton_to_coords(
-        carray(centers.shape, dtype=np.int32), carray(centers),
-        carray(sizes.shape, dtype=np.int32), carray(sizes),
+        carray(centers.shape, dtype=np.int32), carray(centers,dtype=np.float64),
+        carray(sizes.shape, dtype=np.int32), carray(sizes,dtype=np.float64),
         carray(coords.shape, dtype=np.int32), carray(coords),
     )
 
@@ -592,10 +592,10 @@ def cells_to_image_2d(nodetype,coords,sizes,cells,image,method='nearest'):
     methods = dict(nearest = 0, linear = 1, cosine = 2)
 
     lib.cells_to_image_2d(
-        carray(nodetype.shape, dtype=np.int32), carray(nodetype, dtype=np.int32),
-        carray(coords.shape, dtype=np.int32), carray(coords),
-        carray(sizes.shape, dtype=np.int32), carray(sizes),
-        carray(cells.shape, dtype=np.int32), carray(cells),
+        carray(nodetype.shape, dtype=np.int32), carray(nodetype,dtype=np.int32),
+        carray(coords.shape, dtype=np.int32), carray(coords,dtype=np.float64),
+        carray(sizes.shape, dtype=np.int32), carray(sizes,dtype=np.float64),
+        carray(cells.shape, dtype=np.int32), carray(cells,dtype=np.float64),
         carray(image.shape, dtype=np.int32), carray(image),
         methods[str.lower(method)]
     )
@@ -615,18 +615,18 @@ def cells_to_image_3d(nodetype,coords,sizes,cells,image,method='nearest'):
     if len(cells.shape) == 1:
         lib.cells_to_image_3d(
             carray(nodetype.shape, dtype=np.int32), carray(nodetype, dtype=np.int32),
-            carray(coords.shape, dtype=np.int32), carray(coords),
-            carray(sizes.shape, dtype=np.int32), carray(sizes),
-            carray(((cells.shape[0],1,1,1)), dtype=np.int32), carray(cells),
+            carray(coords.shape, dtype=np.int32), carray(coords,dtype=np.float64),
+            carray(sizes.shape, dtype=np.int32), carray(sizes,dtype=np.float64),
+            carray(((cells.shape[0],1,1,1)), dtype=np.int32), carray(cells,dtype=np.float64),
             carray(image.shape, dtype=np.int32), carray(image),
             methods[str.lower(method)]
         )
     else:
         lib.cells_to_image_3d(
             carray(nodetype.shape, dtype=np.int32), carray(nodetype, dtype=np.int32),
-            carray(coords.shape, dtype=np.int32), carray(coords),
-            carray(sizes.shape, dtype=np.int32), carray(sizes),
-            carray(cells.shape, dtype=np.int32), carray(cells),
+            carray(coords.shape, dtype=np.int32), carray(coords,dtype=np.float64),
+            carray(sizes.shape, dtype=np.int32), carray(sizes,dtype=np.float64),
+            carray(cells.shape, dtype=np.int32), carray(cells,dtype=np.float64),
             carray(image.shape, dtype=np.int32), carray(image),
             methods[str.lower(method)]
         )
@@ -673,25 +673,25 @@ def plane_morton_to_coords(nodetype,coords,sizes, p,u,v, edges=None):
 
     edgecount = lib.plane_morton_to_coords(
         carray(nodetype.shape, dtype=np.int32), carray(nodetype, dtype=np.int32),
-        carray(coords.shape, dtype=np.int32), carray(coords),
-        carray(sizes.shape, dtype=np.int32), carray(sizes),
+        carray(coords.shape, dtype=np.int32), carray(coords,dtype=np.float64),
+        carray(sizes.shape, dtype=np.int32), carray(sizes,dtype=np.float64),
         carray(p),carray(u),carray(v), 
         carray(edges.shape,dtype=np.int32), carray(edges), doedges,
     )
 
     return edgecount
 
-if 0:
-    lib.morton_to_coords.argtypes = (
+if 1:
+    lib.morton_to_coords_p4est.argtypes = (
         ptr_int32, ptr_int8, 
         ptr_int32, ptr_int32,
         ptr_int32, ptr_double,
     )
 
-    def morton_to_coords(levels, morton):
+    def morton_to_coords_p4est(levels, morton):
         coords = np.zeros((levels.shape[0],3))
 
-        lib.morton_to_coords(
+        lib.morton_to_coords_p4est(
             carray(levels.shape, dtype=np.int32), carray(levels),
             carray(morton.shape, dtype=np.int32), carray(morton),
             carray(coords.shape, dtype=np.int32), carray(coords),
@@ -699,7 +699,7 @@ if 0:
 
         return coords
 
-    lib.cells_to_image.argtypes = (
+    lib.cells_to_image_p4est.argtypes = (
         ptr_int32, ptr_int8, 
         ptr_int32, ptr_int32,
         ptr_int32, ptr_double,
@@ -707,7 +707,7 @@ if 0:
         ct.c_int32
     )
 
-    def cells_to_image(levels, morton, cells, image, method='nearest', gridlines=0):
+    def cells_to_image_p4est(levels, morton, cells, image, method='nearest', gridlines=0):
         methods = dict(
             nearest  = 0,
             bilinear = 1,
@@ -717,7 +717,7 @@ if 0:
         if len(cells.shape) < 2:
             cshape = (cells.shape[0], 1,1)
      
-            lib.cells_to_image(
+            lib.cells_to_image_p4est(
                 carray(levels.shape, dtype=np.int32), carray(levels),
                 carray(morton.shape, dtype=np.int32), carray(morton),
                 carray(      cshape, dtype=np.int32), carray(cells),
@@ -725,7 +725,7 @@ if 0:
                 methods[str.lower(method)], gridlines
             )
         else:
-            lib.cells_to_image(
+            lib.cells_to_image_p4est(
                 carray(levels.shape, dtype=np.int32), carray(levels),
                 carray(morton.shape, dtype=np.int32), carray(morton),
                 carray( cells.shape, dtype=np.int32), carray(cells),
@@ -733,6 +733,7 @@ if 0:
                 methods[str.lower(method)], gridlines
             )
 
+if 0:
     lib.cells_to_image_3d.argtypes = (
         ptr_int32, ptr_int8, 
         ptr_int32, ptr_int32,

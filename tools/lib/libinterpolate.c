@@ -3,10 +3,10 @@
 # include <malloc.h>
 # include <stdint.h>
 
-# if defined(P4EST)
 # include <p4est.h>
 # include <p4est_connectivity.h>
 
+# if defined(P4EST)
 # include <p8est.h>
 # include <p8est_connectivity.h>
 # endif
@@ -1588,10 +1588,8 @@ plane_morton_to_coords(
     return ecount;
 }
 
-# if defined(P4EST)
-
 void
-morton_to_coords(
+morton_to_coords_p4est(
     const int dims_levels[1], const int8_t *levels,
     const int dims_morton[2], const int32_t *morton,
     const int dims_coords[2], double *coords
@@ -1616,7 +1614,7 @@ morton_to_coords(
 }
 
 void
-cells_to_image(
+cells_to_image_p4est(
     const int dims_levels[1], const int8_t *levels,
     const int dims_morton[2], const int32_t *morton,
     const int dims_cells[3], const double *cells,
@@ -1681,6 +1679,7 @@ cells_to_image(
     p4est_connectivity_destroy(unitcube);
 }
 
+# if defined(P4EST)
 void
 cells_to_image_3d(
     const int dims_levels[1], const int8_t *levels,

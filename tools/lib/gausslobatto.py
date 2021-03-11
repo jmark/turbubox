@@ -130,8 +130,8 @@ def LegendrePolynomialAndDerivative(N,x,doNormalize=False):
 def LegendreGaussNodesAndWeights(N):
     """ Compute the nodes (roots of the Legendre Polynomial) and weights for
         the Legendre-Gauss-Quadrature. """
-    if N == 0: return (0,2)
-    if N == 1: return ( np.array([-np.sqrt(1/3),np.sqrt(1/3)]) , np.array([1,1]) )
+    if N == 0: return (np.array([0]),np.array([2]))
+    if N == 1: return (np.array([-np.sqrt(1/3),np.sqrt(1/3)]) , np.array([1,1]) )
 
     # nodes and weights
     xs = np.zeros(N+1)
@@ -182,7 +182,7 @@ def qAndLEvaluation(N,x):
     return (q,qD,LN)
 
 def LegendreGaussLobattoNodesAndWeights(N):
-    if N == 1: return ( [-1,1], [1,1] )
+    if N == 1: return (np.array([-1,1]), np.array([1,1]))
 
     xs,ws = np.empty(N+1),np.empty(N+1)
 
